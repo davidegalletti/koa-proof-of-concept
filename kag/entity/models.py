@@ -6,8 +6,8 @@ class DBConnection(models.Model):
 
 
 class Entity(models.Model):
-    version = models.IntegerField()
-    name = models.CharField(max_length=100L, blank=True)
+    version = models.IntegerField(blank=True)
+    name = models.CharField(max_length=100L)
     description = models.CharField(max_length=2000L, blank=True)
     table_name = models.CharField(max_length=255L, db_column='tableName', blank=True) 
     id_field = models.CharField(max_length=255L, db_column='idField', blank=True)
