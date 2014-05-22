@@ -14,7 +14,6 @@ def index(request):
     context = {'application_list': application_list, 'kuser_list': kuser_list, 'authenticated_user':authenticated_user }
     return render(request, 'application/index.html', context)
 
-
 def detail(request, application_id):
     application =  get_object_or_404(Application, pk=application_id)
     entity_list = []
@@ -31,7 +30,9 @@ def klogin(request, username, password):
         # the password verified for the user
         if user.is_active:
             login(request, user)
-            return HttpResponse("User is valid, active and authenticated")
+            kuser = KUser.objects.get(login = user.username)
+            
+            return render(request, 'application/user_detail.html', {'kuser': kuser, 'methods': kuser.permission_holder.methods.all})
         else:
             return HttpResponse("The password is valid, but the account has been disabled!")
     else:

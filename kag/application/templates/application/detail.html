@@ -1,0 +1,16 @@
+<h1>{{ application.name }}</h1>
+<h2>{{ application.description }}</h2>
+<h3>Methods</h3>
+<ul>
+{% for method in application.methods.all %}
+    <li>{{ method.name }}</li>
+{% endfor %}
+</ul>
+
+<h3>Entities</h3>
+<ul>
+{% for entity in entity_list %}
+    <li><a href="/entity/{{ entity.id }}/{{ application.id }}/">{{ entity.name }}</a></li>
+{% endfor %}
+</ul>
+

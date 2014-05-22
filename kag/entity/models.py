@@ -15,8 +15,12 @@ class Entity(models.Model):
     description_field = models.CharField(max_length=255L, db_column='descriptionField', blank=True)
     version_released = models.IntegerField(null=True, db_column='versionReleased', blank=True)
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
+    def __unicode__(self):
+        return self.name + " (" + self.version + ")" 
 
 class Attribute(models.Model):
     name = models.CharField(max_length=255L, blank=True)
     entity = models.ForeignKey('Entity', null=True, blank=True)
+    def __unicode__(self):
+        return self.entity + "." + self.name 
 

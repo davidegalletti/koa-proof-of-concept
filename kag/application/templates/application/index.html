@@ -1,0 +1,20 @@
+{% if kuser_list %}
+    <ul>
+    {% for kuser in kuser_list %}
+        <li><a target="_blank" href="/application/klogin/{{ kuser.login }}/{{ kuser.password }}/">{{ kuser.name }} {{ kuser.surname }} {% if kuser.login == authenticated_user %}(Authenticated){% endif %}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No applications are available.</p>
+{% endif %}
+
+
+{% if application_list %}
+    <ul>
+    {% for application in application_list %}
+        <li><a href="/application/{{ application.id }}/">{{ application.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No applications are available.</p>
+{% endif %}
