@@ -14,6 +14,16 @@ Authenticated user: {{authenticated_user.username}}
     <li><a href="{% url 'method' entity.id application.id method.id %}">{{ attribute.id }} - {{ attribute.name }}<a></li>
 {% endfor %}
 </ul>
+<hr>
+<form>
+    {{ form.as_p }}
+<p>
+    <input type="submit">
+</p>
+</form>
+<hr>
+
+
 {% endblock %}
 {% block left_menu %}
 
