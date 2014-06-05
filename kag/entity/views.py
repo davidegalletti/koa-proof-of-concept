@@ -36,4 +36,7 @@ def method(request, entity_id, application_id, method_id):
     application = get_object_or_404(Application, pk=application_id)
     method = get_object_or_404(Method, pk=method_id)
     authenticated_user = request.user
+    
     return render(request, 'entity/method.html', {'entity': entity, 'application': application, 'authenticated_user': authenticated_user, 'method': method})
+
+

@@ -26,7 +26,7 @@ m1.save()
 bt = Application(name="Bug tracking system", description="Yet another bug tracking system")
 bt.save()
 
-create_bug = Method(name='Create a bug', description='It creates a bug')
+create_bug = Method(name='Create a bug', description='It creates a bug', create_instance = True)
 create_bug.save()
 resolve_bug = Method(name='Resolve a bug', description='It resolves a bug')
 resolve_bug.save()

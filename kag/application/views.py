@@ -22,7 +22,8 @@ def detail(request, application_id):
             entity_list.append(a.entity)
     # following line makes entries unique
     entity_list = list(set(entity_list))
-    return render(request, 'application/detail.html', {'application': application, 'entity_list': entity_list})
+    initial_methods = application.methods.filter(create_instance=1)
+    return render(request, 'application/detail.html', {'application': application, 'entity_list': entity_list, 'initial_methods': initial_methods})
 
 def klogin(request, username, password):
     user = authenticate(username=username, password=password)
