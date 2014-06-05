@@ -22,5 +22,5 @@ class Attribute(models.Model):
     name = models.CharField(max_length=255L, blank=True)
     entity = models.ForeignKey('Entity', null=True, blank=True)
     def __unicode__(self):
-        return self.entity + "." + self.name 
+        return self.entity.name + "." + self.name 
 

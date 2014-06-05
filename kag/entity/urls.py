@@ -5,5 +5,6 @@ from entity import views
 urlpatterns = patterns('',
     url(r'^$', views.index, name='index'),
     url(r'^(?P<entity_id>\d+)/(?P<application_id>\d+)/$', views.detail, name='detail'),
+    url(r'^(?P<entity_id>\d+)/(?P<application_id>\d+)/(?P<method_id>\d+)/$', views.method, name='method'),
 )
 
