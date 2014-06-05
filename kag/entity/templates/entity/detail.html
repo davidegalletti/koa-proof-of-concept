@@ -5,7 +5,7 @@ Application: {{ application.name }}<br>
 <h3>Methods</h3>
 <ul>
 {% for method in methods %}
-    <li>{{ method.name }}</li>
+    <li><a href="{% url 'method' entity.id application.id method.id %}">{{ method.id }} - {{ method.name }}<a></li>
 {% endfor %}
 </ul>
 {% endif %}

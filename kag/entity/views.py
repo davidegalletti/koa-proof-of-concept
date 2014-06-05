@@ -1,11 +1,11 @@
 from django.http import HttpResponse
 from entity.models import Entity
 from django.shortcuts import render, get_object_or_404, redirect
-from application.models import Application
+from application.models import Application, Method
 from userauthorization.models import KUser, PermissionHolder
 
 def index(request):
-    return HttpResponse("Hello, world. You're at the entity index.")
+    return HttpResponse("Entity index.")
 
 def detail(request, entity_id, application_id):
     if not request.user.is_authenticated():
@@ -30,3 +30,10 @@ def detail(request, entity_id, application_id):
     # following line makes entries unique
 #    entity_list = list(set(entity_list))
     return render(request, 'entity/detail.html', {'entity': entity, 'application': application, 'authenticated_user': authenticated_user, 'methods': methods})
+
+def method(request, entity_id, application_id, method_id):
+    entity = get_object_or_404(Entity, pk=entity_id)
+    application = get_object_or_404(Application, pk=application_id)
+    method = get_object_or_404(Method, pk=method_id)
+    authenticated_user = request.user
+    return render(request, 'entity/method.html', {'entity': entity, 'application': application, 'authenticated_user': authenticated_user, 'method': method})
