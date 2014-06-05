@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block content %}
+
+Method: {{ method.name }}<br>
+Entity: {{ entity.name }}<br>
+Application: {{ application.name }}<br>
+{% if authenticated_user != None %}
+Authenticated user: {{authenticated_user.username}}
+{% endif %}
+<h3>Attributes</h3>
+<ul>
+{% for attribute in method.attributes.all %}
+    <li><a href="{% url 'method' entity.id application.id method.id %}">{{ attribute.id }} - {{ attribute.name }}<a></li>
+{% endfor %}
+</ul>
+{% endblock %}
+{% block left_menu %}
+
+{% endblock %}
