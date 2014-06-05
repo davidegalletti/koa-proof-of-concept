@@ -32,7 +32,10 @@ def detail(request, entity_id, application_id):
     return render(request, 'entity/detail.html', {'entity': entity, 'application': application, 'authenticated_user': authenticated_user, 'methods': methods})
 
 def method(request, entity_id, application_id, method_id):
-    entity = get_object_or_404(Entity, pk=entity_id)
+    # entity_id is 0 when the method creates an instance of entity
+    entity = None
+    if entity_id>0:
+        entity = get_object_or_404(Entity, pk=entity_id)
     application = get_object_or_404(Application, pk=application_id)
     method = get_object_or_404(Method, pk=method_id)
     authenticated_user = request.user
