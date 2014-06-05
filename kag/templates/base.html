@@ -1,0 +1,26 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta content="text/html; charset=UTF-8" http-equiv="content-type">
+        <title>Knowledge Application Generator - Proof of Concept</title>
+    </head>
+
+    <body>
+        <header>
+            <h2>Knowledge Application Generator - Proof of Concept</h2>
+            {% block application_header %}{% endblock %}
+        </header>
+        <section id="page-body" class="">
+            <div id="content_base">
+                <h3>Left menu</h3>
+                {% block left_menu %}{% endblock %}
+                <h3>Content</h3>
+                {% block content %}{% endblock %}
+            </div>
+        </section>
+        <footer >
+        </footer>
+    </body>
+</html>
+
