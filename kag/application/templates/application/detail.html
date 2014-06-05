@@ -1,8 +1,8 @@
 <h1>{{ application.name }}</h1>
 <h2>{{ application.description }}</h2>
-<h3>Methods</h3>
+<h3>Methods "create_instance"</h3>
 <ul>
-{% for method in application.methods.all %}
+{% for method in initial_methods %}
     <li>{{ method.name }}</li>
 {% endfor %}
 </ul>
