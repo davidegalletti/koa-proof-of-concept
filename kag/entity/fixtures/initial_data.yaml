@@ -1,0 +1,208 @@
+- model: entity.Workflow
+  pk: 1
+  fields:
+    name: "Default minimal workflow"
+    description: ""
+- model: entity.WorkflowStatus
+  pk: 1
+  fields:
+    name: "Initial"
+    description: ""
+    workflow: 1
+- model: entity.WorkflowStatus
+  pk: 2
+  fields:
+    name: "Final"
+    description: ""
+    workflow: 1
+- model: entity.Entity
+  pk: 1
+  fields:
+    name: "Entity"
+    app: "entity"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: "description"
+    version: 1
+    version_released: 1
+    workflow: 1
+- model: entity.Entity
+  pk: 2
+  fields:
+    name: "Attribute"
+    app: "entity"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: ""
+    version: 1
+    version_released: 1
+    workflow:
+- model: entity.Entity
+  pk: 3
+  fields:
+    name: "Application"
+    app: "application"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: "description"
+    version: 1
+    version_released: 1
+    workflow: 1
+- model: entity.Entity
+  pk: 4
+  fields:
+    name: "Method"
+    app: "application"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: "description"
+    version: 1
+    version_released: 1
+    workflow:
+- model: entity.Entity
+  pk: 5
+  fields:
+    name: "Workflow"
+    app: "entity"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: "description"
+    version: 1
+    version_released: 1
+    workflow: 1
+- model: entity.Entity
+  pk: 6
+  fields:
+    name: "WorkflowStatus"
+    app: "entity"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: "description"
+    version: 1
+    version_released: 1
+    workflow: 
+- model: entity.Entity
+  pk: 7
+  fields:
+    name: "Method"
+    app: "application"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: "description"
+    version: 1
+    version_released: 1
+    workflow: 
+- model: entity.Entity
+  pk: 8
+  fields:
+    name: "AttributeType"
+    app: "entity"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: ""
+    version: 1
+    version_released: 1
+    workflow: 
+- model: entity.Entity
+  pk: 9
+  fields:
+    name: "Widget"
+    app: "application"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "widgetname"
+    description_field: ""
+    version: 1
+    version_released: 1
+    workflow: 
+- model: entity.EntityTreeNode
+  pk: 1
+  fields:
+    entity: 1
+    child_nodes: [2]
+- model: entity.EntityTreeNode
+  pk: 2
+  fields:
+    entity: 2
+    attribute: "attribute_set"
+    child_nodes: [9]
+- model: entity.EntityTreeNode
+  pk: 9
+  fields:
+    entity: 8
+    attribute: "type"
+    child_nodes: []
+- model: entity.EntityTreeNode
+  pk: 3
+  fields:
+    entity: 1
+    child_nodes: [4, 5]
+- model: entity.EntityTreeNode
+  pk: 4
+  fields:
+    entity: 2
+    attribute: "attribute_set"
+    child_nodes: [10]
+- model: entity.EntityTreeNode
+  pk: 5
+  fields:
+    entity: 5
+    attribute: "workflow"
+    child_nodes: [6, 7]
+- model: entity.EntityTreeNode
+  pk: 6
+  fields:
+    entity: 6
+    attribute: "workflow_status_set"
+    child_nodes: []
+- model: entity.EntityTreeNode
+  pk: 7
+  fields:
+    entity: 7
+    attribute: ""
+    child_nodes: [8]
+- model: entity.EntityTreeNode
+  pk: 8
+  fields:
+    entity: 3
+    attribute: "method_set"
+    child_nodes: []
+- model: entity.EntityTreeNode
+  pk: 10
+  fields:
+    entity: 8
+    attribute: "type"
+    child_nodes: [11]
+- model: entity.EntityTreeNode
+  pk: 11
+  fields:
+    entity: 9
+    attribute: "widgets"
+    child_nodes: []
+- model: entity.EntityTree
+  pk: 1
+  fields:
+    name: "Entity-attributes"
+    entry_point: 1
+- model: entity.EntityTree
+  pk: 2
+  fields:
+    name: "Entity-...-Application"
+    entry_point: 3
