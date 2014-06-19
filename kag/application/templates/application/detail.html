@@ -3,7 +3,7 @@
 <h3>Methods "create_instance"</h3>
 <ul>
 {% for method in initial_methods %}
-    <li>{{ method.name }}</li>
+    <li><a href="{% url 'method' 0 application.id method.id %}">{{ method.id }} - {{ method.name }}<a></li>
 {% endfor %}
 </ul>
 
