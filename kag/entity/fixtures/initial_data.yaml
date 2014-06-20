@@ -133,10 +133,11 @@
     version_released: 1
     workflow: 
 - model: entity.EntityTreeNode
-  pk: 1
+  pk: 9
   fields:
-    entity: 1
-    child_nodes: [2]
+    entity: 8
+    attribute: "type"
+    child_nodes: []
 - model: entity.EntityTreeNode
   pk: 2
   fields:
@@ -144,16 +145,42 @@
     attribute: "attribute_set"
     child_nodes: [9]
 - model: entity.EntityTreeNode
-  pk: 9
+  pk: 1
+  fields:
+    entity: 1
+    child_nodes: [2]
+
+
+- model: entity.EntityTreeNode
+  pk: 6
+  fields:
+    entity: 6
+    attribute: "workflow_status_set"
+    child_nodes: []
+- model: entity.EntityTreeNode
+  pk: 8
+  fields:
+    entity: 3
+    attribute: "method_set"
+    child_nodes: []
+- model: entity.EntityTreeNode
+  pk: 7
+  fields:
+    entity: 7
+    attribute: ""
+    child_nodes: [8]
+- model: entity.EntityTreeNode
+  pk: 11
+  fields:
+    entity: 9
+    attribute: "widgets"
+    child_nodes: []
+- model: entity.EntityTreeNode
+  pk: 10
   fields:
     entity: 8
     attribute: "type"
-    child_nodes: []
-- model: entity.EntityTreeNode
-  pk: 3
-  fields:
-    entity: 1
-    child_nodes: [4, 5]
+    child_nodes: [11]
 - model: entity.EntityTreeNode
   pk: 4
   fields:
@@ -167,35 +194,10 @@
     attribute: "workflow"
     child_nodes: [6, 7]
 - model: entity.EntityTreeNode
-  pk: 6
+  pk: 3
   fields:
-    entity: 6
-    attribute: "workflow_status_set"
-    child_nodes: []
-- model: entity.EntityTreeNode
-  pk: 7
-  fields:
-    entity: 7
-    attribute: ""
-    child_nodes: [8]
-- model: entity.EntityTreeNode
-  pk: 8
-  fields:
-    entity: 3
-    attribute: "method_set"
-    child_nodes: []
-- model: entity.EntityTreeNode
-  pk: 10
-  fields:
-    entity: 8
-    attribute: "type"
-    child_nodes: [11]
-- model: entity.EntityTreeNode
-  pk: 11
-  fields:
-    entity: 9
-    attribute: "widgets"
-    child_nodes: []
+    entity: 1
+    child_nodes: [4, 5]
 - model: entity.EntityTree
   pk: 1
   fields:

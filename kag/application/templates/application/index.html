@@ -12,7 +12,12 @@
 {% if application_list %}
     <ul>
     {% for application in application_list %}
-        <li><a href="/application/{{ application.id }}/">{{ application.name }}</a></li>
+        <li>
+            <a href="/application/{{ application.id }}/">{{ application.name }}</a>
+            {% for entity_tree in entity_trees %}
+                <a href="/entity/export/{{ entity_tree.id }}/{{ application.id }}/">Export {{ entity_tree.name }}</a>
+            {% endfor %}
+        </li>
     {% endfor %}
     </ul>
 {% else %}

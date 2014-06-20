@@ -79,8 +79,14 @@ class Entity(WorkflowEntity):
     description_field = models.CharField(max_length=255L, db_column='descriptionField', blank=True)
     version_released = models.IntegerField(null=True, db_column='versionReleased', blank=True)
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
-    def __unicode__(self):
-        return self.name + " (" + self.version + ")" 
+    def to_xml(self, etn):
+        str_xml = ""
+        for child_node in etn.child_nodes.all():
+            print "self." + child_node.attribute + ".all()"
+            child_instances = eval("self." + child_node.attribute + ".all()")
+            for child_instance in child_instances:
+                str_xml = child_instance.to_xml(child_node)
+        return '<Entity Id="' + str(self.id) + '" Name="' + self.name + '">' + str_xml + "</Entity>"
 
 class AttributeType(models.Model):
     name = models.CharField(max_length=255L, blank=True)
@@ -92,12 +98,15 @@ class Attribute(models.Model):
     type = models.ForeignKey('AttributeType')
     def __unicode__(self):
         return self.entity.name + "." + self.name 
+    def to_xml(self, etn):
+        str_xml = ""
+        return '<Attribute Id="' + str(self.id) + '" Name="' + self.name + '">' + str_xml + "</Attribute>"
 
 class EntityTreeNode(models.Model):
     entity = models.ForeignKey('Entity')
     # attribute is blank for the entry point
     attribute = models.CharField(max_length=255L, blank=True)
-    child_nodes = models.ManyToManyField('self', blank=True)
+    child_nodes = models.ManyToManyField('self', blank=True, related_name='+')
    
 class EntityTree(models.Model):
     '''

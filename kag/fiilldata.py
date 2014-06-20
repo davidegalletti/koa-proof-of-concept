@@ -3,9 +3,90 @@
 __author__ = 'david'
 
 from application.models import Application, Method
-from entity.models import Entity, Attribute, WorkflowStatus, Workflow, AttributeType
+from entity.models import Entity, Attribute, WorkflowStatus, Workflow, AttributeType, EntityTree, EntityTreeNode
 from django.contrib.auth.models import User
 from userauthorization.models import KUser, PermissionHolder
+
+
+
+# wf = Workflow(name= "Default minimal workflow", description= "")
+# wf.save()
+# ws1 = WorkflowStatus(name = "Initial", description= "", workflow = wf)
+# ws1.save()
+# ws2 = WorkflowStatus(name = "Final", description= "", workflow = wf)
+# ws1.save()
+# e1 = Entity(name= "Entity", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1, workflow= wf)
+# e1.save()
+# e2 = Entity(name= "Attribute", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "", version= 1, version_released= 1)
+# e2.save()
+# e3 = Entity(name= "Application", app= "application", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1, workflow= wf)
+# e3.save()
+# e4 = Entity(name= "Method", app= "application", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1)
+# e4.save()
+# e5 = Entity(name= "Workflow", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1, workflow= wf)
+# e5.save()
+# e6 = Entity(name= "WorkflowStatus", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1)
+# e6.save()
+# e7 = Entity(name= "Method", app= "application", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1)
+# e7.save()
+# e8 = Entity(name= "AttributeType", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "", version= 1, version_released= 1)
+# e8.save()
+# e9 = Entity(name= "Widget", app= "application", description= "", table_name= "", id_field= "id", name_field= "widgetname", description_field= "", version= 1, version_released= 1)
+# e9.save()
+# 
+# etn11 = EntityTreeNode(entity = e9, attribute = "widgets")
+# etn11.child_nodes = []
+# etn11.save()
+# etn10 = EntityTreeNode(entity = e8, attribute = "type")
+# etn10.child_nodes = []
+# etn10.child_nodes.add(etn11)
+# etn10.save()
+# etn9 = EntityTreeNode(entity = e8, attribute = "type")
+# etn9.child_nodes = []
+# etn9.save()
+# etn8 = EntityTreeNode(entity = e3, attribute = "")
+# etn8.save()
+# etn7 = EntityTreeNode(entity = e7, attribute = "method_set")
+# etn8.child_nodes = []
+# etn7.child_nodes.add(etn8)
+# etn7.child_nodes = []
+# etn7.save()
+# etn6 = EntityTreeNode(entity = e6, attribute = "workflow_status_set")
+# etn6.child_nodes = []
+# etn6.save()
+# etn5 = EntityTreeNode(entity = e5, attribute = "workflow")
+# etn5.child_nodes = []
+# etn5.child_nodes.add(etn6)
+# etn5.child_nodes.add(etn7)
+# etn5.save()
+# etn4 = EntityTreeNode(entity = e2, attribute = "attribute_set")
+# etn4.child_nodes = []
+# etn4.child_nodes.add(etn10)
+# etn4.save()
+# etn3 = EntityTreeNode(entity = e1, attribute = "")
+# etn3.child_nodes = []
+# etn3.child_nodes.add(etn4)
+# etn3.child_nodes.add(etn5)
+# etn3.save()
+# etn2 = EntityTreeNode(entity = e2, attribute = "attribute_set")
+# etn2.child_nodes = []
+# etn2.child_nodes.add(etn9)
+# etn2.save()
+# etn1 = EntityTreeNode(entity = e1)
+# etn1.child_nodes = []
+# etn1.child_nodes.add(etn2)
+# etn1.save()
+# 
+# et1 = EntityTree(name = "Entity-attributes", entry_point = etn1)
+# et1.save()
+# et2 = EntityTree(name = "Entity-...-Application", entry_point = etn3)
+# et2.save()
+
+
+
+
+
+
 
 # creiamo un'applicazione, con due metodi
 ks = Application(name="Knowledge server", description="The prototype of the knowledge server", version=1)
@@ -51,6 +132,14 @@ attr2.save()
 create_bug.attributes.add(attr1)
 create_bug.attributes.add(attr2)
 create_bug.save()
+#aggiungiamo due attributi all'entità "Entity"
+e = Entity.objects.get(name="Entity")
+attr1 = Attribute(name='Name', entity=e, type=at)
+attr1.save()
+attr2 = Attribute(name='Version', entity=e, type=at)
+attr2.save()
+
+
 # creiamo 2 utenti su Django
 dj_davide = User.objects.create_user('davide', 'davide.galletti@gmail.com', 'davide')
 dj_sara = User.objects.create_user('sara', 'sara@davide.galletti.name', 'sara')
@@ -70,3 +159,6 @@ sara.permission_holder.methods.add(resolve_bug)
 sara.permission_holder.save()
 davide.permission_holder.methods.add(resolve_bug)
 davide.permission_holder.save()
+
+
+

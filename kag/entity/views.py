@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-from entity.models import Entity
+from entity.models import Entity, EntityTree, EntityTreeNode
 from django.shortcuts import render, get_object_or_404, redirect
 from application.models import Application, Method
 from userauthorization.models import KUser, PermissionHolder
@@ -8,7 +8,12 @@ from django import forms
 
 
 def index(request):
-    return HttpResponse("Entity index.")
+    entity_list = Entity.objects.order_by('name')
+    e = Entity.objects.get(name="Entity")
+    entity_trees = EntityTree.objects.filter(entry_point__entity = e)
+    context = {'entity_list': entity_list, 'entity_trees': entity_trees, 'entity_id': e.id}
+    
+    return render(request, 'entity/index.html', context)
 
 def detail(request, entity_id, application_id):
     if not request.user.is_authenticated():
@@ -54,8 +59,6 @@ def getForm(method, name="FlyModel"):
 
     return FormAlVolo(cmod)
 
-
-
 def method(request, entity_id, application_id, method_id):
     # entity_id is 0 when the method creates an instance of entity
     entity = None
@@ -67,3 +70,12 @@ def method(request, entity_id, application_id, method_id):
 
     attrib_form = getForm(method)
     return render(request, 'entity/method.html', {'entity': entity, 'application': application, 'authenticated_user': authenticated_user, 'method': method, 'form': attrib_form})
+
+def export(request, entity_tree_id, entity_instance_id, entity_id):
+    e = Entity.objects.get(pk = entity_id)
+    instance = eval('get_object_or_404(' + e.name + ', pk=entity_instance_id)')
+    et = EntityTree.objects.get(pk = entity_tree_id)
+    exported_xml = instance.to_xml(et.entry_point)
+    
+    return render(request, 'entity/export.xml', {'xml': exported_xml}, content_type="application/xhtml+xml")
+    
