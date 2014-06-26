@@ -28,6 +28,20 @@
     version: 1
     version_released: 1
     workflow: 1
+- model: entity.AttributeType
+  pk: 1
+  fields:
+    name: "Text"
+- model: entity.AttributeType
+  pk: 2
+  fields:
+    name: "Date"
+- model: entity.Attribute
+  pk: 1
+  fields:
+    name: "Attribute"
+    entity: 1
+    type: 1
 - model: entity.Entity
   pk: 2
   fields:
@@ -132,6 +146,54 @@
     version: 1
     version_released: 1
     workflow: 
+- model: entity.Entity
+  pk: 10
+  fields:
+    name: "EntityTreeNode"
+    app: "entity"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "attribute"
+    description_field: ""
+    version: 1
+    version_released: 1
+    workflow: 
+- model: entity.Entity
+  pk: 11
+  fields:
+    name: "EntityTree"
+    app: "entity"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: ""
+    version: 1
+    version_released: 1
+    workflow: 
+
+
+- model: entity.EntityTreeNode
+  pk: 12
+  fields:
+    entity: 10
+    attribute: "child_nodes"
+    child_nodes: [12]
+- model: entity.EntityTreeNode
+  pk: 14
+  fields:
+    entity: 10
+    attribute: "entry_point"
+    child_nodes: [12]
+- model: entity.EntityTreeNode
+  pk: 13
+  fields:
+    entity: 11
+    attribute: ""
+    child_nodes: [14]
+
+
 - model: entity.EntityTreeNode
   pk: 9
   fields:
@@ -198,6 +260,7 @@
   fields:
     entity: 1
     child_nodes: [4, 5]
+
 - model: entity.EntityTree
   pk: 1
   fields:
@@ -208,3 +271,9 @@
   fields:
     name: "Entity-...-Application"
     entry_point: 3
+- model: entity.EntityTree
+  pk: 3
+  fields:
+    name: "EntityTree-EntityTreeNode"
+    entry_point: 13
+    
