@@ -8,10 +8,20 @@ from django import forms
 
 
 def index(request):
-    entity_list = Entity.objects.order_by('name')
-    e = Entity.objects.get(name="Entity")
-    entity_trees = EntityTree.objects.filter(entry_point__entity = e)
-    context = {'entity_list': entity_list, 'entity_trees': entity_trees, 'entity_id': e.id}
+    instance_list = Entity.objects.order_by('name')
+#     entities_and_trees = []
+#     for entity_instance in entity_list:
+#         e = Entity.objects.get(name=entity_instance.__class__.__name__)
+#         entity_trees = EntityTree.objects.filter(entry_point__entity = e)
+#         entities_and_trees.append([entity_instance, entity_trees])
+    context = {'instance_list': instance_list}
+    
+    return render(request, 'entity/index.html', context)
+
+def entity_index(request, entity_id):
+    e = Entity.objects.get(pk=entity_id)
+    instance_list = eval(e.name + ".objects.all()")
+    context = {'instance_list': instance_list}
     
     return render(request, 'entity/index.html', context)
 
@@ -30,13 +40,6 @@ def detail(request, entity_id, application_id):
                 methods.append(method)
             except:
                 pass
-    
-#    entity_list = []
-#    for m in application.methods.all():
-#        for a in m.attributes.all():
-#            entity_list.append(a.entity)
-    # following line makes entries unique
-#    entity_list = list(set(entity_list))
     return render(request, 'entity/detail.html', {'entity': entity, 'application': application, 'authenticated_user': authenticated_user, 'methods': methods})
 
 
@@ -73,7 +76,8 @@ def method(request, entity_id, application_id, method_id):
 
 def export(request, entity_tree_id, entity_instance_id, entity_id):
     e = Entity.objects.get(pk = entity_id)
-    instance = eval('get_object_or_404(' + e.name + ', pk=entity_instance_id)')
+    print ('get_object_or_404(' + e.name + ', pk=' + str(entity_instance_id) + ')')
+    instance = eval('get_object_or_404(' + e.name + ', pk=' + str(entity_instance_id) + ')')
     et = EntityTree.objects.get(pk = entity_tree_id)
     exported_xml = instance.to_xml(et.entry_point)
     

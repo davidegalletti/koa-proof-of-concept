@@ -62,9 +62,64 @@ class WorkflowMethod(models.Model):
     class Meta:
         abstract = True
 
+class genericEntity():
+    
+    def entity_instance(self):
+        '''
+        finds the instance of class Entity where the name corresponds to the name of the class of self
+        '''
+        return Entity.objects.get(name=self.__class__.__name__)
+    
+    def entity_trees(self):
+        '''
+        Lists the entity trees associated whose entry point is the instance of class Entity corresponding to the class of self
+        '''
+        return EntityTree.objects.filter(entry_point__entity = self.entity_instance)
+    
 
+class SerializableEntity(genericEntity):
+    def serializable_attributes(self):
+        """
+        TODO: use the class name instead of the syntax (e.g. _id, _set) to remove foreign keys 
+        lists all the attributes that can be serialized and 
+        their values excluding "pk" and those: 
+         - starting and ending with "_"
+         - starting with "_"
+         - ending with "_set"
+         - ending with "_id" and "*" where "*_id"
+         ManyRelatedManager
+         RelatedManager
+        """
+        out = {}
+        fk = []
+        for names in dir(self):
+            if names[-3:] == "_id":
+                fk.append(names[:-3])
+                fk.append(names)
+        for names in dir(self):
+            if names<>"objects":
+                attr = getattr(self,names)
+                if (not callable(attr)) and names[:1] <> "_" and (not (names[:1] == "_" and names[-1:] == "_")) and names[-4:] <> "_set" and (not names in fk) and names <> 'pk' and (not (eval("self." + names + ".__class__.__name__") in ['ManyRelatedManager', 'RelatedManager'] )):
+                    out[names] = str(attr)
+        return out
+    def serialized_attributes(self):
+        attributes = ""
+        for key, value in self.serializable_attributes().iteritems():
+            attributes += ' ' + key + '="' + value + '"'
+        return attributes
+    def to_xml(self, etn):
+        str_xml = ""
+        for child_node in etn.child_nodes.all():
+            if eval("self." + child_node.attribute + ".__class__.__name__") == 'RelatedManager':
+                child_instances = eval("self." + child_node.attribute + ".all()")
+                for child_instance in child_instances:
+                    str_xml += child_instance.to_xml(child_node)
+            else:
+                child_instance = eval("self." + child_node.attribute)
+                str_xml += child_instance.to_xml (child_node)
+        return '<' + self.__class__.__name__ + self.serialized_attributes() + '>' + str_xml + '</' + self.__class__.__name__ + '>'
 
-class Entity(WorkflowEntity):
+class Entity(WorkflowEntity, SerializableEntity):
     '''
     Every entity has a work-flow; the basic one is the one that allows a method to create an instance
     '''
@@ -79,36 +134,25 @@ class Entity(WorkflowEntity):
     description_field = models.CharField(max_length=255L, db_column='descriptionField', blank=True)
     version_released = models.IntegerField(null=True, db_column='versionReleased', blank=True)
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
-    def to_xml(self, etn):
-        str_xml = ""
-        for child_node in etn.child_nodes.all():
-            print "self." + child_node.attribute + ".all()"
-            child_instances = eval("self." + child_node.attribute + ".all()")
-            for child_instance in child_instances:
-                str_xml = child_instance.to_xml(child_node)
-        return '<Entity Id="' + str(self.id) + '" Name="' + self.name + '">' + str_xml + "</Entity>"
 
-class AttributeType(models.Model):
+class AttributeType(models.Model, SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
     widgets = models.ManyToManyField('application.Widget', blank=True)
 
-class Attribute(models.Model):
+class Attribute(models.Model, SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
     entity = models.ForeignKey('Entity', null=True, blank=True)
     type = models.ForeignKey('AttributeType')
     def __unicode__(self):
         return self.entity.name + "." + self.name 
-    def to_xml(self, etn):
-        str_xml = ""
-        return '<Attribute Id="' + str(self.id) + '" Name="' + self.name + '">' + str_xml + "</Attribute>"
 
-class EntityTreeNode(models.Model):
+class EntityTreeNode(models.Model, SerializableEntity):
     entity = models.ForeignKey('Entity')
     # attribute is blank for the entry point
     attribute = models.CharField(max_length=255L, blank=True)
-    child_nodes = models.ManyToManyField('self', blank=True, related_name='+')
+    child_nodes = models.ManyToManyField('self', blank=True, symmetrical=False)
    
-class EntityTree(models.Model):
+class EntityTree(models.Model, SerializableEntity):
     '''
     It is a tree that defines a set of entities on which we can perform a task; the tree has
     an entry point which is a Node e.g. an entity; from an instance of an entity we can use
