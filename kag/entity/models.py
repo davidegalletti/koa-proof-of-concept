@@ -211,3 +211,9 @@ class EntityTree(models.Model, SerializableEntity):
     '''
     name = models.CharField(max_length=200L)
     entry_point = models.ForeignKey('EntityTreeNode')
+
+class UploadedFile(models.Model):
+    '''
+    Used to save uploaded xml file so that it can be later retrieved and imported
+    '''
+    docfile = models.FileField(upload_to='documents/%Y/%m/%d')
