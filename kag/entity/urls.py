@@ -8,4 +8,5 @@ urlpatterns = patterns('',
     url(r'^(?P<entity_id>\d+)/(?P<application_id>\d+)/$', views.detail, name='detail'),
     url(r'^(?P<entity_id>\d+)/(?P<application_id>\d+)/(?P<method_id>\d+)/$', views.method, name='method'),
     url(r'^export/(?P<entity_tree_id>\d+)/(?P<entity_instance_id>\d+)/(?P<entity_id>\d+)/$', views.export, name='export'),
+    url(r'^upload_page', views.upload_page, name='upload_page'),
 )

@@ -1,11 +1,15 @@
 from django.http import HttpResponse
-from entity.models import Entity, EntityTree, EntityTreeNode
+from entity.models import Entity, EntityTree, EntityTreeNode, UploadedFile
 from django.shortcuts import render, get_object_or_404, redirect
 from application.models import Application, Method
 from userauthorization.models import KUser, PermissionHolder
+
+from xml.dom import minidom
 from django.db import models
 from django import forms
-
+from django.template import RequestContext
+from forms import UploadFileForm, ImportChoice
+from django.shortcuts import render_to_response
 
 def index(request):
     instance_list = Entity.objects.order_by('name')
@@ -82,3 +86,23 @@ def export(request, entity_tree_id, entity_instance_id, entity_id):
     
     return render(request, 'entity/export.xml', {'xml': exported_xml}, content_type="application/xhtml+xml")
     
+def upload_page(request):
+    message = ''
+    if request.method == 'POST':
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            xml_uploaded = request.FILES['file'].read()
+            new_uploaded_file = UploadedFile(docfile = request.FILES['file'])
+            # we save it on disk so that we can process it after the user has told us which part to import and how to import it
+            new_uploaded_file.save()
+            # we parse it so that we check what is on the file against what is on the database and we show this info to the user
+            try:
+                xmldoc = minidom.parseString(xml_uploaded)
+
+                import_choice_form = ImportChoice(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url}) # An unbound form
+                return render(request, 'analysis/import_file.html', {'prettyxml': xmldoc.toprettyxml(indent="    "),'file': request.FILES['file'], 'new_uploaded_file': new_uploaded_file, 'import_choice_form': import_choice_form})
+            except Exception as ex:
+                message = 'Error parsing uploaded file: ' + str(ex)
+    else:
+        form = UploadFileForm()
+    return render_to_response('entity/upload_page.html', {'form': form, 'message': message}, context_instance=RequestContext(request))
