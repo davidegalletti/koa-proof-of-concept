@@ -1,0 +1,18 @@
+{% if instance_list %}
+    <ul>
+    {% for instance in instance_list %}
+        <li>
+            {% if instance.entity_instance.name == 'Entity' %}
+                <a href="{% url 'entity_index' instance.id %}">{{ instance.name }}</a>
+            {% else %}
+                {{ instance.name }}
+            {% endif %}
+            {% for entity_tree in instance.entity_trees %}
+                <a href="{% url 'export' entity_tree.id instance.id instance.entity_instance.id %}">Export {{ entity_tree.name }}</a>
+            {% endfor %}
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No entities are available.</p>
+{% endif %}

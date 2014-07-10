@@ -1,5 +1,8 @@
 from django.db import models
 
+from kag.utils import xmlMinidom
+from xml.dom.minidom import Node
+
 
 class DBConnection(models.Model):
     connection_string = models.CharField(max_length=255L)
@@ -107,17 +110,59 @@ class SerializableEntity(genericEntity):
         for key, value in self.serializable_attributes().iteritems():
             attributes += ' ' + key + '="' + value + '"'
         return attributes
+
     def to_xml(self, etn):
         str_xml = ""
-        for child_node in etn.child_nodes.all():
-            if eval("self." + child_node.attribute + ".__class__.__name__") == 'RelatedManager':
-                child_instances = eval("self." + child_node.attribute + ".all()")
-                for child_instance in child_instances:
-                    str_xml += child_instance.to_xml(child_node)
-            else:
-                child_instance = eval("self." + child_node.attribute)
-                str_xml += child_instance.to_xml (child_node)
-        return '<' + self.__class__.__name__ + self.serialized_attributes() + '>' + str_xml + '</' + self.__class__.__name__ + '>'
+        if etn.full_export:
+            for child_node in etn.child_nodes.all():
+                child_class_name = eval("self." + child_node.attribute + ".__class__.__name__")
+                if child_class_name == 'RelatedManager' or child_class_name == 'ManyRelatedManager':
+                    child_instances = eval("self." + child_node.attribute + ".all()")
+                    for child_instance in child_instances:
+                        # let's prevent infinite loops if self relationships
+                        if (child_instance.__class__.__name__ <> self.__class__.__name__) or (etn.attribute <> child_node.attribute):
+                            str_xml += child_instance.to_xml(child_node)
+                else:
+                    print "Invoking \".to_xml\" for self." + child_node.attribute
+                    child_instance = eval("self." + child_node.attribute)
+                    str_xml += child_instance.to_xml (child_node)
+            return '<' + self.__class__.__name__ + ' ' + self.serialized_attributes() + '>' + str_xml + '</' + self.__class__.__name__ + '>'
+        else:
+            print "etn.entity.name: " + etn.entity.name
+            print "etn.entity.name_field: " + etn.entity.name_field
+            if etn.entity.name_field <> "":
+                xml_name = " " + etn.entity.name_field + "=\"" + eval("self." + etn.entity.name_field) + "\""
+            print "self.name: " + self.name
+            return '<' + self.__class__.__name__ + ' id="' + str(self.id) + '"' + xml_name + '/>'
+
+    def from_xml(self, etn, xmldoc, insert = True):
+        pass
+#         if not insert:
+#             self.id = xmlMinidom.getNaturalAttribute(xmldoc, 'Id')
+#         self.number = xmldoc.attributes["Number"].firstChild.data
+#         self.created = xmlMinidom.getStringAttribute(xmldoc, 'Created')
+#         self.current = xmlMinidom.getStringAttribute(xmldoc, 'Current')
+#         m = Methodology()
+#         xml_methodology = xmldoc.getElementsByTagName('Methodology')[0]
+#         m.from_xml(xml_methodology, insert)
+#         self.methodology = m
+#         # I save so I get the ID (if insert == True)
+#         self.save()
+#         # Pages
+#         for xml_child in xmldoc.childNodes:
+#             # Some nodes are text nodes (e.g. u'\n     ') I need to look just at ELEMENT_NODE
+#             if xml_child.nodeType == Node.ELEMENT_NODE and xml_child.tagName == 'Pages':
+#                 xml_pages = xml_child
+#                 break
+#         for xml_page in xml_pages.childNodes:
+#             if xml_page.nodeType == Node.ELEMENT_NODE and xml_page.tagName == 'Page':
+#                 p = Page()
+#                 p.from_xml(xml_page, self, None, insert)
+#         #WeightScenarios
+#         xml_weight_scenarios = xmldoc.getElementsByTagName('WeightScenarios')
+#         for xml_weight_scenario in xml_weight_scenarios:
+#             ws = WeightScenario()
+#             ws.from_xml(xml_weight_scenario, self, insert)
 
 class Entity(WorkflowEntity, SerializableEntity):
     '''
@@ -143,7 +188,7 @@ class Attribute(models.Model, SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
     entity = models.ForeignKey('Entity', null=True, blank=True)
     type = models.ForeignKey('AttributeType')
-    def __unicode__(self):
+    def __str__(self):
         return self.entity.name + "." + self.name 
 
 class EntityTreeNode(models.Model, SerializableEntity):
@@ -151,6 +196,8 @@ class EntityTreeNode(models.Model, SerializableEntity):
     # attribute is blank for the entry point
     attribute = models.CharField(max_length=255L, blank=True)
     child_nodes = models.ManyToManyField('self', blank=True, symmetrical=False)
+    # if full_export all attributes are exported, otherwise only the id 
+    full_export = models.BooleanField(default=True)
    
 class EntityTree(models.Model, SerializableEntity):
     '''
@@ -164,3 +211,5 @@ class EntityTree(models.Model, SerializableEntity):
     '''
     name = models.CharField(max_length=200L)
     entry_point = models.ForeignKey('EntityTreeNode')
+
+print 1

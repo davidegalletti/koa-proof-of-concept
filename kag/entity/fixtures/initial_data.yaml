@@ -3,6 +3,7 @@
   fields:
     name: "Default minimal workflow"
     description: ""
+
 - model: entity.WorkflowStatus
   pk: 1
   fields:
@@ -15,6 +16,7 @@
     name: "Final"
     description: ""
     workflow: 1
+
 - model: entity.Entity
   pk: 1
   fields:
@@ -28,6 +30,7 @@
     version: 1
     version_released: 1
     workflow: 1
+
 - model: entity.AttributeType
   pk: 1
   fields:
@@ -42,6 +45,7 @@
     name: "Attribute"
     entity: 1
     type: 1
+
 - model: entity.Entity
   pk: 2
   fields:
@@ -55,6 +59,7 @@
     version: 1
     version_released: 1
     workflow:
+
 - model: entity.Entity
   pk: 3
   fields:
@@ -68,6 +73,7 @@
     version: 1
     version_released: 1
     workflow: 1
+
 - model: entity.Entity
   pk: 4
   fields:
@@ -81,6 +87,7 @@
     version: 1
     version_released: 1
     workflow:
+
 - model: entity.Entity
   pk: 5
   fields:
@@ -94,6 +101,7 @@
     version: 1
     version_released: 1
     workflow: 1
+
 - model: entity.Entity
   pk: 6
   fields:
@@ -107,6 +115,7 @@
     version: 1
     version_released: 1
     workflow: 
+
 - model: entity.Entity
   pk: 7
   fields:
@@ -120,6 +129,7 @@
     version: 1
     version_released: 1
     workflow: 
+
 - model: entity.Entity
   pk: 8
   fields:
@@ -133,6 +143,7 @@
     version: 1
     version_released: 1
     workflow: 
+
 - model: entity.Entity
   pk: 9
   fields:
@@ -146,6 +157,7 @@
     version: 1
     version_released: 1
     workflow: 
+
 - model: entity.Entity
   pk: 10
   fields:
@@ -159,6 +171,7 @@
     version: 1
     version_released: 1
     workflow: 
+
 - model: entity.Entity
   pk: 11
   fields:
@@ -173,19 +186,25 @@
     version_released: 1
     workflow: 
 
-
+- model: entity.EntityTreeNode
+  pk: 15
+  fields:
+    entity: 1
+    attribute: "entity"
+    child_nodes: []
+    full_export: False
 - model: entity.EntityTreeNode
   pk: 12
   fields:
     entity: 10
     attribute: "child_nodes"
-    child_nodes: [12]
+    child_nodes: [12, 15]
 - model: entity.EntityTreeNode
   pk: 14
   fields:
     entity: 10
     attribute: "entry_point"
-    child_nodes: [12]
+    child_nodes: [12, 15]
 - model: entity.EntityTreeNode
   pk: 13
   fields:

@@ -21,6 +21,6 @@ class Taxonomy(models.Model):
     name = models.CharField(max_length=100L)
     description = models.CharField(max_length=2000L, blank=True)
     first_level = models.ForeignKey(TaxonomyLevel)
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
