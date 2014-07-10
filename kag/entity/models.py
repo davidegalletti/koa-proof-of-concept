@@ -2,6 +2,8 @@ from django.db import models
 
 from kag.utils import xmlMinidom
 from xml.dom.minidom import Node
+from django.db.models.manager import Manager
+from django.db.models.related import RelatedObject
 
 
 class DBConnection(models.Model):
@@ -17,14 +19,14 @@ class WorkflowEntity(models.Model):
     workflow = models.ForeignKey('Workflow', null=True, blank=True, related_name = "+")
     class Meta:
         abstract = True
-    
+
 class Workflow(WorkflowEntity):
     '''
     Is a list of WorkflowMethods; the work-flow is abstract, its methods do not specify details of the operation but just the statuses
     '''
     name = models.CharField(max_length=100L)
     description = models.CharField(max_length=2000L, blank=True)
-  
+
 class WorkflowStatus(models.Model):
     '''
     TODO: We need to have some statuses that are available to any entity and some just to specific entities; how?
@@ -42,8 +44,8 @@ class WorkflowEntityInstance(models.Model):
     current_status = models.ForeignKey(WorkflowStatus)
     class Meta:
         abstract = True
-    
-    
+
+
 class VersionableEntityInstance(models.Model):
     '''
     Abstract class
@@ -52,7 +54,7 @@ class VersionableEntityInstance(models.Model):
     version = models.IntegerField(blank=True)
     class Meta:
         abstract = True
-    
+
 class WorkflowMethod(models.Model):
     '''
     If there are no initial_statuses then this is a method which creates the entity
@@ -66,26 +68,27 @@ class WorkflowMethod(models.Model):
         abstract = True
 
 class genericEntity():
-    
+
     def entity_instance(self):
         '''
         finds the instance of class Entity where the name corresponds to the name of the class of self
         '''
         return Entity.objects.get(name=self.__class__.__name__)
-    
+
     def entity_trees(self):
         '''
         Lists the entity trees associated whose entry point is the instance of class Entity corresponding to the class of self
         '''
         return EntityTree.objects.filter(entry_point__entity = self.entity_instance)
-    
+
+
 
 class SerializableEntity(genericEntity):
     def serializable_attributes(self):
         """
-        TODO: use the class name instead of the syntax (e.g. _id, _set) to remove foreign keys 
-        lists all the attributes that can be serialized and 
-        their values excluding "pk" and those: 
+        TODO: use the class name instead of the syntax (e.g. _id, _set) to remove foreign keys
+        lists all the attributes that can be serialized and
+        their values excluding "pk" and those:
          - starting and ending with "_"
          - starting with "_"
          - ending with "_set"
@@ -102,7 +105,7 @@ class SerializableEntity(genericEntity):
         for names in dir(self):
             if names<>"objects":
                 attr = getattr(self,names)
-                if (not callable(attr)) and names[:1] <> "_" and (not (names[:1] == "_" and names[-1:] == "_")) and names[-4:] <> "_set" and (not names in fk) and names <> 'pk' and (not (eval("self." + names + ".__class__.__name__") in ['ManyRelatedManager', 'RelatedManager'] )):
+                if not names == 'pk' and not names.endswith("_id") and not callable(attr) and not issubclass(attr.__class__, RelatedObject) and not issubclass(attr.__class__, Manager) and not names.startswith("_") and not names.endswith("_") and not names in fk:
                     out[names] = str(attr)
         return out
     def serialized_attributes(self):
@@ -120,8 +123,7 @@ class SerializableEntity(genericEntity):
                     child_instances = eval("self." + child_node.attribute + ".all()")
                     for child_instance in child_instances:
                         # let's prevent infinite loops if self relationships
-                        if (child_instance.__class__.__name__ <> self.__class__.__name__) or (self.id <> child_node.id):
-                            print "Invoking \".to_xml\" for self." + child_node.attribute
+                        if (child_instance.__class__.__name__ <> self.__class__.__name__) or (self.pk <> child_node.pk):
                             str_xml += child_instance.to_xml(child_node)
                 else:
                     print "Invoking \".to_xml\" for self." + child_node.attribute
@@ -130,13 +132,13 @@ class SerializableEntity(genericEntity):
             return '<' + self.__class__.__name__ + ' ' + self.serialized_attributes() + '>' + str_xml + '</' + self.__class__.__name__ + '>'
         else:
             if etn.entity.name_field <> "":
-                xml_name = " " + etn.entity.name_field + "=\"" + eval("self." + etn.entity.name_field) + "\""
-            return '<' + self.__class__.__name__ + ' id="' + str(self.id) + '"' + xml_name + '/>'
+                xml_name = " " + etn.entity.name_field + "=\"" + getattr(self, etn.entity.name_field) + "\""
+            return '<' + self.__class__.__name__ + ' ' + self._meta.pk.attname +'="' + str(self.pk) + '"' + xml_name + '/>'
 
     def from_xml(self, etn, xmldoc, insert = True):
         pass
 #         if not insert:
-#             self.id = xmlMinidom.getNaturalAttribute(xmldoc, 'Id')
+#             self.pk = xmlMinidom.getNaturalAttribute(xmldoc, 'Id')
 #         self.number = xmldoc.attributes["Number"].firstChild.data
 #         self.created = xmlMinidom.getStringAttribute(xmldoc, 'Created')
 #         self.current = xmlMinidom.getStringAttribute(xmldoc, 'Current')
@@ -171,7 +173,7 @@ class Entity(WorkflowEntity, SerializableEntity):
     version = models.IntegerField(blank=True)
     app = models.CharField(max_length=100L)
     description = models.CharField(max_length=2000L, blank=True)
-    table_name = models.CharField(max_length=255L, db_column='tableName', blank=True) 
+    table_name = models.CharField(max_length=255L, db_column='tableName', blank=True)
     id_field = models.CharField(max_length=255L, db_column='idField', blank=True)
     name_field = models.CharField(max_length=255L, db_column='nameField', blank=True)
     description_field = models.CharField(max_length=255L, db_column='descriptionField', blank=True)
@@ -187,16 +189,16 @@ class Attribute(models.Model, SerializableEntity):
     entity = models.ForeignKey('Entity', null=True, blank=True)
     type = models.ForeignKey('AttributeType')
     def __str__(self):
-        return self.entity.name + "." + self.name 
+        return self.entity.name + "." + self.name
 
 class EntityTreeNode(models.Model, SerializableEntity):
     entity = models.ForeignKey('Entity')
     # attribute is blank for the entry point
     attribute = models.CharField(max_length=255L, blank=True)
     child_nodes = models.ManyToManyField('self', blank=True, symmetrical=False)
-    # if full_export all attributes are exported, otherwise only the id 
+    # if full_export all attributes are exported, otherwise only the id
     full_export = models.BooleanField(default=True)
-   
+
 class EntityTree(models.Model, SerializableEntity):
     '''
     It is a tree that defines a set of entities on which we can perform a task; the tree has
@@ -209,9 +211,3 @@ class EntityTree(models.Model, SerializableEntity):
     '''
     name = models.CharField(max_length=200L)
     entry_point = models.ForeignKey('EntityTreeNode')
-
-class UploadedFile(models.Model):
-    '''
-    Used to save uploaded xml file so that it can be later retrieved and imported
-    '''
-    docfile = models.FileField(upload_to='documents/%Y/%m/%d')
