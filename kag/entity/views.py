@@ -76,7 +76,6 @@ def method(request, entity_id, application_id, method_id):
 
 def export(request, entity_tree_id, entity_instance_id, entity_id):
     e = Entity.objects.get(pk = entity_id)
-    print ('get_object_or_404(' + e.name + ', pk=' + str(entity_instance_id) + ')')
     instance = eval('get_object_or_404(' + e.name + ', pk=' + str(entity_instance_id) + ')')
     et = EntityTree.objects.get(pk = entity_tree_id)
     exported_xml = instance.to_xml(et.entry_point)

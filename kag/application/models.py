@@ -14,7 +14,7 @@ class Method(WorkflowMethod):
     script_premethod = models.TextField(blank=True)
     script_postmethod = models.TextField(blank=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 class Widget(models.Model):
@@ -28,6 +28,6 @@ class Application(WorkflowEntity, VersionableEntityInstance):
     description = models.TextField(blank=True)
     methods = models.ManyToManyField(Method)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
