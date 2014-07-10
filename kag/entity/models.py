@@ -128,11 +128,8 @@ class SerializableEntity(genericEntity):
                     str_xml += child_instance.to_xml (child_node)
             return '<' + self.__class__.__name__ + ' ' + self.serialized_attributes() + '>' + str_xml + '</' + self.__class__.__name__ + '>'
         else:
-            print "etn.entity.name: " + etn.entity.name
-            print "etn.entity.name_field: " + etn.entity.name_field
             if etn.entity.name_field <> "":
                 xml_name = " " + etn.entity.name_field + "=\"" + eval("self." + etn.entity.name_field) + "\""
-            print "self.name: " + self.name
             return '<' + self.__class__.__name__ + ' id="' + str(self.id) + '"' + xml_name + '/>'
 
     def from_xml(self, etn, xmldoc, insert = True):
