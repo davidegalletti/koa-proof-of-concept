@@ -120,7 +120,8 @@ class SerializableEntity(genericEntity):
                     child_instances = eval("self." + child_node.attribute + ".all()")
                     for child_instance in child_instances:
                         # let's prevent infinite loops if self relationships
-                        if (child_instance.__class__.__name__ <> self.__class__.__name__) or (etn.attribute <> child_node.attribute):
+                        if (child_instance.__class__.__name__ <> self.__class__.__name__) or (self.id <> child_node.id):
+                            print "Invoking \".to_xml\" for self." + child_node.attribute
                             str_xml += child_instance.to_xml(child_node)
                 else:
                     print "Invoking \".to_xml\" for self." + child_node.attribute
@@ -209,4 +210,8 @@ class EntityTree(models.Model, SerializableEntity):
     name = models.CharField(max_length=200L)
     entry_point = models.ForeignKey('EntityTreeNode')
 
-print 1
+class UploadedFile(models.Model):
+    '''
+    Used to save uploaded xml file so that it can be later retrieved and imported
+    '''
+    docfile = models.FileField(upload_to='documents/%Y/%m/%d')
