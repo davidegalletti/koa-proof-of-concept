@@ -1,9 +1,12 @@
-from django.http import HttpResponse
+from django.conf import settings
+from django.http import HttpResponseRedirect
+from django.core.urlresolvers import reverse
 from entity.models import Entity, EntityTree, EntityTreeNode, UploadedFile
 from django.shortcuts import render, get_object_or_404, redirect
 from application.models import Application, Method
 from userauthorization.models import KUser, PermissionHolder
 
+from django.http import HttpResponse
 from xml.dom import minidom
 from django.db import models
 from django import forms
@@ -98,11 +101,26 @@ def upload_page(request):
             # we parse it so that we check what is on the file against what is on the database and we show this info to the user
             try:
                 xmldoc = minidom.parseString(xml_uploaded)
-
-                import_choice_form = ImportChoice(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url}) # An unbound form
-                return render(request, 'analysis/import_file.html', {'prettyxml': xmldoc.toprettyxml(indent="    "),'file': request.FILES['file'], 'new_uploaded_file': new_uploaded_file, 'import_choice_form': import_choice_form})
+                import_choice_form = ImportChoice(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url})
+                print "upload_page  " + xmldoc.toprettyxml(indent="    ") 
+                return render(request, 'entity/import_file.html', {'prettyxml': xmldoc.toprettyxml(indent="    "),'file': request.FILES['file'], 'new_uploaded_file': new_uploaded_file, 'import_choice_form': import_choice_form})
             except Exception as ex:
                 message = 'Error parsing uploaded file: ' + str(ex)
+                print message
     else:
         form = UploadFileForm()
     return render_to_response('entity/upload_page.html', {'form': form, 'message': message}, context_instance=RequestContext(request))
+
+def perform_import(request):
+    new_uploaded_file_relpath = request.POST["new_uploaded_file_relpath"]
+    # how_to_import = true ==> always_insert 
+    always_insert = (int(request.POST.get("how_to_import", "")) == 1)
+    import_methodology = request.POST.get("import_methodology", "")
+    import_analysis = request.POST.get("import_analysis", "")
+    with open(settings.BASE_DIR + "/" + new_uploaded_file_relpath, 'r') as content_file:
+        xml_uploaded = content_file.read()
+    xmldoc = minidom.parseString(xml_uploaded)
+    # I assume there's only one
+    methodology_version_xml = xmldoc.getElementsByTagName('MethodologyVersion')[0]
+#         mv.from_xml(methodology_version_xml, always_insert)
+    return HttpResponse("OK")

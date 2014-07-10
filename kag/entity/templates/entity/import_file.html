@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block content %}
+    <h2>Import Entities</h2>
+    <p>You have uploaded <strong>{{ file }}</strong></p>
+    <h3>The file you have uploaded contains:</h3>
+        <p>Methodology "{{ analysis_on_file.methodology_version.methodology.name }}" (ID {{ analysis_on_file.methodology_version.id }})  - Version: {{ analysis_on_file.methodology_version.number }}</p>
+        <p>Analysis "{{ analysis_on_file.name }}" (ID {{ analysis_on_file.id }}) created on the {{ analysis_on_file.created }} by {{ analysis_on_file.user_login }}</p>
+    <h3>I searched on the database and this is what I have found with the same IDs:</h3>
+        <p>Methodology "{{ analysis_on_db.methodology_version.methodology.name }}" (ID {{ analysis_on_db.methodology_version.id }}) - Version: {{ analysis_on_db.methodology_version.number }}</p> 
+        <p>Analysis "{{ analysis_on_db.name }}" (ID {{ analysis_on_db.id }}) created on the {{ analysis_on_db.created }} by {{ analysis_on_db.user_login }}</p>
+    <hr>
+    <form action="{% url 'perform_import' %}" method="post">{% csrf_token %}
+        {{ import_choice_form.as_p }}
+    <p>
+        <input type="submit" value="Import file now">
+    </p>
+    </form>    <PRE>
+    
+        file {{ file }}
+        new_uploaded_file.id {{ new_uploaded_file.id }}
+        new_uploaded_file.docfile.url {{ new_uploaded_file.docfile.url }}
+        new_uploaded_file.docfile.name {{ new_uploaded_file.docfile.name }}
+        {{ methodology_version_on_file.id }}
+        
+        {{ analysis_on_file.id }}
+        {{ analysis_on_file.name }}
+    
+    
+    
+{{ prettyxml }}
+    </PRE>
+{% endblock %}
