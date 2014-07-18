@@ -1,7 +1,6 @@
 from django.db import models
 
-from kag.utils import xmlMinidom
-from xml.dom.minidom import Node
+import kag.utils as utils
 from django.db.models.manager import Manager
 from django.db.models.related import RelatedObject
 
@@ -67,7 +66,7 @@ class WorkflowMethod(models.Model):
     class Meta:
         abstract = True
 
-class genericEntity():
+class GenericEntity():
 
     def entity_instance(self):
         '''
@@ -81,9 +80,10 @@ class genericEntity():
         '''
         return EntityTree.objects.filter(entry_point__entity = self.entity_instance)
 
-
-
-class SerializableEntity(genericEntity):
+class SerializableEntity(GenericEntity, models.Model):
+    
+    URI = models.CharField(max_length=200L, blank=True)
+        
     def serializable_attributes(self):
         """
         TODO: use the class name instead of the syntax (e.g. _id, _set) to remove foreign keys
@@ -96,7 +96,7 @@ class SerializableEntity(genericEntity):
          ManyRelatedManager
          RelatedManager
         """
-        out = {}
+        out = []
         fk = []
         for names in dir(self):
             if names[-3:] == "_id":
@@ -106,12 +106,15 @@ class SerializableEntity(genericEntity):
             if names<>"objects":
                 attr = getattr(self,names)
                 if not names == 'pk' and not names.endswith("_id") and not callable(attr) and not issubclass(attr.__class__, RelatedObject) and not issubclass(attr.__class__, Manager) and not names.startswith("_") and not names.endswith("_") and not names in fk:
-                    out[names] = str(attr)
+                    #out[names] = str(attr)
+                    out.append(names) # [names] = str(attr)
         return out
+
     def serialized_attributes(self):
         attributes = ""
-        for key, value in self.serializable_attributes().iteritems():
-            attributes += ' ' + key + '="' + value + '"'
+        #for key, value in self.serializable_attributes().iteritems():
+        for key in self.serializable_attributes():
+            attributes += ' ' + key + '="' + str(getattr(self,key)) + '"'
         return attributes
 
     def to_xml(self, etn):
@@ -135,8 +138,38 @@ class SerializableEntity(genericEntity):
                 xml_name = " " + etn.entity.name_field + "=\"" + getattr(self, etn.entity.name_field) + "\""
             return '<' + self.__class__.__name__ + ' ' + self._meta.pk.attname +'="' + str(self.pk) + '"' + xml_name + '/>'
 
-    def from_xml(self, etn, xmldoc, insert = True):
-        pass
+    def from_xml(self, xmldoc, etn, insert = True):
+        if etn.full_export:
+            for key in self.serializable_attributes():
+                setattr(self, key, xmldoc.attributes[key].firstChild.data)
+            
+#             xmldoc ha questo tag etn.entity.name
+            self = self.__class__.objects.get(pk = xmldoc.attributes[self._meta.pk.attname].firstChild.data)
+            etn.entity.id
+            self. self._meta.pk.attname
+            pass
+        self.save()
+        for xml_child_node in xmldoc.childNodes:
+            current_etn_child_node = None
+            for etn_child_node in etn.child_nodes:
+                if xml_child_node.tagName == etn_child_node.attribute:
+                    current_etn_child_node = etn_child_node
+                    break
+            if current_etn_child_node == None:
+                raise("CASINO!")
+            
+            module_name = xml_child_node.attributes["module"].firstChild.data
+            actual_class = utils.load_class(module_name, xml_child_node.tagName)
+            if current_etn_child_node.full_export:
+                if insert:
+                    instance = actual_class()
+                else:
+                    instance = actual_class.objects.get(pk=xml_child_node.attributes[actual_class._meta.pk.attname].firstChild.data)
+                    instance.from_xml(xml_child_node, current_etn_child_node, insert)
+            else:
+                instance = actual_class.objects.get(pk=xml_child_node.attributes[actual_class._meta.pk.attname].firstChild.data)
+                setattr(self, current_etn_child_node.attribute, instance)
+        
 #         if not insert:
 #             self.pk = xmlMinidom.getNaturalAttribute(xmldoc, 'Id')
 #         self.number = xmldoc.attributes["Number"].firstChild.data
@@ -163,6 +196,8 @@ class SerializableEntity(genericEntity):
 #         for xml_weight_scenario in xml_weight_scenarios:
 #             ws = WeightScenario()
 #             ws.from_xml(xml_weight_scenario, self, insert)
+    class Meta:
+        abstract = True
 
 class Entity(WorkflowEntity, SerializableEntity):
     '''
@@ -170,8 +205,9 @@ class Entity(WorkflowEntity, SerializableEntity):
     '''
     #corresponds to the class name
     name = models.CharField(max_length=100L)
+    #for Django it corresponds to the module which contains the class 
+    module = models.CharField(max_length=100L)
     version = models.IntegerField(blank=True)
-    app = models.CharField(max_length=100L)
     description = models.CharField(max_length=2000L, blank=True)
     table_name = models.CharField(max_length=255L, db_column='tableName', blank=True)
     id_field = models.CharField(max_length=255L, db_column='idField', blank=True)
@@ -180,18 +216,18 @@ class Entity(WorkflowEntity, SerializableEntity):
     version_released = models.IntegerField(null=True, db_column='versionReleased', blank=True)
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
 
-class AttributeType(models.Model, SerializableEntity):
+class AttributeType(SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
     widgets = models.ManyToManyField('application.Widget', blank=True)
 
-class Attribute(models.Model, SerializableEntity):
+class Attribute(SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
     entity = models.ForeignKey('Entity', null=True, blank=True)
     type = models.ForeignKey('AttributeType')
     def __str__(self):
         return self.entity.name + "." + self.name
 
-class EntityTreeNode(models.Model, SerializableEntity):
+class EntityTreeNode(SerializableEntity):
     entity = models.ForeignKey('Entity')
     # attribute is blank for the entry point
     attribute = models.CharField(max_length=255L, blank=True)
@@ -199,7 +235,7 @@ class EntityTreeNode(models.Model, SerializableEntity):
     # if full_export all attributes are exported, otherwise only the id
     full_export = models.BooleanField(default=True)
 
-class EntityTree(models.Model, SerializableEntity):
+class EntityTree(SerializableEntity):
     '''
     It is a tree that defines a set of entities on which we can perform a task; the tree has
     an entry point which is a Node e.g. an entity; from an instance of an entity we can use

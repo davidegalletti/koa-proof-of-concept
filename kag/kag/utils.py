@@ -1,3 +1,5 @@
+import importlib
+
 class xmlMinidom():
     @staticmethod    
     def getString(xmldoc, tag):
@@ -22,3 +24,11 @@ class xmlMinidom():
             return int(xmldoc.attributes[tag].firstChild.data)
         except:
             return -1
+
+def load_class(module_name, class_name):
+    """
+    dynamically load a class from a string
+    """
+    module = importlib.import_module(module_name)
+    # Finally, we retrieve the Class
+    return getattr(module, class_name)

@@ -13,6 +13,8 @@ from django import forms
 from django.template import RequestContext
 from forms import UploadFileForm, ImportChoice
 from django.shortcuts import render_to_response
+import kag.utils as utils
+
 
 def index(request):
     instance_list = Entity.objects.order_by('name')
@@ -85,7 +87,7 @@ def export(request, entity_tree_id, entity_instance_id, entity_id):
     e = Entity.objects.get(pk = entity_id)
     instance = eval('get_object_or_404(' + e.name + ', pk=' + str(entity_instance_id) + ')')
     et = EntityTree.objects.get(pk = entity_tree_id)
-    exported_xml = instance.to_xml(et.entry_point)
+    exported_xml = "<Export EntityTreeURI=\"" + et.URI + "\">" + instance.to_xml(et.entry_point) + "</Export>"
     
     return render(request, 'entity/export.xml', {'xml': exported_xml}, content_type="application/xhtml+xml")
     
@@ -102,7 +104,6 @@ def upload_page(request):
             try:
                 xmldoc = minidom.parseString(xml_uploaded)
                 import_choice_form = ImportChoice(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url})
-                print "upload_page  " + xmldoc.toprettyxml(indent="    ") 
                 return render(request, 'entity/import_file.html', {'prettyxml': xmldoc.toprettyxml(indent="    "),'file': request.FILES['file'], 'new_uploaded_file': new_uploaded_file, 'import_choice_form': import_choice_form})
             except Exception as ex:
                 message = 'Error parsing uploaded file: ' + str(ex)
@@ -114,13 +115,17 @@ def upload_page(request):
 def perform_import(request):
     new_uploaded_file_relpath = request.POST["new_uploaded_file_relpath"]
     # how_to_import = true ==> always_insert 
-    always_insert = (int(request.POST.get("how_to_import", "")) == 1)
-    import_methodology = request.POST.get("import_methodology", "")
-    import_analysis = request.POST.get("import_analysis", "")
+#     always_insert = False #(int(request.POST.get("how_to_import", "")) == 1)
     with open(settings.BASE_DIR + "/" + new_uploaded_file_relpath, 'r') as content_file:
         xml_uploaded = content_file.read()
     xmldoc = minidom.parseString(xml_uploaded)
-    # I assume there's only one
-    methodology_version_xml = xmldoc.getElementsByTagName('MethodologyVersion')[0]
-#         mv.from_xml(methodology_version_xml, always_insert)
+    URI = xmldoc.child_node[0].attributes["EntityTreeURI"].firstChild.data
+    et = EntityTree.objects.get(URI=URI)
+    for child_node in xmldoc.childNodes:
+        class_name = type(child_node.tagName)
+        module_name = child_node.attributes["module"].firstChild.data
+        actual_class = utils.load_class(module_name, class_name)
+        instance = actual_class()
+        #At least the first node has full export = True otherwise I would not import anything but just load something from the db 
+        instance.from_xml(xmldoc.child_node[0].child_node[0], et.entry_point, False)
     return HttpResponse("OK")
