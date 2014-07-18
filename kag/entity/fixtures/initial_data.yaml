@@ -21,7 +21,7 @@
   pk: 1
   fields:
     name: "Entity"
-    app: "entity"
+    module: "entity"
     description: ""
     table_name: ""
     id_field: "id"
@@ -50,7 +50,7 @@
   pk: 2
   fields:
     name: "Attribute"
-    app: "entity"
+    module: "entity"
     description: ""
     table_name: ""
     id_field: "id"
@@ -64,7 +64,7 @@
   pk: 3
   fields:
     name: "Application"
-    app: "application"
+    module: "application"
     description: ""
     table_name: ""
     id_field: "id"
@@ -78,7 +78,7 @@
   pk: 4
   fields:
     name: "Method"
-    app: "application"
+    module: "application"
     description: ""
     table_name: ""
     id_field: "id"
@@ -92,7 +92,7 @@
   pk: 5
   fields:
     name: "Workflow"
-    app: "entity"
+    module: "entity"
     description: ""
     table_name: ""
     id_field: "id"
@@ -106,7 +106,7 @@
   pk: 6
   fields:
     name: "WorkflowStatus"
-    app: "entity"
+    module: "entity"
     description: ""
     table_name: ""
     id_field: "id"
@@ -120,7 +120,7 @@
   pk: 7
   fields:
     name: "Method"
-    app: "application"
+    module: "application"
     description: ""
     table_name: ""
     id_field: "id"
@@ -134,7 +134,7 @@
   pk: 8
   fields:
     name: "AttributeType"
-    app: "entity"
+    module: "entity"
     description: ""
     table_name: ""
     id_field: "id"
@@ -148,7 +148,7 @@
   pk: 9
   fields:
     name: "Widget"
-    app: "application"
+    module: "application"
     description: ""
     table_name: ""
     id_field: "id"
@@ -162,7 +162,7 @@
   pk: 10
   fields:
     name: "EntityTreeNode"
-    app: "entity"
+    module: "entity"
     description: ""
     table_name: ""
     id_field: "id"
@@ -176,7 +176,7 @@
   pk: 11
   fields:
     name: "EntityTree"
-    app: "entity"
+    module: "entity"
     description: ""
     table_name: ""
     id_field: "id"
@@ -283,16 +283,18 @@
 - model: entity.EntityTree
   pk: 1
   fields:
+    URI: "com.koa/EntityTree/Entity-attributes"
     name: "Entity-attributes"
     entry_point: 1
 - model: entity.EntityTree
   pk: 2
   fields:
+    URI: "com.koa/EntityTree/Entity-...-Application"
     name: "Entity-...-Application"
     entry_point: 3
 - model: entity.EntityTree
   pk: 3
   fields:
+    URI: "com.koa/EntityTree/EntityTree-EntityTreeNode"
     name: "EntityTree-EntityTreeNode"
     entry_point: 13
-    
