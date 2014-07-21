@@ -29,7 +29,8 @@ def index(request):
 
 def entity_index(request, entity_id):
     e = Entity.objects.get(pk=entity_id)
-    instance_list = eval(e.name + ".objects.all()")
+    actual_class = utils.load_class(e.module + ".models", e.name)
+    instance_list = actual_class.objects.all() # eval(e.name + ".objects.all()")
     context = {'instance_list': instance_list}
     
     return render(request, 'entity/index.html', context)
@@ -85,7 +86,8 @@ def method(request, entity_id, application_id, method_id):
 
 def export(request, entity_tree_id, entity_instance_id, entity_id):
     e = Entity.objects.get(pk = entity_id)
-    instance = eval('get_object_or_404(' + e.name + ', pk=' + str(entity_instance_id) + ')')
+    actual_class = utils.load_class(e.module + ".models", e.name)
+    instance = get_object_or_404(actual_class, pk=entity_instance_id)
     et = EntityTree.objects.get(pk = entity_tree_id)
     exported_xml = "<Export EntityTreeURI=\"" + et.URI + "\">" + instance.to_xml(et.entry_point) + "</Export>"
     

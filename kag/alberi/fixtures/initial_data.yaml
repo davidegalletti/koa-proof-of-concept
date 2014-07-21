@@ -1,0 +1,81 @@
+- model: alberi.Albero
+  pk: 1
+  fields:
+    name: "Susino"
+- model: alberi.Albero
+  pk: 2
+  fields:
+    name: "Albicocco"
+
+- model: alberi.Frutto
+  pk: 1
+  fields:
+    name: "Susina"
+    albero: 1
+- model: alberi.Frutto
+  pk: 2
+  fields:
+    name: "Albicocca"
+    albero: 2
+- model: alberi.Frutto
+  pk: 3
+  fields:
+    name: "Prugna"
+    albero: 2
+
+- model: entity.Entity
+  pk: 12
+  fields:
+    name: "Albero"
+    module: "alberi"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: ""
+    version: 1
+    version_released: 1
+- model: entity.Entity
+  pk: 13
+  fields:
+    name: "Frutto"
+    module: "alberi"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: ""
+    version: 1
+    version_released: 1
+- model: entity.Entity
+  pk: 14
+  fields:
+    name: "Frutteto"
+    module: "alberi"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: ""
+    version: 1
+    version_released: 1
+
+- model: entity.EntityTreeNode
+  pk: 17
+  fields:
+    entity: 12
+    attribute: ""
+    child_nodes: [16]
+- model: entity.EntityTreeNode
+  pk: 16
+  fields:
+    entity: 13
+    attribute: "frutto_set"
+    child_nodes: []
+
+- model: entity.EntityTree
+  pk: 4
+  fields:
+    URI: "com.example/koa/Albero-Frutto"
+    name: "Albero-Frutto"
+    entry_point: 17
