@@ -129,6 +129,7 @@ INSTALLED_APPS = (
     'taxonomy',
     'application',
     'userauthorization',
+    'alberi',
 )
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'

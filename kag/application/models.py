@@ -2,9 +2,6 @@ from django.db import models
 from entity.models import WorkflowMethod, WorkflowEntity, VersionableEntityInstance
 
 class Method(WorkflowMethod):
-    '''
-    TODO: let it inherit from Entity.WorkflowMethod
-    '''
     name = models.CharField(max_length=255L, blank=True)
     description = models.TextField(blank=True)
     attributes = models.ManyToManyField('entity.Attribute', blank=True)

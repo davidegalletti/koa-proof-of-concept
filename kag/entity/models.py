@@ -78,7 +78,7 @@ class GenericEntity():
         '''
         Lists the entity trees associated whose entry point is the instance of class Entity corresponding to the class of self
         '''
-        return EntityTree.objects.filter(entry_point__entity = self.entity_instance)
+        return EntityTree.objects.filter(entry_point__entity = self.entity_instance())
 
 class SerializableEntity(GenericEntity, models.Model):
     
@@ -170,32 +170,6 @@ class SerializableEntity(GenericEntity, models.Model):
                 instance = actual_class.objects.get(pk=xml_child_node.attributes[actual_class._meta.pk.attname].firstChild.data)
                 setattr(self, current_etn_child_node.attribute, instance)
         
-#         if not insert:
-#             self.pk = xmlMinidom.getNaturalAttribute(xmldoc, 'Id')
-#         self.number = xmldoc.attributes["Number"].firstChild.data
-#         self.created = xmlMinidom.getStringAttribute(xmldoc, 'Created')
-#         self.current = xmlMinidom.getStringAttribute(xmldoc, 'Current')
-#         m = Methodology()
-#         xml_methodology = xmldoc.getElementsByTagName('Methodology')[0]
-#         m.from_xml(xml_methodology, insert)
-#         self.methodology = m
-#         # I save so I get the ID (if insert == True)
-#         self.save()
-#         # Pages
-#         for xml_child in xmldoc.childNodes:
-#             # Some nodes are text nodes (e.g. u'\n     ') I need to look just at ELEMENT_NODE
-#             if xml_child.nodeType == Node.ELEMENT_NODE and xml_child.tagName == 'Pages':
-#                 xml_pages = xml_child
-#                 break
-#         for xml_page in xml_pages.childNodes:
-#             if xml_page.nodeType == Node.ELEMENT_NODE and xml_page.tagName == 'Page':
-#                 p = Page()
-#                 p.from_xml(xml_page, self, None, insert)
-#         #WeightScenarios
-#         xml_weight_scenarios = xmldoc.getElementsByTagName('WeightScenarios')
-#         for xml_weight_scenario in xml_weight_scenarios:
-#             ws = WeightScenario()
-#             ws.from_xml(xml_weight_scenario, self, insert)
     class Meta:
         abstract = True
 
@@ -215,6 +189,16 @@ class Entity(WorkflowEntity, SerializableEntity):
     description_field = models.CharField(max_length=255L, db_column='descriptionField', blank=True)
     version_released = models.IntegerField(null=True, db_column='versionReleased', blank=True)
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
+
+class EntityInstance():
+    entity = None
+    def __init__(self):
+        '''
+        I want every instance to have a reference to the instance of the Entity class related to its class
+        '''
+        self.entity = Entity.objects.get(name = self.__class__.__name__)
+    def get_name(self):
+        return getattr(self, self.entity.name_field)
 
 class AttributeType(SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
