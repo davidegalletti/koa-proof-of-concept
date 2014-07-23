@@ -17,7 +17,8 @@ import kag.utils as utils
 
 
 def index(request):
-    instance_list = Entity.objects.order_by('name')
+#    instance_list = Entity.objects.order_by('name')
+    instance_list = Entity.objects.all()
 #     entities_and_trees = []
 #     for entity_instance in entity_list:
 #         e = Entity.objects.get(name=entity_instance.__class__.__name__)

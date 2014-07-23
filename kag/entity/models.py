@@ -66,7 +66,10 @@ class WorkflowMethod(models.Model):
     class Meta:
         abstract = True
 
-class GenericEntity():
+class SerializableEntity(models.Model):
+    
+    URI = models.CharField(max_length=200L, blank=True)
+        
 
     def entity_instance(self):
         '''
@@ -80,10 +83,9 @@ class GenericEntity():
         '''
         return EntityTree.objects.filter(entry_point__entity = self.entity_instance())
 
-class SerializableEntity(GenericEntity, models.Model):
-    
-    URI = models.CharField(max_length=200L, blank=True)
-        
+    def get_name(self):
+        return getattr(self, self.entity_instance().name_field)
+
     def serializable_attributes(self):
         """
         TODO: use the class name instead of the syntax (e.g. _id, _set) to remove foreign keys
@@ -196,9 +198,10 @@ class EntityInstance():
         '''
         I want every instance to have a reference to the instance of the Entity class related to its class
         '''
-        self.entity = Entity.objects.get(name = self.__class__.__name__)
+        if EntityInstance.entity is not None:
+            EntityInstance.entity = Entity.objects.get(name = self.__class__.__name__)
     def get_name(self):
-        return getattr(self, self.entity.name_field)
+        return getattr(EntityInstance, EntityInstance.entity.name_field)
 
 class AttributeType(SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)

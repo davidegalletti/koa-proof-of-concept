@@ -1,5 +1,4 @@
 from django.db import models
-# from entity.models import EntityInstance
 from entity.models import SerializableEntity
     
 
