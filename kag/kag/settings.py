@@ -107,6 +107,7 @@ ROOT_URLCONF = 'kag.urls'
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'kag.wsgi.application'
 
+BASE_DIR = "/home/davide/workspace"
 TEMPLATE_DIRS = (
     "/home/davide/Documenti/Lavoro/KOA/Lavoro/Prototipi/knowledgeapp/django/kag/templates"
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".

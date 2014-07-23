@@ -122,13 +122,12 @@ def perform_import(request):
     with open(settings.BASE_DIR + "/" + new_uploaded_file_relpath, 'r') as content_file:
         xml_uploaded = content_file.read()
     xmldoc = minidom.parseString(xml_uploaded)
-    URI = xmldoc.child_node[0].attributes["EntityTreeURI"].firstChild.data
+    URI = xmldoc.childNodes[0].attributes["EntityTreeURI"].firstChild.data
     et = EntityTree.objects.get(URI=URI)
-    for child_node in xmldoc.childNodes:
-        class_name = type(child_node.tagName)
-        module_name = child_node.attributes["module"].firstChild.data
-        actual_class = utils.load_class(module_name, class_name)
-        instance = actual_class()
-        #At least the first node has full export = True otherwise I would not import anything but just load something from the db 
-        instance.from_xml(xmldoc.child_node[0].child_node[0], et.entry_point, False)
+    child_node = xmldoc.childNodes[0].childNodes[0]
+    module_name = et.entry_point.entity.module
+    actual_class = utils.load_class(module_name + ".models", child_node.tagName)
+    instance = actual_class()
+    #At least the first node has full export = True otherwise I would not import anything but just load something from the db 
+    instance.from_xml(child_node, et.entry_point, False)
     return HttpResponse("OK")

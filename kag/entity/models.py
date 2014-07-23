@@ -86,37 +86,10 @@ class SerializableEntity(models.Model):
     def get_name(self):
         return getattr(self, self.entity_instance().name_field)
 
-    def serializable_attributes(self):
-        """
-        TODO: use the class name instead of the syntax (e.g. _id, _set) to remove foreign keys
-        lists all the attributes that can be serialized and
-        their values excluding "pk" and those:
-         - starting and ending with "_"
-         - starting with "_"
-         - ending with "_set"
-         - ending with "_id" and "*" where "*_id"
-         ManyRelatedManager
-         RelatedManager
-        """
-        out = []
-        fk = []
-        for names in dir(self):
-            if names[-3:] == "_id":
-                fk.append(names[:-3])
-                fk.append(names)
-        for names in dir(self):
-            if names<>"objects":
-                attr = getattr(self,names)
-                if not names == 'pk' and not names.endswith("_id") and not callable(attr) and not issubclass(attr.__class__, RelatedObject) and not issubclass(attr.__class__, Manager) and not names.startswith("_") and not names.endswith("_") and not names in fk:
-                    #out[names] = str(attr)
-                    out.append(names) # [names] = str(attr)
-        return out
-
     def serialized_attributes(self):
         attributes = ""
-        #for key, value in self.serializable_attributes().iteritems():
-        for key in self.serializable_attributes():
-            attributes += ' ' + key + '="' + str(getattr(self,key)) + '"'
+        for key in self._meta.fields:
+            attributes += ' ' + key.name + '="' + str(getattr(self,key.name)) + '"'
         return attributes
 
     def to_xml(self, etn):
@@ -140,37 +113,34 @@ class SerializableEntity(models.Model):
                 xml_name = " " + etn.entity.name_field + "=\"" + getattr(self, etn.entity.name_field) + "\""
             return '<' + self.__class__.__name__ + ' ' + self._meta.pk.attname +'="' + str(self.pk) + '"' + xml_name + '/>'
 
-    def from_xml(self, xmldoc, etn, insert = True):
+    def from_xml(self, xmldoc, etn, insert = True, parent = None):
         if etn.full_export:
-            for key in self.serializable_attributes():
-                setattr(self, key, xmldoc.attributes[key].firstChild.data)
-            
-#             xmldoc ha questo tag etn.entity.name
-            self = self.__class__.objects.get(pk = xmldoc.attributes[self._meta.pk.attname].firstChild.data)
-            etn.entity.id
-            self. self._meta.pk.attname
-            pass
+            if parent:
+                related_parent = getattr(parent._meta.concrete_model, etn.attribute)
+                setattr(self, related_parent.related.field.name, parent)
+            for key in self._meta.fields:
+                if not parent or key.name != related_parent.related.field.name:
+                    setattr(self, key.name, xmldoc.attributes[key.name].firstChild.data)
         self.save()
+        
         for xml_child_node in xmldoc.childNodes:
             current_etn_child_node = None
-            for etn_child_node in etn.child_nodes:
-                if xml_child_node.tagName == etn_child_node.attribute:
+            for etn_child_node in etn.child_nodes.all():
+                if xml_child_node.tagName == etn_child_node.entity.name:
                     current_etn_child_node = etn_child_node
                     break
-            if current_etn_child_node == None:
-                raise("CASINO!")
-            
-            module_name = xml_child_node.attributes["module"].firstChild.data
-            actual_class = utils.load_class(module_name, xml_child_node.tagName)
-            if current_etn_child_node.full_export:
-                if insert:
-                    instance = actual_class()
+            if current_etn_child_node:
+                module_name = current_etn_child_node.entity.module
+                actual_class = utils.load_class(module_name + ".models", xml_child_node.tagName)
+                if current_etn_child_node.full_export:
+                    if insert:
+                        instance = actual_class()
+                    else:
+                        instance = actual_class.objects.get(pk=xml_child_node.attributes[actual_class._meta.pk.attname].firstChild.data)
+                    instance.from_xml(xml_child_node, current_etn_child_node, insert, self)
                 else:
                     instance = actual_class.objects.get(pk=xml_child_node.attributes[actual_class._meta.pk.attname].firstChild.data)
-                    instance.from_xml(xml_child_node, current_etn_child_node, insert)
-            else:
-                instance = actual_class.objects.get(pk=xml_child_node.attributes[actual_class._meta.pk.attname].firstChild.data)
-                setattr(self, current_etn_child_node.attribute, instance)
+                    setattr(self, current_etn_child_node.attribute, instance)
         
     class Meta:
         abstract = True
