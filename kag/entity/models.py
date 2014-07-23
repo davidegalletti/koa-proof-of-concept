@@ -140,7 +140,15 @@ class SerializableEntity(models.Model):
                     instance.from_xml(xml_child_node, current_etn_child_node, insert, self)
                 else:
                     instance = actual_class.objects.get(pk=xml_child_node.attributes[actual_class._meta.pk.attname].firstChild.data)
-                    setattr(self, current_etn_child_node.attribute, instance)
+                    #TODO: il test succesivo forse si fa meglio guardando il concrete_model
+                    if current_etn_child_node.attribute in self._meta.fields:
+#                         TODO: test
+                        setattr(instance, current_etn_child_node.attribute, self)
+                        instance.save()
+                    else:  
+#                         TODO: test
+                        setattr(self, current_etn_child_node.attribute, instance)
+                        self.save()
         
     class Meta:
         abstract = True
