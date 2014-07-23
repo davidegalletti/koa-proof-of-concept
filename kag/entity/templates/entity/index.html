@@ -5,7 +5,7 @@
             {% if instance.entity_instance.name == 'Entity' %}
                 <a href="{% url 'entity_index' instance.id %}">{{ instance.get_name }}</a>
             {% else %}
-                {{ instance.name }}
+                {{ instance.get_name }}
             {% endif %}
             {% for entity_tree in instance.entity_trees %}
                 <a href="{% url 'export' entity_tree.id instance.id instance.entity_instance.id %}">Export {{ entity_tree.name }}</a>
