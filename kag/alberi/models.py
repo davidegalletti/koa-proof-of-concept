@@ -17,4 +17,4 @@ class Frutteto(SerializableEntity):
 #     def __init__(self):
 #         EntityInstance.__init__(self)
     name = models.CharField(max_length=100L)
-    alberi = models.ManyToManyField(Albero, blank=True)
+    alberi = models.ManyToManyField(Albero, related_name="frutteti", blank=True)
