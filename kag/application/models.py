@@ -1,5 +1,5 @@
 from django.db import models
-from entity.models import WorkflowMethod, WorkflowEntity, VersionableEntityInstance
+from entity.models import WorkflowMethod, WorkflowEntity, VersionableEntityInstance, SerializableEntity
 
 class Method(WorkflowMethod):
     name = models.CharField(max_length=255L, blank=True)
@@ -14,13 +14,13 @@ class Method(WorkflowMethod):
     def __str__(self):
         return self.name
 
-class Widget(models.Model):
+class Widget(SerializableEntity):
     '''
     It is a django widget; TBC
     '''
     widgetname = models.CharField(max_length=255L, blank=True)
 
-class Application(WorkflowEntity, VersionableEntityInstance):
+class Application(WorkflowEntity):
     name = models.CharField(max_length=255L, blank=True)
     description = models.TextField(blank=True)
     methods = models.ManyToManyField(Method)

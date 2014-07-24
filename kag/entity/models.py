@@ -5,66 +5,6 @@ from django.db.models.manager import Manager
 from django.db.models.related import RelatedObject
 
 
-class DBConnection(models.Model):
-    connection_string = models.CharField(max_length=255L)
-
-
-
-class WorkflowEntity(models.Model):
-    '''
-    Abstract class
-    WorkflowEntity is a generic entity with a work-flow status; such a status is used also for minimal work-flow of entities that are either in "working" or "released" status
-    '''
-    workflow = models.ForeignKey('Workflow', null=True, blank=True, related_name = "+")
-    class Meta:
-        abstract = True
-
-class Workflow(WorkflowEntity):
-    '''
-    Is a list of WorkflowMethods; the work-flow is abstract, its methods do not specify details of the operation but just the statuses
-    '''
-    name = models.CharField(max_length=100L)
-    description = models.CharField(max_length=2000L, blank=True)
-
-class WorkflowStatus(models.Model):
-    '''
-    TODO: We need to have some statuses that are available to any entity and some just to specific entities; how?
-    '''
-    name = models.CharField(max_length=100L)
-    workflow = models.ForeignKey(Workflow, null=True, blank=True)
-    description = models.CharField(max_length=2000L, blank=True)
-
-
-class WorkflowEntityInstance(models.Model):
-    '''
-    Abstract class
-    WorkflowEntityInstance
-    '''
-    current_status = models.ForeignKey(WorkflowStatus)
-    class Meta:
-        abstract = True
-
-
-class VersionableEntityInstance(models.Model):
-    '''
-    Abstract class
-    VersionableEntityInstance is ....
-    '''
-    version = models.IntegerField(blank=True)
-    class Meta:
-        abstract = True
-
-class WorkflowMethod(models.Model):
-    '''
-    If there are no initial_statuses then this is a method which creates the entity
-    TODO: Can the final status be dynamically determined by the implementation?
-    '''
-    initial_statuses = models.ManyToManyField(WorkflowStatus, blank=True, related_name="+")
-    final_status = models.ForeignKey(WorkflowStatus, related_name="+")
-    workflow = models.ForeignKey(Workflow)
-
-    class Meta:
-        abstract = True
 
 class SerializableEntity(models.Model):
     
@@ -96,6 +36,7 @@ class SerializableEntity(models.Model):
         str_xml = ""
         if etn.full_export:
             for child_node in etn.child_nodes.all():
+                print ("self." + child_node.attribute + ".__class__.__name__")
                 child_class_name = eval("self." + child_node.attribute + ".__class__.__name__")
                 if child_class_name == 'RelatedManager' or child_class_name == 'ManyRelatedManager':
                     child_instances = eval("self." + child_node.attribute + ".all()")
@@ -105,6 +46,8 @@ class SerializableEntity(models.Model):
                             str_xml += child_instance.to_xml(child_node)
                 else:
                     print "Invoking \".to_xml\" for self." + child_node.attribute
+                    if child_node.attribute=="workflow":
+                        pass
                     child_instance = eval("self." + child_node.attribute)
                     str_xml += child_instance.to_xml (child_node)
             return '<' + self.__class__.__name__ + ' ' + self.serialized_attributes() + '>' + str_xml + '</' + self.__class__.__name__ + '>'
@@ -149,11 +92,74 @@ class SerializableEntity(models.Model):
 #                         TODO: test
                         setattr(self, current_etn_child_node.attribute, instance)
                         self.save()
-        
     class Meta:
         abstract = True
 
-class Entity(WorkflowEntity, SerializableEntity):
+
+
+
+class DBConnection(models.Model):
+    connection_string = models.CharField(max_length=255L)
+
+
+
+class WorkflowEntity(SerializableEntity):
+    '''
+    Abstract class
+    WorkflowEntity is a generic entity with a work-flow status; such a status is used also for minimal work-flow of entities that are either in "working" or "released" status
+    '''
+    workflow = models.ForeignKey('Workflow', null=True, blank=True, related_name = "+")
+    class Meta:
+        abstract = True
+
+class Workflow(WorkflowEntity):
+    '''
+    Is a list of WorkflowMethods; the work-flow is abstract, its methods do not specify details of the operation but just the statuses
+    '''
+    name = models.CharField(max_length=100L)
+    description = models.CharField(max_length=2000L, blank=True)
+
+class WorkflowStatus(SerializableEntity):
+    '''
+    TODO: We need to have some statuses that are available to any entity and some just to specific entities; how?
+    '''
+    name = models.CharField(max_length=100L)
+    workflow = models.ForeignKey(Workflow, null=True, blank=True)
+    description = models.CharField(max_length=2000L, blank=True)
+
+
+class WorkflowEntityInstance(models.Model):
+    '''
+    Abstract class
+    WorkflowEntityInstance
+    '''
+    current_status = models.ForeignKey(WorkflowStatus)
+    class Meta:
+        abstract = True
+
+
+class VersionableEntityInstance():
+    '''
+    Abstract class
+    VersionableEntityInstance is ....
+    '''
+    version = models.IntegerField(blank=True)
+    class Meta:
+        abstract = True
+
+class WorkflowMethod(SerializableEntity):
+    '''
+    If there are no initial_statuses then this is a method which creates the entity
+    TODO: Can the final status be dynamically determined by the implementation?
+    '''
+    initial_statuses = models.ManyToManyField(WorkflowStatus, blank=True, related_name="+")
+    final_status = models.ForeignKey(WorkflowStatus, related_name="+")
+    workflow = models.ForeignKey(Workflow)
+
+    class Meta:
+        abstract = True
+
+class Entity(WorkflowEntity):
     '''
     Every entity has a work-flow; the basic one is the one that allows a method to create an instance
     '''
@@ -169,17 +175,6 @@ class Entity(WorkflowEntity, SerializableEntity):
     description_field = models.CharField(max_length=255L, db_column='descriptionField', blank=True)
     version_released = models.IntegerField(null=True, db_column='versionReleased', blank=True)
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
-
-class EntityInstance():
-    entity = None
-    def __init__(self):
-        '''
-        I want every instance to have a reference to the instance of the Entity class related to its class
-        '''
-        if EntityInstance.entity is not None:
-            EntityInstance.entity = Entity.objects.get(name = self.__class__.__name__)
-    def get_name(self):
-        return getattr(EntityInstance, EntityInstance.entity.name_field)
 
 class AttributeType(SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
