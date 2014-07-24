@@ -236,19 +236,20 @@
   pk: 6
   fields:
     entity: 6
-    attribute: "workflow_status_set"
+    attribute: "workflowstatus_set"
     child_nodes: []
 - model: entity.EntityTreeNode
   pk: 8
   fields:
     entity: 3
-    attribute: "method_set"
+    attribute: "application_set"
     child_nodes: []
+    full_export: False
 - model: entity.EntityTreeNode
   pk: 7
   fields:
     entity: 7
-    attribute: ""
+    attribute: "method_set"
     child_nodes: [8]
 - model: entity.EntityTreeNode
   pk: 11

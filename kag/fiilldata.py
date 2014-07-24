@@ -89,7 +89,7 @@ from userauthorization.models import KUser, PermissionHolder
 
 
 # creiamo un'applicazione, con due metodi
-ks = Application(name="Knowledge server", description="The prototype of the knowledge server", version=1)
+ks = Application(name="Knowledge server", description="The prototype of the knowledge server")
 ks.save()
 
 ws = WorkflowStatus.objects.get(pk=2)
@@ -108,7 +108,7 @@ m1.attributes.add(attr1)
 m1.save()
 
 
-bt = Application(name="Bug tracking system", description="Yet another bug tracking system", version=1)
+bt = Application(name="Bug tracking system", description="Yet another bug tracking system")
 bt.save()
 
 create_bug = Method(name='Create a bug', description='It creates a bug', create_instance = True, final_status=ws, workflow=w)
