@@ -1,22 +1,3 @@
-- model: entity.Workflow
-  pk: 1
-  fields:
-    name: "Default minimal workflow"
-    description: ""
-
-- model: entity.WorkflowStatus
-  pk: 1
-  fields:
-    name: "Initial"
-    description: ""
-    workflow: 1
-- model: entity.WorkflowStatus
-  pk: 2
-  fields:
-    name: "Final"
-    description: ""
-    workflow: 1
-
 - model: entity.Entity
   pk: 1
   fields:
@@ -29,6 +10,25 @@
     description_field: "description"
     version: 1
     version_released: 1
+
+- model: entity.Workflow
+  pk: 1
+  fields:
+    name: "Default minimal workflow (not used so far, shall we delete it?)"
+    description: ""
+    entity: 1
+
+- model: entity.WorkflowStatus
+  pk: 1
+  fields:
+    name: "Initial"
+    description: ""
+    workflow: 1
+- model: entity.WorkflowStatus
+  pk: 2
+  fields:
+    name: "Final"
+    description: ""
     workflow: 1
 
 - model: entity.AttributeType
@@ -58,7 +58,6 @@
     description_field: ""
     version: 1
     version_released: 1
-    workflow:
 
 - model: entity.Entity
   pk: 3
@@ -72,7 +71,6 @@
     description_field: "description"
     version: 1
     version_released: 1
-    workflow: 1
 
 - model: entity.Entity
   pk: 4
@@ -86,7 +84,6 @@
     description_field: "description"
     version: 1
     version_released: 1
-    workflow:
 
 - model: entity.Entity
   pk: 5
@@ -100,7 +97,6 @@
     description_field: "description"
     version: 1
     version_released: 1
-    workflow: 1
 
 - model: entity.Entity
   pk: 6
@@ -114,7 +110,6 @@
     description_field: "description"
     version: 1
     version_released: 1
-    workflow: 
 
 - model: entity.Entity
   pk: 7
@@ -128,7 +123,6 @@
     description_field: "description"
     version: 1
     version_released: 1
-    workflow: 
 
 - model: entity.Entity
   pk: 8
@@ -142,7 +136,6 @@
     description_field: ""
     version: 1
     version_released: 1
-    workflow: 
 
 - model: entity.Entity
   pk: 9
@@ -156,7 +149,6 @@
     description_field: ""
     version: 1
     version_released: 1
-    workflow: 
 
 - model: entity.Entity
   pk: 10
@@ -170,7 +162,6 @@
     description_field: ""
     version: 1
     version_released: 1
-    workflow: 
 
 - model: entity.Entity
   pk: 11
@@ -184,7 +175,6 @@
     description_field: ""
     version: 1
     version_released: 1
-    workflow: 
 
 - model: entity.EntityTreeNode
   pk: 15
@@ -214,12 +204,6 @@
 
 
 - model: entity.EntityTreeNode
-  pk: 18
-  fields:
-    entity: 5
-    attribute: "workflow"
-    child_nodes: []
-- model: entity.EntityTreeNode
   pk: 9
   fields:
     entity: 8
@@ -235,7 +219,7 @@
   pk: 1
   fields:
     entity: 1
-    child_nodes: [2, 18]
+    child_nodes: [2]
 
 
 - model: entity.EntityTreeNode
@@ -285,7 +269,7 @@
   pk: 3
   fields:
     entity: 1
-    child_nodes: [4, 5]
+    child_nodes: [4]
 
 - model: entity.EntityTree
   pk: 1
@@ -305,3 +289,25 @@
     URI: "com.koa/EntityTree/EntityTree-EntityTreeNode"
     name: "EntityTree-EntityTreeNode"
     entry_point: 13
+
+
+
+- model: entity.EntityTreeNode
+  pk: 19
+  fields:
+    entity: 5
+    attribute: "workflowstatus_set"
+    child_nodes: []
+- model: entity.EntityTreeNode
+  pk: 18
+  fields:
+    entity: 5
+    attribute: ""
+    child_nodes: [19]
+- model: entity.EntityTree
+  pk: 5
+  fields:
+    URI: "com.koa/EntityTree/Workflow-Statuses"
+    name: "Workflow-statuses"
+    entry_point: 18
+    
