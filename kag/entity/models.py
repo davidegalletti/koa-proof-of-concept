@@ -21,7 +21,7 @@ class SerializableEntity(models.Model):
         '''
         Lists the entity trees associated whose entry point is the instance of class Entity corresponding to the class of self
         '''
-        return EntityTree.objects.filter(entry_point__entity = self.entity_instance())
+        return EntityTree.objects.filter(entry_point__entity=self.entity_instance())
 
     def get_name(self):
         return getattr(self, self.entity_instance().name_field)
@@ -30,7 +30,7 @@ class SerializableEntity(models.Model):
         attributes = ""
         for key in self._meta.fields:
             if key.__class__.__name__ != "ForeignKey":
-                attributes += ' ' + key.name + '="' + str(getattr(self,key.name)) + '"'
+                attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'
         return attributes
 
     def to_xml(self, etn):
@@ -54,9 +54,9 @@ class SerializableEntity(models.Model):
         else:
             if etn.entity.name_field <> "":
                 xml_name = " " + etn.entity.name_field + "=\"" + getattr(self, etn.entity.name_field) + "\""
-            return '<' + self.__class__.__name__ + ' ' + self._meta.pk.attname +'="' + str(self.pk) + '"' + xml_name + '/>'
+            return '<' + self.__class__.__name__ + ' ' + self._meta.pk.attname + '="' + str(self.pk) + '"' + xml_name + '/>'
 
-    def from_xml(self, xmldoc, etn, insert = True, parent = None):
+    def from_xml(self, xmldoc, etn, insert=True, parent=None):
         if etn.full_export:
             if parent:
                 related_parent = getattr(parent._meta.concrete_model, etn.attribute)
@@ -83,7 +83,7 @@ class SerializableEntity(models.Model):
                     instance.from_xml(xml_child_node, current_etn_child_node, insert, self)
                 else:
                     instance = actual_class.objects.get(pk=xml_child_node.attributes[actual_class._meta.pk.attname].firstChild.data)
-                    #TODO: il test succesivo forse si fa meglio guardando il concrete_model
+                    # TODO: il test succesivo forse si fa meglio guardando il concrete_model
                     if current_etn_child_node.attribute in self._meta.fields:
 #                         TODO: test
                         setattr(instance, current_etn_child_node.attribute, self)
@@ -101,23 +101,20 @@ class SerializableEntity(models.Model):
 class DBConnection(models.Model):
     connection_string = models.CharField(max_length=255L)
 
+# class WorkflowEntity(SerializableEntity):
+#     '''
+#     WorkflowEntity is a generic entity with a work-flow status; such a status is used also for minimal work-flow of entities that are either in "working" or "released" status
+#     '''
 
-
-class WorkflowEntity(SerializableEntity):
-    '''
-    Abstract class
-    WorkflowEntity is a generic entity with a work-flow status; such a status is used also for minimal work-flow of entities that are either in "working" or "released" status
-    '''
-    workflow = models.ForeignKey('Workflow', null=True, blank=True, related_name = "+")
-    class Meta:
-        abstract = True
-
-class Workflow(WorkflowEntity):
+class Workflow(SerializableEntity):
     '''
     Is a list of WorkflowMethods; the work-flow is abstract, its methods do not specify details of the operation but just the statuses
     '''
     name = models.CharField(max_length=100L)
     description = models.CharField(max_length=2000L, blank=True)
+    entity = models.ForeignKey('Entity')
+    #TODO: generalization, add an EntityTree if the transition affects not only the Entity but also some related entities
+    #entity_tree = models.ForeignKey('EntityTree')
 
 class WorkflowStatus(SerializableEntity):
     '''
@@ -130,12 +127,10 @@ class WorkflowStatus(SerializableEntity):
 
 class WorkflowEntityInstance(models.Model):
     '''
-    Abstract class
     WorkflowEntityInstance
     '''
+    workflow = models.ForeignKey(Workflow)
     current_status = models.ForeignKey(WorkflowStatus)
-    class Meta:
-        abstract = True
 
 
 class VersionableEntityInstance():
@@ -159,13 +154,22 @@ class WorkflowMethod(SerializableEntity):
     class Meta:
         abstract = True
 
-class Entity(WorkflowEntity):
+class WorkflowTransition():
+    instance = models.ForeignKey(WorkflowEntityInstance)
+    workflow_method = models.ForeignKey('WorkflowMethod')
+    notes = models.TextField()
+    user = models.ForeignKey('userauthorization.KUser')
+    timestamp = models.DateTimeField(auto_now_add=True)
+    status_from = models.ForeignKey(WorkflowStatus, related_name="+")
+
+
+class Entity(SerializableEntity):
     '''
     Every entity has a work-flow; the basic one is the one that allows a method to create an instance
     '''
-    #corresponds to the class name
+    # corresponds to the class name
     name = models.CharField(max_length=100L)
-    #for Django it corresponds to the module which contains the class 
+    # for Django it corresponds to the module which contains the class 
     module = models.CharField(max_length=100L)
     version = models.IntegerField(blank=True)
     description = models.CharField(max_length=2000L, blank=True)

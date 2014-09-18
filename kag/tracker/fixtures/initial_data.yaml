@@ -1,0 +1,56 @@
+- model: tracker.ResolutionType
+  pk: 1
+  fields:
+    name: "Resolved"
+  pk: 2
+  fields:
+    name: "Postponed"
+  pk: 3
+  fields:
+    name: "Won't fix"
+
+- model: entity.Entity
+  pk: 12
+  fields:
+    name: "Issue"
+    module: "tracker"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "title"
+    description_field: "description"
+    version: 1
+    version_released: 1
+
+
+- model: entity.Workflow
+  pk: 2
+  fields:
+    name: "Software Bug workflow"
+    description: ""
+    entity: 12
+
+- model: entity.WorkflowStatus
+  pk: 3
+  fields:
+    name: "Initial"
+    description: ""
+    workflow: 2 
+- model: entity.WorkflowStatus
+  pk: 4
+  fields:
+    name: "resolved"
+    description: ""
+    workflow: 2
+- model: entity.WorkflowStatus
+  pk: 5
+  fields:
+    name: "closed"
+    description: ""
+    workflow: 2
+- model: entity.WorkflowStatus
+  pk: 6
+  fields:
+    name: "assigned"
+    description: ""
+    workflow: 2
