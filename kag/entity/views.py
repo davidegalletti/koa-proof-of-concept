@@ -123,6 +123,7 @@ def perform_import(request):
         xml_uploaded = content_file.read()
     xmldoc = minidom.parseString(xml_uploaded)
     URI = xmldoc.childNodes[0].attributes["EntityTreeURI"].firstChild.data
+    #TODO: now we assume that the EntityTree is specified, in the future we must generalize
     et = EntityTree.objects.get(URI=URI)
     child_node = xmldoc.childNodes[0].childNodes[0]
     module_name = et.entry_point.entity.module

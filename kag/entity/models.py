@@ -29,7 +29,8 @@ class SerializableEntity(models.Model):
     def serialized_attributes(self):
         attributes = ""
         for key in self._meta.fields:
-            attributes += ' ' + key.name + '="' + str(getattr(self,key.name)) + '"'
+            if key.__class__.__name__ != "ForeignKey":
+                attributes += ' ' + key.name + '="' + str(getattr(self,key.name)) + '"'
         return attributes
 
     def to_xml(self, etn):
@@ -46,10 +47,9 @@ class SerializableEntity(models.Model):
                             str_xml += child_instance.to_xml(child_node)
                 else:
                     print "Invoking \".to_xml\" for self." + child_node.attribute
-                    if child_node.attribute=="workflow":
-                        pass
                     child_instance = eval("self." + child_node.attribute)
-                    str_xml += child_instance.to_xml (child_node)
+                    if not child_instance is None:
+                        str_xml += child_instance.to_xml (child_node)
             return '<' + self.__class__.__name__ + ' ' + self.serialized_attributes() + '>' + str_xml + '</' + self.__class__.__name__ + '>'
         else:
             if etn.entity.name_field <> "":
