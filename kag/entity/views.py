@@ -11,7 +11,7 @@ from xml.dom import minidom
 from django.db import models
 from django import forms
 from django.template import RequestContext
-from forms import UploadFileForm, ImportChoice
+from forms import UploadFileForm, ImportChoice, ImportChoiceNothingOnDB
 from django.shortcuts import render_to_response
 import kag.utils as utils
 
@@ -105,9 +105,53 @@ def upload_page(request):
             new_uploaded_file.save()
             # we parse it so that we check what is on the file against what is on the database and we show this info to the user
             try:
+                # I extract the information I want to show to the user before I actually perform the import
+                # The info allows the user to compare what is in the file and what is in the database
+                # so that they can decide whether to update or insert
+                initial_data = {}
+                initial_data['uploaded_file_id'] = new_uploaded_file.id
+                initial_data['new_uploaded_file_relpath'] = new_uploaded_file.docfile.url
                 xmldoc = minidom.parseString(xml_uploaded)
-                import_choice_form = ImportChoice(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url})
-                return render(request, 'entity/import_file.html', {'prettyxml': xmldoc.toprettyxml(indent="    "),'file': request.FILES['file'], 'new_uploaded_file': new_uploaded_file, 'import_choice_form': import_choice_form})
+                URI = xmldoc.childNodes[0].attributes["EntityTreeURI"].firstChild.data
+                et = EntityTree.objects.get(URI=URI)
+                # TODO: now we assume that the EntityTree is always specified, in the future we must generalize
+                entity_id = xmldoc.childNodes[0].childNodes[0].attributes["id"].firstChild.data
+                initial_data['entity_id'] = entity_id
+                try:
+                    initial_data['entity_name'] = xmldoc.childNodes[0].childNodes[0].attributes[et.entry_point.entity.name_field].firstChild.data
+                except:
+                    initial_data['entity_name'] = None
+                try:
+                    initial_data['entity_description'] = xmldoc.childNodes[0].childNodes[0].attributes[et.entry_point.entity.description_field].firstChild.data
+                except:
+                    initial_data['entity_description'] = None
+                module_name = et.entry_point.entity.module
+                child_node = xmldoc.childNodes[0].childNodes[0]
+                actual_class_name = module_name + ".models " + child_node.tagName
+                initial_data['actual_class_name'] = actual_class_name
+                actual_class = utils.load_class(module_name + ".models", child_node.tagName)
+                try:
+                    entity_on_db = actual_class.objects.get(pk=entity_id)
+                    initial_data['entity_on_db'] = entity_on_db
+                    try:
+                        initial_data['entity_on_db_name'] = getattr(entity_on_db, et.entry_point.entity.name_field)
+                    except:
+                        initial_data['entity_on_db_name'] = None
+                    try:
+                        initial_data['entity_on_db_description'] = getattr(entity_on_db, et.entry_point.entity.description_field)
+                    except:
+                        initial_data['entity_on_db_description'] = None
+                except:
+                    initial_data['entity_on_db'] = None
+                initial_data['prettyxml'] = xmldoc.toprettyxml(indent="    ")
+                initial_data['file'] = request.FILES['file']
+                initial_data['new_uploaded_file'] = new_uploaded_file
+                if initial_data['entity_on_db'] is None:
+                    import_choice_form = ImportChoiceNothingOnDB(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url, 'how_to_import': 1})
+                else:
+                    import_choice_form = ImportChoice(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url})
+                initial_data['import_choice_form'] = import_choice_form
+                return render(request, 'entity/import_file.html', initial_data)
             except Exception as ex:
                 message = 'Error parsing uploaded file: ' + str(ex)
                 print message
@@ -123,7 +167,6 @@ def perform_import(request):
         xml_uploaded = content_file.read()
     xmldoc = minidom.parseString(xml_uploaded)
     URI = xmldoc.childNodes[0].attributes["EntityTreeURI"].firstChild.data
-    #TODO: now we assume that the EntityTree is specified, in the future we must generalize
     et = EntityTree.objects.get(URI=URI)
     child_node = xmldoc.childNodes[0].childNodes[0]
     module_name = et.entry_point.entity.module
