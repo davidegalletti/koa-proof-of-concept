@@ -8,6 +8,7 @@ from userauthorization.models import KUser, PermissionHolder
 
 from django.http import HttpResponse
 from xml.dom import minidom
+from lxml import etree
 from django.db import models
 from django import forms
 from django.template import RequestContext
@@ -100,6 +101,11 @@ def upload_page(request):
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             xml_uploaded = request.FILES['file'].read()
+            # http://stackoverflow.com/questions/3310614/remove-whitespaces-in-xml-string 
+            p = etree.XMLParser(remove_blank_text=True)
+            elem = etree.XML(xml_uploaded, parser=p)
+            xml_uploaded = etree.tostring(elem)
+            
             new_uploaded_file = UploadedFile(docfile = request.FILES['file'])
             # we save it on disk so that we can process it after the user has told us which part to import and how to import it
             new_uploaded_file.save()
@@ -165,6 +171,10 @@ def perform_import(request):
 #     always_insert = False #(int(request.POST.get("how_to_import", "")) == 1)
     with open(settings.BASE_DIR + "/" + new_uploaded_file_relpath, 'r') as content_file:
         xml_uploaded = content_file.read()
+    # http://stackoverflow.com/questions/3310614/remove-whitespaces-in-xml-string 
+    p = etree.XMLParser(remove_blank_text=True)
+    elem = etree.XML(xml_uploaded, parser=p)
+    xml_uploaded = etree.tostring(elem)
     xmldoc = minidom.parseString(xml_uploaded)
     URI = xmldoc.childNodes[0].attributes["EntityTreeURI"].firstChild.data
     et = EntityTree.objects.get(URI=URI)
