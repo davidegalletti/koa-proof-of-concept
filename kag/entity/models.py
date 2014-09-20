@@ -58,12 +58,21 @@ class SerializableEntity(models.Model):
 
     def from_xml(self, xmldoc, etn, insert=True, parent=None):
         if etn.full_export:
+            field_name = ""
             if parent:
                 related_parent = getattr(parent._meta.concrete_model, etn.attribute)
-                setattr(self, related_parent.related.field.name, parent)
+                if related_parent.__class__.__name__ == "ForeignRelatedObjectsDescriptor":
+                    field_name = related_parent.related.field.name
+                    setattr(self, field_name, parent)
+                if related_parent.__class__.__name__ == "ReverseSingleRelatedObjectDescriptor":
+                    field_name = related_parent.field.name
+                    setattr(self, field_name, parent)
             for key in self._meta.fields:
-                if not parent or key.name != related_parent.related.field.name:
-                    setattr(self, key.name, xmldoc.attributes[key.name].firstChild.data)
+                if key.__class__.__name__ != "ForeignKey" and (not parent or key.name != field_name):
+                    try:
+                        setattr(self, key.name, xmldoc.attributes[key.name].firstChild.data)
+                    except:
+                        print("Error extracting from xml \"" + key.name + "\" for object of class \"" + self.__class__.__name__ + "\" with ID " + str(self.id))
         self.save()
         
         for xml_child_node in xmldoc.childNodes:
