@@ -9,10 +9,6 @@ from django.db.models.related import RelatedObject
 
 class SerializableEntity(models.Model):
     
-    
-
-    
-    
     def entity_instance(self):
         '''
         finds the instance of class Entity where the name corresponds to the name of the class of self
@@ -27,7 +23,28 @@ class SerializableEntity(models.Model):
 
     def get_name(self):
         return getattr(self, self.entity_instance().name_field)
-
+    
+    def foreign_key_atributes(self): 
+        attributes = ""
+        for key in self._meta.fields:
+            if key.__class__.__name__ == "ForeignKey":
+                attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'
+        return attributes
+                
+    def related_manager_atributes(self): 
+        attributes = ""
+        for key in self._meta.fields:
+            if key.__class__.__name__ == "RelatedManager":
+                attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'
+        return attributes
+                
+    def many_related_manager_atributes(self): 
+        attributes = ""
+        for key in self._meta.fields:
+            if key.__class__.__name__ == "ManyRelatedManager":
+                attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'
+        return attributes
+            
     def serialized_attributes(self):
         attributes = ""
         for key in self._meta.fields:
