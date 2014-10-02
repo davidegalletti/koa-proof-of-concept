@@ -130,7 +130,6 @@ INSTALLED_APPS = (
     'taxonomy',
     'application',
     'userauthorization',
-    'alberi',
     'tracker',
 )
 
