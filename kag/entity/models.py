@@ -188,7 +188,7 @@ class Entity(SerializableEntity):
 
 class AttributeType(SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
-#to make syncdb work I take of this circular reference    widgets = models.ManyToManyField('application.Widget', blank=True)
+    widgets = models.ManyToManyField('application.Widget', blank=True)
 
 class Attribute(SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
@@ -215,6 +215,7 @@ class EntityTree(SerializableEntity):
     instance of VersionableEntityInstance + an EntityTree where the entry_point points to that instance)
     The name should describe its use
     '''
+    URI = models.CharField(max_length=400L, blank=True)
     name = models.CharField(max_length=200L)
     entry_point = models.ForeignKey('EntityTreeNode')
 
