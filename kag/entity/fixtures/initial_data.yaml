@@ -8,28 +8,6 @@
     id_field: "id"
     name_field: "name"
     description_field: "description"
-    version: 1
-    version_released: 1
-
-- model: entity.Workflow
-  pk: 1
-  fields:
-    name: "Default minimal workflow (not used so far, shall we delete it?)"
-    description: ""
-    entity: 1
-
-- model: entity.WorkflowStatus
-  pk: 1
-  fields:
-    name: "Initial"
-    description: ""
-    workflow: 1
-- model: entity.WorkflowStatus
-  pk: 2
-  fields:
-    name: "Final"
-    description: ""
-    workflow: 1
 
 - model: entity.AttributeType
   pk: 1
@@ -56,8 +34,6 @@
     id_field: "id"
     name_field: "name"
     description_field: ""
-    version: 1
-    version_released: 1
 
 - model: entity.Entity
   pk: 3
@@ -69,8 +45,6 @@
     id_field: "id"
     name_field: "name"
     description_field: "description"
-    version: 1
-    version_released: 1
 
 - model: entity.Entity
   pk: 4
@@ -82,8 +56,6 @@
     id_field: "id"
     name_field: "name"
     description_field: "description"
-    version: 1
-    version_released: 1
 
 - model: entity.Entity
   pk: 5
@@ -95,8 +67,6 @@
     id_field: "id"
     name_field: "name"
     description_field: "description"
-    version: 1
-    version_released: 1
 
 - model: entity.Entity
   pk: 6
@@ -108,8 +78,6 @@
     id_field: "id"
     name_field: "name"
     description_field: "description"
-    version: 1
-    version_released: 1
 
 - model: entity.Entity
   pk: 7
@@ -121,8 +89,6 @@
     id_field: "id"
     name_field: "name"
     description_field: "description"
-    version: 1
-    version_released: 1
 
 - model: entity.Entity
   pk: 8
@@ -134,8 +100,6 @@
     id_field: "id"
     name_field: "name"
     description_field: ""
-    version: 1
-    version_released: 1
 
 - model: entity.Entity
   pk: 9
@@ -147,8 +111,6 @@
     id_field: "id"
     name_field: "widgetname"
     description_field: ""
-    version: 1
-    version_released: 1
 
 - model: entity.Entity
   pk: 10
@@ -160,8 +122,6 @@
     id_field: "id"
     name_field: "attribute"
     description_field: ""
-    version: 1
-    version_released: 1
 
 - model: entity.Entity
   pk: 11
@@ -173,8 +133,6 @@
     id_field: "id"
     name_field: "name"
     description_field: ""
-    version: 1
-    version_released: 1
 
 - model: entity.EntityTreeNode
   pk: 15
@@ -182,7 +140,8 @@
     entity: 1
     attribute: "entity"
     child_nodes: []
-    full_export: False
+    external_reference: True
+    
 - model: entity.EntityTreeNode
   pk: 12
   fields:
@@ -234,7 +193,7 @@
     entity: 3
     attribute: "application_set"
     child_nodes: []
-    full_export: False
+    external_reference: True
 - model: entity.EntityTreeNode
   pk: 7
   fields:

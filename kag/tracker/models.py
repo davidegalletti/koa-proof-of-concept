@@ -8,3 +8,11 @@ class Issue(WorkflowEntityInstance):
     title = models.CharField(max_length=100L)
     description = models.TextField()
     resolution_type = models.ForeignKey(ResolutionType)
+
+class Note(models.Model):
+    issue = models.ForeignKey(Issue)    
+    text = models.TextField()
+
+
+
+

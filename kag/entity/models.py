@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from django.db import models
 
 import kag.utils as utils
@@ -8,9 +9,10 @@ from django.db.models.related import RelatedObject
 
 class SerializableEntity(models.Model):
     
-    URI = models.CharField(max_length=200L, blank=True)
-        
+    
 
+    
+    
     def entity_instance(self):
         '''
         finds the instance of class Entity where the name corresponds to the name of the class of self
@@ -35,7 +37,7 @@ class SerializableEntity(models.Model):
 
     def to_xml(self, etn):
         str_xml = ""
-        if etn.full_export:
+        if not etn.external_reference:
             for child_node in etn.child_nodes.all():
                 print ("self." + child_node.attribute + ".__class__.__name__")
                 child_class_name = eval("self." + child_node.attribute + ".__class__.__name__")
@@ -57,7 +59,7 @@ class SerializableEntity(models.Model):
             return '<' + self.__class__.__name__ + ' ' + self._meta.pk.attname + '="' + str(self.pk) + '"' + xml_name + '/>'
 
     def from_xml(self, xmldoc, etn, insert=True, parent=None):
-        if etn.full_export:
+        if not etn.external_reference:
             field_name = ""
             if parent:
                 related_parent = getattr(parent._meta.concrete_model, etn.attribute)
@@ -84,7 +86,7 @@ class SerializableEntity(models.Model):
             if current_etn_child_node:
                 module_name = current_etn_child_node.entity.module
                 actual_class = utils.load_class(module_name + ".models", xml_child_node.tagName)
-                if current_etn_child_node.full_export:
+                if not current_etn_child_node.external_reference:
                     if insert:
                         instance = actual_class()
                     else:
@@ -117,13 +119,18 @@ class DBConnection(models.Model):
 
 class Workflow(SerializableEntity):
     '''
-    Is a list of WorkflowMethods; the work-flow is abstract, its methods do not specify details of the operation but just the statuses
+    Is a list of WorkflowMethods; the work-flow is somehow abstract, its methods do not specify details of 
+    the operation but just the statuses
     '''
     name = models.CharField(max_length=100L)
     description = models.CharField(max_length=2000L, blank=True)
-    entity = models.ForeignKey('Entity')
-    #TODO: generalization, add an EntityTree if the transition affects not only the Entity but also some related entities
-    #entity_tree = models.ForeignKey('EntityTree')
+    entity_tree = models.ForeignKey('EntityTree')
+#     ASSERT: I metodi di un wf devono avere impatto solo su Entity contenute nell'ET
+#     ASSERT: tutte le Entity nell'ET devono ereditare da WorkflowEntityInstance
+#     Un'istanza di Entity, quando viene creata, crea automaticamente un ET con solo l'Entity stessa
+#     e lo associa all'istanza stessa nell'attributo: default_entity_tree
+#     ASSERT: all entities must inherit from tutte le Entity devono ereditare da WorkflowEntityInstance (in cui è specificato il wf (non potrebbe essere specificato su ET
+#     perché non c'è ETinstance) e lo stato corrente).
 
 class WorkflowStatus(SerializableEntity):
     '''
@@ -141,15 +148,6 @@ class WorkflowEntityInstance(models.Model):
     workflow = models.ForeignKey(Workflow)
     current_status = models.ForeignKey(WorkflowStatus)
 
-
-class VersionableEntityInstance():
-    '''
-    Abstract class
-    VersionableEntityInstance is ....
-    '''
-    version = models.IntegerField(blank=True)
-    class Meta:
-        abstract = True
 
 class WorkflowMethod(SerializableEntity):
     '''
@@ -176,22 +174,21 @@ class Entity(SerializableEntity):
     '''
     Every entity has a work-flow; the basic one is the one that allows a method to create an instance
     '''
+    URI = models.CharField(max_length=400L, blank=True)
     # corresponds to the class name
     name = models.CharField(max_length=100L)
     # for Django it corresponds to the module which contains the class 
     module = models.CharField(max_length=100L)
-    version = models.IntegerField(blank=True)
     description = models.CharField(max_length=2000L, blank=True)
     table_name = models.CharField(max_length=255L, db_column='tableName', blank=True)
     id_field = models.CharField(max_length=255L, db_column='idField', blank=True)
     name_field = models.CharField(max_length=255L, db_column='nameField', blank=True)
     description_field = models.CharField(max_length=255L, db_column='descriptionField', blank=True)
-    version_released = models.IntegerField(null=True, db_column='versionReleased', blank=True)
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
 
 class AttributeType(SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
-    widgets = models.ManyToManyField('application.Widget', blank=True)
+#to make syncdb work I take of this circular reference    widgets = models.ManyToManyField('application.Widget', blank=True)
 
 class Attribute(SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
@@ -205,8 +202,8 @@ class EntityTreeNode(SerializableEntity):
     # attribute is blank for the entry point
     attribute = models.CharField(max_length=255L, blank=True)
     child_nodes = models.ManyToManyField('self', blank=True, symmetrical=False)
-    # if full_export all attributes are exported, otherwise only the id
-    full_export = models.BooleanField(default=True)
+    # if not external_reference all attributes are exported, otherwise only the id
+    external_reference = models.BooleanField(default=False, db_column='externalReference')
 
 class EntityTree(SerializableEntity):
     '''
@@ -220,6 +217,40 @@ class EntityTree(SerializableEntity):
     '''
     name = models.CharField(max_length=200L)
     entry_point = models.ForeignKey('EntityTreeNode')
+
+class EntityTreeInstance(SerializableEntity):
+    '''
+    Versionable
+    an Instance belongs to a set of instances which are basically the same but with a different version
+    
+    Methods:
+        new version: create new instances starting from entry point, following the nodes but those with external_reference=True
+        release: it sets version_released True and it sets it to False for all the other instances of the same set
+    '''
+    
+    '''
+    an Instance belongs to a set of instances which are basically the same but with a different version
+    root_version_id is the id of the first instance of this set 
+    '''
+    root_version_id = models.IntegerField()
+    
+    entity_tree = models.ForeignKey(EntityTree)
+    entry_point_id = models.IntegerField()
+    version_major = models.IntegerField(blank=True)
+    version_minor = models.IntegerField(blank=True)
+    version_patch = models.IntegerField(blank=True)
+    '''
+    At most one instance with the same root_version_id has version_released = True
+    Three states: working, released, obsolete
+    working is the latest version where version_released = False
+    released is the one with version_released = True
+    obsolete are the others 
+    '''
+    version_released = models.BooleanField(default=False)
+    
+    
+    
+    
 
 class UploadedFile(models.Model):
     '''
