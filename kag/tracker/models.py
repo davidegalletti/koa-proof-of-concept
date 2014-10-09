@@ -1,7 +1,7 @@
 from django.db import models
-from entity.models import WorkflowEntityInstance
+from entity.models import WorkflowEntityInstance, SerializableEntity
 
-class ResolutionType(models.Model):
+class ResolutionType(SerializableEntity):
     name = models.CharField(max_length=100L)
 
 class Issue(WorkflowEntityInstance):
@@ -9,7 +9,7 @@ class Issue(WorkflowEntityInstance):
     description = models.TextField()
     resolution_type = models.ForeignKey(ResolutionType)
 
-class Note(models.Model):
+class Note(SerializableEntity):
     issue = models.ForeignKey(Issue)    
     text = models.TextField()
 
