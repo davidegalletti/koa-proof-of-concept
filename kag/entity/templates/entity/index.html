@@ -7,9 +7,15 @@
             {% else %}
                 {{ instance.get_name }}
             {% endif %}
+            <br>
             {% for entity_tree in instance.entity_trees %}
                 <a href="{% url 'export' entity_tree.id instance.id instance.entity_instance.id %}">Export {{ entity_tree.name }}</a>
             {% endfor %}
+            <br>
+            {% if instance.entity_instance.name == 'EntityTree' %}
+                <a href="{% url 'export_stub' instance.id %}">Export a stub</a>
+            {% endif %}
+            
         </li>
     {% endfor %}
     </ul>

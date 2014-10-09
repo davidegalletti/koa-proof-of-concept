@@ -95,6 +95,17 @@ def export(request, entity_tree_id, entity_instance_id, entity_id):
     
     return render(request, 'entity/export.xml', {'xml': exported_xml}, content_type="application/xhtml+xml")
     
+def export_stub(request, entity_tree_id):
+    et = get_object_or_404(EntityTree, pk = entity_tree_id)
+    e = et.entry_point.entity
+    actual_class = utils.load_class(e.module + ".models", e.name)
+    instance = actual_class()
+    # I need a dictionary to prevent infinite loop and to control how many times I export a specific class
+    export_count_per_class = {}
+    exported_xml = "<Export EntityTreeURI=\"" + et.URI + "\">" + instance.to_xml(et.entry_point, True, export_count_per_class) + "</Export>"
+    
+    return render(request, 'entity/export.xml', {'xml': exported_xml}, content_type="application/xhtml+xml")
+    
 def upload_page(request):
     message = ''
     if request.method == 'POST':

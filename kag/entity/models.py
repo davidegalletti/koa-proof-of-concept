@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+
+from random import randrange, uniform
+
 from django.db import models
 
 import kag.utils as utils
@@ -44,36 +47,80 @@ class SerializableEntity(models.Model):
             if key.__class__.__name__ == "ManyRelatedManager":
                 attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'
         return attributes
-            
-    def serialized_attributes(self):
+        
+    def serialized_attributes(self, stub = False):
         attributes = ""
         for key in self._meta.fields:
             if key.__class__.__name__ != "ForeignKey":
-                attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'
+                if stub:
+                    value = " generic_value "
+                    if key.__class__.__name__ == "str":
+                        value = "random_string"
+                    if key.__class__.__name__ == "int":
+                        value = str(randrange(100))
+                    if key.__class__.__name__ == "long":
+                        value = str(randrange(100000))
+                    if key.__class__.__name__ == "float":
+                        value = str(uniform(1, 10))
+                    if key.__class__.__name__ == "AutoField":
+                        value = "-1"
+                    attributes += ' ' + key.name + '="' + value + '"'
+                else:
+                    attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'
         return attributes
 
-    def to_xml(self, etn):
+    def to_xml(self, etn, stub = False, export_count_per_class = {}):
         str_xml = ""
+        if stub:
+            if not self.__class__.__name__ in  export_count_per_class.keys():
+                export_count_per_class[self.__class__.__name__] = 0
+            export_count_per_class[self.__class__.__name__] += 1
         if not etn.external_reference:
+            if stub and export_count_per_class[self.__class__.__name__] > 4:
+                return ''
             for child_node in etn.child_nodes.all():
                 print ("self." + child_node.attribute + ".__class__.__name__")
-                child_class_name = eval("self." + child_node.attribute + ".__class__.__name__")
+                child_class_instance_name = child_node.entity.name
+                try:
+                    child_class_name = eval("self." + child_node.attribute + ".__class__.__name__")
+                except:
+                    child_class_name = ""
+                child_class_module = child_node.entity.module
                 if child_class_name == 'RelatedManager' or child_class_name == 'ManyRelatedManager':
-                    child_instances = eval("self." + child_node.attribute + ".all()")
-                    for child_instance in child_instances:
-                        # let's prevent infinite loops if self relationships
-                        if (child_instance.__class__.__name__ <> self.__class__.__name__) or (self.pk <> child_node.pk):
-                            str_xml += child_instance.to_xml(child_node)
+                    if stub:
+                        actual_class = utils.load_class(child_class_module + ".models", child_class_instance_name)
+                        child_instance = actual_class()
+                        # I can add a couple of children just to make it evident it is a list
+                        str_xml += child_instance.to_xml(child_node, True, export_count_per_class)
+                        str_xml += child_instance.to_xml(child_node, True, export_count_per_class)
+                    else:
+                        child_instances = eval("self." + child_node.attribute + ".all()")
+                        for child_instance in child_instances:
+                            # let's prevent infinite loops if self relationships
+                            if (child_instance.__class__.__name__ <> self.__class__.__name__) or (self.pk <> child_node.pk):
+                                str_xml += child_instance.to_xml(child_node)
                 else:
-                    print "Invoking \".to_xml\" for self." + child_node.attribute
-                    child_instance = eval("self." + child_node.attribute)
-                    if not child_instance is None:
-                        str_xml += child_instance.to_xml (child_node)
-            return '<' + self.__class__.__name__ + ' ' + self.serialized_attributes() + '>' + str_xml + '</' + self.__class__.__name__ + '>'
+                    if stub:
+                        actual_class = utils.load_class(child_class_module + ".models", child_class_instance_name)
+                        child_instance = actual_class()
+                        str_xml += child_instance.to_xml (child_node, True, export_count_per_class)
+                    else:
+                        print "Invoking \".to_xml\" for self." + child_node.attribute
+                        child_instance = eval("self." + child_node.attribute)
+                        if not child_instance is None:
+                            str_xml += child_instance.to_xml (child_node)
+            return '<' + self.__class__.__name__ + ' ' + self.serialized_attributes(stub) + '>' + str_xml + '</' + self.__class__.__name__ + '>'
         else:
+            # etn.external_reference = True
             if etn.entity.name_field <> "":
-                xml_name = " " + etn.entity.name_field + "=\"" + getattr(self, etn.entity.name_field) + "\""
-            return '<' + self.__class__.__name__ + ' ' + self._meta.pk.attname + '="' + str(self.pk) + '"' + xml_name + '/>'
+                if stub:
+                    xml_name = " " + etn.entity.name_field + "=\"Name of a sample " + etn.entity.name + " instance.\""
+                else:
+                    xml_name = " " + etn.entity.name_field + "=\"" + getattr(self, etn.entity.name_field) + "\""
+            if stub:
+                return '<' + self.__class__.__name__ + ' ' + self._meta.pk.attname + '="-1"' + xml_name + '/>'
+            else:
+                return '<' + self.__class__.__name__ + ' ' + self._meta.pk.attname + '="' + str(self.pk) + '"' + xml_name + '/>'
 
     def from_xml(self, xmldoc, etn, insert=True, parent=None):
         if not etn.external_reference:
@@ -158,7 +205,7 @@ class WorkflowStatus(SerializableEntity):
     description = models.CharField(max_length=2000L, blank=True)
 
 
-class WorkflowEntityInstance(models.Model):
+class WorkflowEntityInstance(SerializableEntity):
     '''
     WorkflowEntityInstance
     '''
@@ -192,7 +239,7 @@ class Entity(SerializableEntity):
     Every entity has a work-flow; the basic one is the one that allows a method to create an instance
     '''
     URI = models.CharField(max_length=400L, blank=True)
-    # corresponds to the class name
+    # name corresponds to the class name
     name = models.CharField(max_length=100L)
     # for Django it corresponds to the module which contains the class 
     module = models.CharField(max_length=100L)
