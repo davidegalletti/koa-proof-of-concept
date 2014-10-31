@@ -11,4 +11,5 @@ urlpatterns = patterns('',
     url(r'^export_stub/(?P<entity_tree_id>\d+)/$', views.export_stub, name='export_stub'),
     url(r'^upload_page', views.upload_page, name='upload_page'),
     url(r'^perform_import', views.perform_import, name='perform_import'),
+    url(r'^entity_tree_stub/(?P<entity_id>\d+)/$', views.entity_tree_stub, name='entity_tree_stub'),
 )

@@ -10,7 +10,7 @@ class Issue(WorkflowEntityInstance):
     resolution_type = models.ForeignKey(ResolutionType)
 
 class Note(SerializableEntity):
-    issue = models.ForeignKey(Issue)    
+    issue = models.ForeignKey(Issue, related_name='notes')
     text = models.TextField()
 
 
