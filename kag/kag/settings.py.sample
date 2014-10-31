@@ -109,7 +109,7 @@ WSGI_APPLICATION = 'kag.wsgi.application'
 
 BASE_DIR = "/home/davide/workspace"
 TEMPLATE_DIRS = (
-    "/home/davide/Documenti/Lavoro/KOA/Lavoro/Prototipi/knowledgeapp/django/kag/templates"
+    "/home/davide/Documenti/Lavoro/KOA/Lavoro/Prototipi/knowledgeapp/django/kag/templates",
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
