@@ -7,7 +7,7 @@ from django.db import models
 import kag.utils as utils
 from django.db.models.manager import Manager
 from django.db.models.related import RelatedObject
-
+from xml.dom import minidom
 
 
 class SerializableEntity(models.Model):
@@ -78,40 +78,44 @@ class SerializableEntity(models.Model):
         if not etn.external_reference:
             if stub and export_count_per_class[self.__class__.__name__] > 3:
                 return ''
-            for child_node in etn.child_nodes.all():
-                print ("self." + child_node.attribute + ".__class__.__name__")
-                child_class_instance_name = child_node.entity.name
-                try:
-                    child_class_name = eval("self." + child_node.attribute + ".__class__.__name__")
-                except:
-                    child_class_name = ""
-                child_class_module = child_node.entity.module
-                if child_class_name == 'RelatedManager' or child_class_name == 'ManyRelatedManager':
-                    if stub:
-                        actual_class = utils.load_class(child_class_module + ".models", child_class_instance_name)
-                        child_instance = actual_class()
-                        # I can add a couple of children just to make it evident it is a list
-                        str_xml += child_instance.to_xml(child_node, True, export_count_per_class)
-                        str_xml += child_instance.to_xml(child_node, True, export_count_per_class)
+            try:
+                for child_node in etn.child_nodes.all():
+                    print ("self." + child_node.attribute + ".__class__.__name__")
+                    child_class_instance_name = child_node.entity.name
+                    try:
+                        child_class_name = eval("self." + child_node.attribute + ".__class__.__name__")
+                    except:
+                        child_class_name = ""
+                    child_class_module = child_node.entity.module
+                    if child_class_name == 'RelatedManager' or child_class_name == 'ManyRelatedManager':
+                        if stub:
+                            actual_class = utils.load_class(child_class_module + ".models", child_class_instance_name)
+                            child_instance = actual_class()
+                            # I can add a couple of children just to make it evident it is a list
+                            str_xml += child_instance.to_xml(child_node, True, export_count_per_class)
+                            str_xml += child_instance.to_xml(child_node, True, export_count_per_class)
+                        else:
+                            child_instances = eval("self." + child_node.attribute + ".all()")
+                            for child_instance in child_instances:
+                                # let's prevent infinite loops if self relationships
+                                if (child_instance.__class__.__name__ <> self.__class__.__name__) or (self.pk <> child_node.pk):
+                                    str_xml += child_instance.to_xml(child_node)
                     else:
-                        child_instances = eval("self." + child_node.attribute + ".all()")
-                        for child_instance in child_instances:
-                            # let's prevent infinite loops if self relationships
-                            if (child_instance.__class__.__name__ <> self.__class__.__name__) or (self.pk <> child_node.pk):
-                                str_xml += child_instance.to_xml(child_node)
-                else:
-                    if stub:
-                        actual_class = utils.load_class(child_class_module + ".models", child_class_instance_name)
-                        child_instance = actual_class()
-                        str_xml += child_instance.to_xml (child_node, True, export_count_per_class)
-                    else:
-                        print "Invoking \".to_xml\" for self." + child_node.attribute
-                        child_instance = eval("self." + child_node.attribute)
-                        if not child_instance is None:
-                            str_xml += child_instance.to_xml (child_node)
+                        if stub:
+                            actual_class = utils.load_class(child_class_module + ".models", child_class_instance_name)
+                            child_instance = actual_class()
+                            str_xml += child_instance.to_xml (child_node, True, export_count_per_class)
+                        else:
+                            print "Invoking \".to_xml\" for self." + child_node.attribute
+                            child_instance = eval("self." + child_node.attribute)
+                            if not child_instance is None:
+                                str_xml += child_instance.to_xml (child_node)
+            except Exception as es:
+                print es
             return '<' + self.__class__.__name__ + ' ' + self.serialized_attributes(stub) + '>' + str_xml + '</' + self.__class__.__name__ + '>'
         else:
             # etn.external_reference = True
+            xml_name = ''
             if etn.entity.name_field <> "":
                 if stub:
                     xml_name = " " + etn.entity.name_field + "=\"Name of a sample " + etn.entity.name + " instance.\""
@@ -167,6 +171,29 @@ class SerializableEntity(models.Model):
 #                         TODO: test
                         setattr(self, current_etn_child_node.attribute, instance)
                         self.save()
+
+    def entity_tree_stub(self, etn, class_list=[]):
+        module_name = self.module
+        actual_class = utils.load_class(module_name + ".models", self.name)
+        stub_model = actual_class()
+        sutbxmlstr = stub_model.to_xml(etn, stub=True)
+        stub_xml = minidom.parseString(sutbxmlstr)
+        if not actual_class in class_list:
+            class_list.append(actual_class)
+            for rel in stub_model._meta.get_all_related_objects():
+                related_name = rel.field.rel.related_name or  "%s_set" % (rel.var_name,)
+                actual_rel = rel.model()
+                setattr(actual_rel, rel.field.name, stub_model)
+                #TODO: gestire meglio la presenza di .models  dentro il nome del modulo
+                rel_entity = Entity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
+                rel_etn = EntityTreeNode(entity=rel_entity)
+                xmlstr = rel_entity.entity_tree_stub(rel_etn, class_list)
+                rel_xml = minidom.parseString(xmlstr)
+                nchild = minidom.Element(related_name)
+                nchild.appendChild(rel_xml.documentElement)
+                stub_xml.documentElement.appendChild(nchild)
+        return stub_xml.toprettyxml()
+
     class Meta:
         abstract = True
 
