@@ -76,7 +76,7 @@ class SerializableEntity(models.Model):
                 export_count_per_class[self.__class__.__name__] = 0
             export_count_per_class[self.__class__.__name__] += 1
         if not etn.external_reference:
-            if stub and export_count_per_class[self.__class__.__name__] > 4:
+            if stub and export_count_per_class[self.__class__.__name__] > 3:
                 return ''
             for child_node in etn.child_nodes.all():
                 print ("self." + child_node.attribute + ".__class__.__name__")
@@ -199,6 +199,9 @@ class Workflow(SerializableEntity):
 class WorkflowStatus(SerializableEntity):
     '''
     TODO: We need to have some statuses that are available to any entity and some just to specific entities; how?
+    Maybe we can add a type to the statuses so that we can say that a status is of type "Initial" or "Closed"
+    and the type can have some functional implications: e.g. "Closed" are not listed in a default view.
+    Do we really need what's above?????? 
     '''
     name = models.CharField(max_length=100L)
     workflow = models.ForeignKey(Workflow, null=True, blank=True)
