@@ -53,6 +53,7 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+/kag/kag/settings.py
 /kag/documents/2014/07/10/11_1.xhtml
 /kag/documents/2014/07/10/11_2.xhtml
 /kag/documents/2014/07/10/11_3.xhtml
@@ -66,3 +67,4 @@ docs/_build/
 /kag/documents/2014/07/18/11.xhtml
 /kag.mwb.bak
 /kag/.settings/org.eclipse.core.resources.prefs
+/20140919 kag.mwb.bak
