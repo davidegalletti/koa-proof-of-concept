@@ -202,5 +202,28 @@ def perform_import(request):
 def entity_tree_stub(request, entity_id):
     entity = get_object_or_404(Entity, pk=entity_id)
     etn = EntityTreeNode(entity=entity)
-    ets = entity.entity_tree_stub(etn=etn)
-    return HttpResponse(ets, content_type="application/xhtml+xml")
+    et = EntityTree(entry_point=etn)
+
+    etn_entity = Entity.objects.get(name="EntityTreeNode")
+    export_etn = EntityTreeNode(entity=etn_entity)
+    #l'ORM di django ci obbliga a salvarlo sul db
+    export_etn.save()
+    e_entity = Entity.objects.get(name="Entity")
+    export_etn_child = EntityTreeNode(entity=e_entity, attribute="entity")
+    export_etn_child.save()
+    export_etn.child_nodes.add(export_etn_child)
+    export_etn.save()
+    ets = entity.entity_tree_stub(etn=etn, export_etn=export_etn, class_list=[])
+
+    et_xml_str = et.to_xml(et.entry_point)
+    et_xml = minidom.parseString(et_xml_str)
+    et_xml.documentElement.appendChild(ets.documentElement)
+
+    exp_str = '<Export EntityTreeURI="' + et.URI + '"></Export>'
+    exp_xml = minidom.parseString(exp_str)
+    exp_xml.documentElement.appendChild(et_xml.documentElement)
+    #cancello gli oggetti salvati
+    export_etn_child.delete()
+    export_etn.delete()
+    res = exp_xml.toprettyxml()
+    return HttpResponse(res, content_type="application/xhtml+xml")

@@ -172,27 +172,27 @@ class SerializableEntity(models.Model):
                         setattr(self, current_etn_child_node.attribute, instance)
                         self.save()
 
-    def entity_tree_stub(self, etn, class_list=[]):
+    def entity_tree_stub(self, etn, export_etn, class_list=[]):
         module_name = self.module
         actual_class = utils.load_class(module_name + ".models", self.name)
         stub_model = actual_class()
-        sutbxmlstr = stub_model.to_xml(etn, stub=True)
+        #vogliamo esportare l'entity come external
+        sutbxmlstr = etn.to_xml(export_etn, stub=False)
         stub_xml = minidom.parseString(sutbxmlstr)
         if not actual_class in class_list:
             class_list.append(actual_class)
             for rel in stub_model._meta.get_all_related_objects():
-                related_name = rel.field.rel.related_name or  "%s_set" % (rel.var_name,)
+                #related_name = rel.field.rel.related_name or  "%s_set" % (rel.var_name,)
                 actual_rel = rel.model()
                 setattr(actual_rel, rel.field.name, stub_model)
                 #TODO: gestire meglio la presenza di .models  dentro il nome del modulo
                 rel_entity = Entity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                 rel_etn = EntityTreeNode(entity=rel_entity)
-                xmlstr = rel_entity.entity_tree_stub(rel_etn, class_list)
-                rel_xml = minidom.parseString(xmlstr)
-                nchild = minidom.Element(related_name)
-                nchild.appendChild(rel_xml.documentElement)
-                stub_xml.documentElement.appendChild(nchild)
-        return stub_xml.toprettyxml()
+                rel_xml = rel_entity.entity_tree_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
+                #nchild = minidom.Element(related_name)
+                #nchild.appendChild(rel_xml.documentElement)
+                stub_xml.documentElement.appendChild(rel_xml.documentElement)
+        return stub_xml
 
     class Meta:
         abstract = True
