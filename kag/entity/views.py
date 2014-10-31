@@ -17,6 +17,7 @@ from django.shortcuts import render_to_response
 import kag.utils as utils
 
 
+
 def index(request):
 #    instance_list = Entity.objects.order_by('name')
     instance_list = Entity.objects.all()
@@ -196,3 +197,10 @@ def perform_import(request):
     #At least the first node has full export = True otherwise I would not import anything but just load something from the db 
     instance.from_xml(child_node, et.entry_point, False)
     return HttpResponse("OK")
+
+
+def entity_tree_stub(request, entity_id):
+    entity = get_object_or_404(Entity, pk=entity_id)
+    etn = EntityTreeNode(entity=entity)
+    ets = entity.entity_tree_stub(etn=etn)
+    return HttpResponse(ets, content_type="application/xhtml+xml")
