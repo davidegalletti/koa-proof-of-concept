@@ -7,6 +7,9 @@ from django.db import models
 import kag.utils as utils
 from django.db.models.manager import Manager
 from django.db.models.related import RelatedObject
+
+
+
 from xml.dom import minidom
 
 
@@ -181,8 +184,22 @@ class SerializableEntity(models.Model):
         stub_xml = minidom.parseString(sutbxmlstr)
         if not actual_class in class_list:
             class_list.append(actual_class)
+            fk = [f.related for f in stub_model._meta.concrete_fields if f.__class__.__name__ == "ForeignKey" or f.__class__.__name__ == "OneToOneField"]
+            for rel in fk:
+                actual_rel = rel.parent_model()
+                #setattr(stub_model, rel.field.name, stub_model)
+                #TODO: gestire meglio la presenza di .models  dentro il nome del modulo
+                try:
+                    rel_entity = Entity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
+                except:
+                    rel_entity = Entity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
+                    rel_entity.save()
+                rel_etn = EntityTreeNode(entity=rel_entity)
+                rel_xml = rel_entity.entity_tree_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
+                stub_xml.documentElement.appendChild(rel_xml.documentElement)
+
+
             for rel in stub_model._meta.get_all_related_objects():
-                #related_name = rel.field.rel.related_name or  "%s_set" % (rel.var_name,)
                 actual_rel = rel.model()
                 setattr(actual_rel, rel.field.name, stub_model)
                 #TODO: gestire meglio la presenza di .models  dentro il nome del modulo
@@ -193,8 +210,6 @@ class SerializableEntity(models.Model):
                     rel_entity.save()
                 rel_etn = EntityTreeNode(entity=rel_entity)
                 rel_xml = rel_entity.entity_tree_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
-                #nchild = minidom.Element(related_name)
-                #nchild.appendChild(rel_xml.documentElement)
                 stub_xml.documentElement.appendChild(rel_xml.documentElement)
         return stub_xml
 
@@ -245,6 +260,9 @@ class WorkflowEntityInstance(SerializableEntity):
     '''
     workflow = models.ForeignKey(Workflow)
     current_status = models.ForeignKey(WorkflowStatus)
+
+    class Meta:
+        abstract = True
 
 
 class WorkflowMethod(SerializableEntity):
