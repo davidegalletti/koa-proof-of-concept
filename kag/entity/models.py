@@ -186,7 +186,11 @@ class SerializableEntity(models.Model):
                 actual_rel = rel.model()
                 setattr(actual_rel, rel.field.name, stub_model)
                 #TODO: gestire meglio la presenza di .models  dentro il nome del modulo
-                rel_entity = Entity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
+                try:
+                    rel_entity = Entity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
+                except:
+                    rel_entity = Entity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
+                    rel_entity.save()
                 rel_etn = EntityTreeNode(entity=rel_entity)
                 rel_xml = rel_entity.entity_tree_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
                 #nchild = minidom.Element(related_name)

@@ -15,6 +15,9 @@
             {% if instance.entity_instance.name == 'EntityTree' %}
                 <a href="{% url 'export_stub' instance.id %}">Export a stub</a>
             {% endif %}
+            {% if instance.entity_instance.name == 'Entity' %}
+                <a href="{% url 'entity_tree_stub' instance.id %}">Export a stub of an EntityTree</a>
+            {% endif %}
 
         </li>
     {% endfor %}
