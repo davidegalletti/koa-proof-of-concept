@@ -3,7 +3,7 @@
 __author__ = 'david'
 
 from application.models import Application, Method
-from entity.models import Entity, Attribute, WorkflowStatus, Workflow, AttributeType, EntityTree, EntityTreeNode
+from entity.models import SimpleEntity, Attribute, WorkflowStatus, Workflow, AttributeType, Entity, EntityNode
 from django.contrib.auth.models import User
 from userauthorization.models import KUser, PermissionHolder
 
@@ -15,71 +15,71 @@ from userauthorization.models import KUser, PermissionHolder
 # ws1.save()
 # ws2 = WorkflowStatus(name = "Final", description= "", workflow = wf)
 # ws1.save()
-# e1 = Entity(name= "Entity", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1, workflow= wf)
+# e1 = SimpleEntity(name= "SimpleEntity", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1, workflow= wf)
 # e1.save()
-# e2 = Entity(name= "Attribute", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "", version= 1, version_released= 1)
+# e2 = SimpleEntity(name= "Attribute", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "", version= 1, version_released= 1)
 # e2.save()
-# e3 = Entity(name= "Application", app= "application", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1, workflow= wf)
+# e3 = SimpleEntity(name= "Application", app= "application", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1, workflow= wf)
 # e3.save()
-# e4 = Entity(name= "Method", app= "application", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1)
+# e4 = SimpleEntity(name= "Method", app= "application", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1)
 # e4.save()
-# e5 = Entity(name= "Workflow", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1, workflow= wf)
+# e5 = SimpleEntity(name= "Workflow", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1, workflow= wf)
 # e5.save()
-# e6 = Entity(name= "WorkflowStatus", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1)
+# e6 = SimpleEntity(name= "WorkflowStatus", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1)
 # e6.save()
-# e7 = Entity(name= "Method", app= "application", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1)
+# e7 = SimpleEntity(name= "Method", app= "application", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "description", version= 1, version_released= 1)
 # e7.save()
-# e8 = Entity(name= "AttributeType", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "", version= 1, version_released= 1)
+# e8 = SimpleEntity(name= "AttributeType", app= "entity", description= "", table_name= "", id_field= "id", name_field= "name", description_field= "", version= 1, version_released= 1)
 # e8.save()
-# e9 = Entity(name= "Widget", app= "application", description= "", table_name= "", id_field= "id", name_field= "widgetname", description_field= "", version= 1, version_released= 1)
+# e9 = SimpleEntity(name= "Widget", app= "application", description= "", table_name= "", id_field= "id", name_field= "widgetname", description_field= "", version= 1, version_released= 1)
 # e9.save()
 # 
-# etn11 = EntityTreeNode(entity = e9, attribute = "widgets")
+# etn11 = EntityNode(entity = e9, attribute = "widgets")
 # etn11.child_nodes = []
 # etn11.save()
-# etn10 = EntityTreeNode(entity = e8, attribute = "type")
+# etn10 = EntityNode(entity = e8, attribute = "type")
 # etn10.child_nodes = []
 # etn10.child_nodes.add(etn11)
 # etn10.save()
-# etn9 = EntityTreeNode(entity = e8, attribute = "type")
+# etn9 = EntityNode(entity = e8, attribute = "type")
 # etn9.child_nodes = []
 # etn9.save()
-# etn8 = EntityTreeNode(entity = e3, attribute = "")
+# etn8 = EntityNode(entity = e3, attribute = "")
 # etn8.save()
-# etn7 = EntityTreeNode(entity = e7, attribute = "method_set")
+# etn7 = EntityNode(entity = e7, attribute = "method_set")
 # etn8.child_nodes = []
 # etn7.child_nodes.add(etn8)
 # etn7.child_nodes = []
 # etn7.save()
-# etn6 = EntityTreeNode(entity = e6, attribute = "workflow_status_set")
+# etn6 = EntityNode(entity = e6, attribute = "workflow_status_set")
 # etn6.child_nodes = []
 # etn6.save()
-# etn5 = EntityTreeNode(entity = e5, attribute = "workflow")
+# etn5 = EntityNode(entity = e5, attribute = "workflow")
 # etn5.child_nodes = []
 # etn5.child_nodes.add(etn6)
 # etn5.child_nodes.add(etn7)
 # etn5.save()
-# etn4 = EntityTreeNode(entity = e2, attribute = "attribute_set")
+# etn4 = EntityNode(entity = e2, attribute = "attribute_set")
 # etn4.child_nodes = []
 # etn4.child_nodes.add(etn10)
 # etn4.save()
-# etn3 = EntityTreeNode(entity = e1, attribute = "")
+# etn3 = EntityNode(entity = e1, attribute = "")
 # etn3.child_nodes = []
 # etn3.child_nodes.add(etn4)
 # etn3.child_nodes.add(etn5)
 # etn3.save()
-# etn2 = EntityTreeNode(entity = e2, attribute = "attribute_set")
+# etn2 = EntityNode(entity = e2, attribute = "attribute_set")
 # etn2.child_nodes = []
 # etn2.child_nodes.add(etn9)
 # etn2.save()
-# etn1 = EntityTreeNode(entity = e1)
+# etn1 = EntityNode(entity = e1)
 # etn1.child_nodes = []
 # etn1.child_nodes.add(etn2)
 # etn1.save()
 # 
-# et1 = EntityTree(name = "Entity-attributes", entry_point = etn1)
+# et1 = Entity(name = "SimpleEntity-attributes", entry_point = etn1)
 # et1.save()
-# et2 = EntityTree(name = "Entity-...-Application", entry_point = etn3)
+# et2 = Entity(name = "SimpleEntity-...-Application", entry_point = etn3)
 # et2.save()
 
 
@@ -98,7 +98,7 @@ m1 = Method(name='Foo: a method of ks', description='It does absolutely nothing'
 m1.save()
 ks.methods.add(m1)
 ks.save()
-e1 = Entity(name='foo entity for ks', version=1)
+e1 = SimpleEntity(name='foo entity for ks', version=1)
 e1.save()
 at = AttributeType(name="Text")
 at.save()
@@ -120,7 +120,7 @@ bt.methods.add(create_bug)
 bt.methods.add(resolve_bug)
 bt.save()
 # creiamo un'entità con un attributo
-bug = Entity(name='bug', version=1)
+bug = SimpleEntity(name='bug', version=1)
 bug.save()
 attr1 = Attribute(name='status', entity=bug, type=at)
 attr1.save()
@@ -132,8 +132,8 @@ attr2.save()
 create_bug.attributes.add(attr1)
 create_bug.attributes.add(attr2)
 create_bug.save()
-#aggiungiamo due attributi all'entità "Entity"
-e = Entity.objects.get(name="Entity")
+#aggiungiamo due attributi all'entità "SimpleEntity"
+e = SimpleEntity.objects.get(name="SimpleEntity")
 attr1 = Attribute(name='Name', entity=e, type=at)
 attr1.save()
 attr2 = Attribute(name='Version', entity=e, type=at)

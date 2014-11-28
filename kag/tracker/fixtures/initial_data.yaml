@@ -9,7 +9,7 @@
   fields:
     name: "Won't fix"
 
-- model: entity.Entity
+- model: entity.SimpleEntity
   pk: 12
   fields:
     name: "Issue"
@@ -20,7 +20,7 @@
     name_field: "title"
     description_field: "description"
 
-- model: entity.Entity
+- model: entity.SimpleEntity
   pk: 13
   fields:
     name: "Note"
@@ -31,29 +31,29 @@
     name_field: ""
     description_field: ""
 
-- model: entity.EntityTreeNode
+- model: entity.EntityNode
   pk: 20
   fields:
-    entity: 12
+    simple_entity: 12
     attribute: ""
     child_nodes: []
-- model: entity.EntityTree
+- model: entity.Entity
   pk: 6
   fields:
-    URI: "com.koa/EntityTree/Issue-"
+    URI: "com.koa/Entity/Issue-"
     name: "tracker Issue-"
     entry_point: 20
     
-- model: entity.EntityTreeNode
+- model: entity.EntityNode
   pk: 21
   fields:
-    entity: 13
+    simple_entity: 13
     attribute: ""
     child_nodes: []
-- model: entity.EntityTree
+- model: entity.Entity
   pk: 7
   fields:
-    URI: "com.koa/EntityTree/Notes-"
+    URI: "com.koa/Entity/Notes-"
     name: "tracker Note-"
     entry_point: 21
 
