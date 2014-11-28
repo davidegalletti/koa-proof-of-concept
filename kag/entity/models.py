@@ -8,8 +8,6 @@ import kag.utils as utils
 from django.db.models.manager import Manager
 from django.db.models.related import RelatedObject
 
-
-
 from xml.dom import minidom
 
 
@@ -17,15 +15,15 @@ class SerializableEntity(models.Model):
     
     def entity_instance(self):
         '''
-        finds the instance of class Entity where the name corresponds to the name of the class of self
+        finds the instance of class SimpleEntity where the name corresponds to the name of the class of self
         '''
         return Entity.objects.get(name=self.__class__.__name__)
 
     def entity_trees(self):
         '''
-        Lists the entity trees associated whose entry point is the instance of class Entity corresponding to the class of self
+        Lists the entity trees associated whose entry point is the instance of class SimpleEntity corresponding to the class of self
         '''
-        return EntityTree.objects.filter(entry_point__entity=self.entity_instance())
+        return Entity.objects.filter(entry_point__entity=self.entity_instance())
 
     def get_name(self):
         return getattr(self, self.entity_instance().name_field)
@@ -84,12 +82,12 @@ class SerializableEntity(models.Model):
             try:
                 for child_node in etn.child_nodes.all():
                     print ("self." + child_node.attribute + ".__class__.__name__")
-                    child_class_instance_name = child_node.entity.name
+                    child_class_instance_name = child_node.simple_entity.name
                     try:
                         child_class_name = eval("self." + child_node.attribute + ".__class__.__name__")
                     except:
                         child_class_name = ""
-                    child_class_module = child_node.entity.module
+                    child_class_module = child_node.simple_entity.module
                     if child_class_name == 'RelatedManager' or child_class_name == 'ManyRelatedManager':
                         if stub:
                             actual_class = utils.load_class(child_class_module + ".models", child_class_instance_name)
@@ -119,11 +117,11 @@ class SerializableEntity(models.Model):
         else:
             # etn.external_reference = True
             xml_name = ''
-            if etn.entity.name_field <> "":
+            if etn.simple_entity.name_field <> "":
                 if stub:
-                    xml_name = " " + etn.entity.name_field + "=\"Name of a sample " + etn.entity.name + " instance.\""
+                    xml_name = " " + etn.simple_entity.name_field + "=\"Name of a sample " + etn.simple_entity.name + " instance.\""
                 else:
-                    xml_name = " " + etn.entity.name_field + "=\"" + getattr(self, etn.entity.name_field) + "\""
+                    xml_name = " " + etn.simple_entity.name_field + "=\"" + getattr(self, etn.simple_entity.name_field) + "\""
             if stub:
                 return '<' + self.__class__.__name__ + ' ' + self._meta.pk.attname + '="-1"' + xml_name + '/>'
             else:
@@ -151,11 +149,11 @@ class SerializableEntity(models.Model):
         for xml_child_node in xmldoc.childNodes:
             current_etn_child_node = None
             for etn_child_node in etn.child_nodes.all():
-                if xml_child_node.tagName == etn_child_node.entity.name:
+                if xml_child_node.tagName == etn_child_node.simple_entity.name:
                     current_etn_child_node = etn_child_node
                     break
             if current_etn_child_node:
-                module_name = current_etn_child_node.entity.module
+                module_name = current_etn_child_node.simple_entity.module
                 actual_class = utils.load_class(module_name + ".models", xml_child_node.tagName)
                 if not current_etn_child_node.external_reference:
                     if insert:
@@ -192,9 +190,9 @@ class SerializableEntity(models.Model):
                 try:
                     rel_entity = Entity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                 except:
-                    rel_entity = Entity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
+                    rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                     rel_entity.save()
-                rel_etn = EntityTreeNode(entity=rel_entity)
+                rel_etn = EntityNode(entity=rel_entity)
                 rel_xml = rel_entity.entity_tree_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
                 stub_xml.documentElement.appendChild(rel_xml.documentElement)
 
@@ -206,17 +204,15 @@ class SerializableEntity(models.Model):
                 try:
                     rel_entity = Entity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                 except:
-                    rel_entity = Entity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
+                    rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                     rel_entity.save()
-                rel_etn = EntityTreeNode(entity=rel_entity)
+                rel_etn = EntityNode(entity=rel_entity)
                 rel_xml = rel_entity.entity_tree_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
                 stub_xml.documentElement.appendChild(rel_xml.documentElement)
         return stub_xml
 
     class Meta:
         abstract = True
-
-
 
 
 class DBConnection(models.Model):
@@ -227,6 +223,7 @@ class DBConnection(models.Model):
 #     WorkflowEntity is a generic entity with a work-flow status; such a status is used also for minimal work-flow of entities that are either in "working" or "released" status
 #     '''
 
+
 class Workflow(SerializableEntity):
     '''
     Is a list of WorkflowMethods; the work-flow is somehow abstract, its methods do not specify details of 
@@ -234,13 +231,14 @@ class Workflow(SerializableEntity):
     '''
     name = models.CharField(max_length=100L)
     description = models.CharField(max_length=2000L, blank=True)
-    entity_tree = models.ForeignKey('EntityTree')
-#     ASSERT: I metodi di un wf devono avere impatto solo su Entity contenute nell'ET
-#     ASSERT: tutte le Entity nell'ET devono ereditare da WorkflowEntityInstance
-#     Un'istanza di Entity, quando viene creata, crea automaticamente un ET con solo l'Entity stessa
+    entity_tree = models.ForeignKey('Entity')
+#     ASSERT: I metodi di un wf devono avere impatto solo su SimpleEntity contenute nell'ET
+#     ASSERT: tutte le SimpleEntity nell'ET devono ereditare da WorkflowEntityInstance
+#     Un'istanza di SimpleEntity, quando viene creata, crea automaticamente un ET con solo l'SimpleEntity stessa
 #     e lo associa all'istanza stessa nell'attributo: default_entity_tree
-#     ASSERT: all entities must inherit from tutte le Entity devono ereditare da WorkflowEntityInstance (in cui è specificato il wf (non potrebbe essere specificato su ET
+#     ASSERT: all entities must inherit from tutte le SimpleEntity devono ereditare da WorkflowEntityInstance (in cui è specificato il wf (non potrebbe essere specificato su ET
 #     perché non c'è ETinstance) e lo stato corrente).
+
 
 class WorkflowStatus(SerializableEntity):
     '''
@@ -277,6 +275,7 @@ class WorkflowMethod(SerializableEntity):
     class Meta:
         abstract = True
 
+
 class WorkflowTransition():
     instance = models.ForeignKey(WorkflowEntityInstance)
     workflow_method = models.ForeignKey('WorkflowMethod')
@@ -286,7 +285,7 @@ class WorkflowTransition():
     status_from = models.ForeignKey(WorkflowStatus, related_name="+")
 
 
-class Entity(SerializableEntity):
+class SimpleEntity(SerializableEntity):
     '''
     Every entity has a work-flow; the basic one is the one that allows a method to create an instance
     '''
@@ -302,40 +301,45 @@ class Entity(SerializableEntity):
     description_field = models.CharField(max_length=255L, db_column='descriptionField', blank=True)
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
 
+
 class AttributeType(SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
     widgets = models.ManyToManyField('application.Widget', blank=True)
 
+
 class Attribute(SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
-    entity = models.ForeignKey('Entity', null=True, blank=True)
+    entity = models.ForeignKey('SimpleEntity', null=True, blank=True)
     type = models.ForeignKey('AttributeType')
     def __str__(self):
         return self.entity.name + "." + self.name
 
-class EntityTreeNode(SerializableEntity):
-    entity = models.ForeignKey('Entity')
+
+class EntityNode(SerializableEntity):
+    simple_entity = models.ForeignKey('SimpleEntity')
     # attribute is blank for the entry point
     attribute = models.CharField(max_length=255L, blank=True)
     child_nodes = models.ManyToManyField('self', blank=True, symmetrical=False)
     # if not external_reference all attributes are exported, otherwise only the id
     external_reference = models.BooleanField(default=False, db_column='externalReference')
 
-class EntityTree(SerializableEntity):
+
+class Entity(SerializableEntity):
     '''
     It is a tree that defines a set of entities on which we can perform a task; the tree has
     an entry point which is a Node e.g. an entity; from an instance of an entity we can use
-    the "attribute" attribute from the corresponding EntityTreeNode to get the instances of
-    the entities related to each of the child_nodes. An EntityTree could, for example, tell
+    the "attribute" attribute from the corresponding EntityNode to get the instances of
+    the entities related to each of the child_nodes. An Entity could, for example, tell
     us what to export to xml/json, what to consider as a "VersionableMultiEntity" (e.g. an
-    instance of VersionableEntityInstance + an EntityTree where the entry_point points to that instance)
+    instance of VersionableEntityInstance + an Entity where the entry_point points to that instance)
     The name should describe its use
     '''
     URI = models.CharField(max_length=400L, blank=True)
     name = models.CharField(max_length=200L)
-    entry_point = models.ForeignKey('EntityTreeNode')
+    entry_point = models.ForeignKey('EntityNode')
 
-class EntityTreeInstance(SerializableEntity):
+
+class EntityInstance(SerializableEntity):
     '''
     Versionable
     an Instance belongs to a set of instances which are basically the same but with a different version
@@ -351,7 +355,7 @@ class EntityTreeInstance(SerializableEntity):
     '''
     root_version_id = models.IntegerField()
     
-    entity_tree = models.ForeignKey(EntityTree)
+    entity_tree = models.ForeignKey(Entity)
     entry_point_id = models.IntegerField()
     version_major = models.IntegerField(blank=True)
     version_minor = models.IntegerField(blank=True)
@@ -364,11 +368,8 @@ class EntityTreeInstance(SerializableEntity):
     obsolete are the others 
     '''
     version_released = models.BooleanField(default=False)
+   
     
-    
-    
-    
-
 class UploadedFile(models.Model):
     '''
     Used to save uploaded xml file so that it can be later retrieved and imported

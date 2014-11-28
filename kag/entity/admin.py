@@ -1,7 +1,7 @@
 from django.contrib import admin
-from entity.models import DBConnection, Entity, Attribute
+from entity.models import DBConnection, SimpleEntity, Attribute
 
 admin.site.register(Attribute)
 admin.site.register(DBConnection)
-admin.site.register(Entity)
+admin.site.register(SimpleEntity)
 

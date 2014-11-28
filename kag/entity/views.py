@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
-from entity.models import Entity, EntityTree, EntityTreeNode, UploadedFile
+from entity.models import SimpleEntity, Entity, EntityNode, UploadedFile
 from django.shortcuts import render, get_object_or_404, redirect
 from application.models import Application, Method
 from userauthorization.models import KUser, PermissionHolder
@@ -19,19 +19,19 @@ import kag.utils as utils
 
 
 def index(request):
-#    instance_list = Entity.objects.order_by('name')
-    instance_list = Entity.objects.all()
+#    instance_list = SimpleEntity.objects.order_by('name')
+    instance_list = SimpleEntity.objects.all()
 #     entities_and_trees = []
 #     for entity_instance in entity_list:
-#         e = Entity.objects.get(name=entity_instance.__class__.__name__)
-#         entity_trees = EntityTree.objects.filter(entry_point__entity = e)
+#         e = SimpleEntity.objects.get(name=entity_instance.__class__.__name__)
+#         entity_trees = Entity.objects.filter(entry_point__entity = e)
 #         entities_and_trees.append([entity_instance, entity_trees])
     context = {'instance_list': instance_list}
     
     return render(request, 'entity/index.html', context)
 
 def entity_index(request, entity_id):
-    e = Entity.objects.get(pk=entity_id)
+    e = SimpleEntity.objects.get(pk=entity_id)
     actual_class = utils.load_class(e.module + ".models", e.name)
     instance_list = actual_class.objects.all() # eval(e.name + ".objects.all()")
     context = {'instance_list': instance_list}
@@ -42,7 +42,7 @@ def detail(request, entity_id, application_id):
     if not request.user.is_authenticated():
         return redirect('/application/')
     else:
-        entity = get_object_or_404(Entity, pk=entity_id)
+        entity = get_object_or_404(SimpleEntity, pk=entity_id)
         application = get_object_or_404(Application, pk=application_id)
         authenticated_user = request.user
         kuser = KUser.objects.get(login = request.user.username)
@@ -79,7 +79,7 @@ def method(request, entity_id, application_id, method_id):
     # entity_id is 0 when the method creates an instance of entity
     entity = None
     if entity_id>0:
-        entity = get_object_or_404(Entity, pk=entity_id)
+        entity = get_object_or_404(SimpleEntity, pk=entity_id)
     application = get_object_or_404(Application, pk=application_id)
     method = get_object_or_404(Method, pk=method_id)
     authenticated_user = request.user
@@ -88,22 +88,22 @@ def method(request, entity_id, application_id, method_id):
     return render(request, 'entity/method.html', {'entity': entity, 'application': application, 'authenticated_user': authenticated_user, 'method': method, 'form': attrib_form})
 
 def export(request, entity_tree_id, entity_instance_id, entity_id):
-    e = Entity.objects.get(pk = entity_id)
+    e = SimpleEntity.objects.get(pk = entity_id)
     actual_class = utils.load_class(e.module + ".models", e.name)
     instance = get_object_or_404(actual_class, pk=entity_instance_id)
-    et = EntityTree.objects.get(pk = entity_tree_id)
-    exported_xml = "<Export EntityTreeURI=\"" + et.URI + "\">" + instance.to_xml(et.entry_point) + "</Export>"
+    et = Entity.objects.get(pk = entity_tree_id)
+    exported_xml = "<Export EntityURI=\"" + et.URI + "\">" + instance.to_xml(et.entry_point) + "</Export>"
     
     return render(request, 'entity/export.xml', {'xml': exported_xml}, content_type="application/xhtml+xml")
     
 def export_stub(request, entity_tree_id):
-    et = get_object_or_404(EntityTree, pk = entity_tree_id)
-    e = et.entry_point.entity
+    et = get_object_or_404(Entity, pk = entity_tree_id)
+    e = et.entry_point.simple_entity
     actual_class = utils.load_class(e.module + ".models", e.name)
     instance = actual_class()
     # I need a dictionary to prevent infinite loop and to control how many times I export a specific class
     export_count_per_class = {}
-    exported_xml = "<Export EntityTreeURI=\"" + et.URI + "\">" + instance.to_xml(et.entry_point, True, export_count_per_class) + "</Export>"
+    exported_xml = "<Export EntityURI=\"" + et.URI + "\">" + instance.to_xml(et.entry_point, True, export_count_per_class) + "</Export>"
     
     return render(request, 'entity/export.xml', {'xml': exported_xml}, content_type="application/xhtml+xml")
     
@@ -130,20 +130,20 @@ def upload_page(request):
                 initial_data['uploaded_file_id'] = new_uploaded_file.id
                 initial_data['new_uploaded_file_relpath'] = new_uploaded_file.docfile.url
                 xmldoc = minidom.parseString(xml_uploaded)
-                URI = xmldoc.childNodes[0].attributes["EntityTreeURI"].firstChild.data
-                et = EntityTree.objects.get(URI=URI)
-                # TODO: now we assume that the EntityTree is always specified, in the future we must generalize
+                URI = xmldoc.childNodes[0].attributes["EntityURI"].firstChild.data
+                et = Entity.objects.get(URI=URI)
+                # TODO: now we assume that the Entity is always specified, in the future we must generalize
                 entity_id = xmldoc.childNodes[0].childNodes[0].attributes["id"].firstChild.data
                 initial_data['entity_id'] = entity_id
                 try:
-                    initial_data['entity_name'] = xmldoc.childNodes[0].childNodes[0].attributes[et.entry_point.entity.name_field].firstChild.data
+                    initial_data['entity_name'] = xmldoc.childNodes[0].childNodes[0].attributes[et.entry_point.simple_entity.name_field].firstChild.data
                 except:
                     initial_data['entity_name'] = None
                 try:
-                    initial_data['entity_description'] = xmldoc.childNodes[0].childNodes[0].attributes[et.entry_point.entity.description_field].firstChild.data
+                    initial_data['entity_description'] = xmldoc.childNodes[0].childNodes[0].attributes[et.entry_point.simple_entity.description_field].firstChild.data
                 except:
                     initial_data['entity_description'] = None
-                module_name = et.entry_point.entity.module
+                module_name = et.entry_point.simple_entity.module
                 child_node = xmldoc.childNodes[0].childNodes[0]
                 actual_class_name = module_name + ".models " + child_node.tagName
                 initial_data['actual_class_name'] = actual_class_name
@@ -152,11 +152,11 @@ def upload_page(request):
                     entity_on_db = actual_class.objects.get(pk=entity_id)
                     initial_data['entity_on_db'] = entity_on_db
                     try:
-                        initial_data['entity_on_db_name'] = getattr(entity_on_db, et.entry_point.entity.name_field)
+                        initial_data['entity_on_db_name'] = getattr(entity_on_db, et.entry_point.simple_entity.name_field)
                     except:
                         initial_data['entity_on_db_name'] = None
                     try:
-                        initial_data['entity_on_db_description'] = getattr(entity_on_db, et.entry_point.entity.description_field)
+                        initial_data['entity_on_db_description'] = getattr(entity_on_db, et.entry_point.simple_entity.description_field)
                     except:
                         initial_data['entity_on_db_description'] = None
                 except:
@@ -188,10 +188,10 @@ def perform_import(request):
     elem = etree.XML(xml_uploaded, parser=p)
     xml_uploaded = etree.tostring(elem)
     xmldoc = minidom.parseString(xml_uploaded)
-    URI = xmldoc.childNodes[0].attributes["EntityTreeURI"].firstChild.data
-    et = EntityTree.objects.get(URI=URI)
+    URI = xmldoc.childNodes[0].attributes["EntityURI"].firstChild.data
+    et = Entity.objects.get(URI=URI)
     child_node = xmldoc.childNodes[0].childNodes[0]
-    module_name = et.entry_point.entity.module
+    module_name = et.entry_point.simple_entity.module
     actual_class = utils.load_class(module_name + ".models", child_node.tagName)
     instance = actual_class()
     #At least the first node has full export = True otherwise I would not import anything but just load something from the db 
@@ -200,16 +200,16 @@ def perform_import(request):
 
 
 def entity_tree_stub(request, entity_id):
-    entity = get_object_or_404(Entity, pk=entity_id)
-    etn = EntityTreeNode(entity=entity)
-    et = EntityTree(entry_point=etn)
+    entity = get_object_or_404(SimpleEntity, pk=entity_id)
+    etn = EntityNode(entity=entity)
+    et = Entity(entry_point=etn)
 
-    etn_entity = Entity.objects.get(name="EntityTreeNode")
-    export_etn = EntityTreeNode(entity=etn_entity)
+    etn_entity = SimpleEntity.objects.get(name="EntityNode")
+    export_etn = EntityNode(entity=etn_entity)
     #l'ORM di django ci obbliga a salvarlo sul db
     export_etn.save()
-    e_entity = Entity.objects.get(name="Entity")
-    export_etn_child = EntityTreeNode(entity=e_entity, attribute="entity")
+    e_entity = SimpleEntity.objects.get(name="SimpleEntity")
+    export_etn_child = EntityNode(entity=e_entity, attribute="entity")
     export_etn_child.save()
     export_etn.child_nodes.add(export_etn_child)
     export_etn.save()
@@ -219,7 +219,7 @@ def entity_tree_stub(request, entity_id):
     et_xml = minidom.parseString(et_xml_str)
     et_xml.documentElement.appendChild(ets.documentElement)
 
-    exp_str = '<Export EntityTreeURI="' + et.URI + '"></Export>'
+    exp_str = '<Export EntityURI="' + et.URI + '"></Export>'
     exp_xml = minidom.parseString(exp_str)
     exp_xml.documentElement.appendChild(et_xml.documentElement)
     #cancello gli oggetti salvati

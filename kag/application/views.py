@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
 
-from entity.models import Entity, EntityTree, EntityTreeNode
+from entity.models import SimpleEntity, Entity, EntityNode
 from application.models import Method, Application
 from userauthorization.models import KUser, PermissionHolder
 
@@ -12,8 +12,8 @@ def index(request):
         authenticated_user = request.user.username
     kuser_list = KUser.objects.all()
     application_list = Application.objects.order_by('name')[:5]
-    e = Entity.objects.get(name="Application")
-    entity_trees = EntityTree.objects.filter(entry_point__entity = e)
+    e = SimpleEntity.objects.get(name="Application")
+    entity_trees = Entity.objects.filter(entry_point__entity = e)
     context = {'application_list': application_list, 'kuser_list': kuser_list, 'authenticated_user':authenticated_user, entity_trees: entity_trees }
     return render(request, 'application/index.html', context)
 
