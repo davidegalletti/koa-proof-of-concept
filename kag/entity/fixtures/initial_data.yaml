@@ -1,7 +1,7 @@
 - model: entity.SimpleEntity
   pk: 1
   fields:
-    name: "Entity"
+    name: "SimpleEntity"
     module: "entity"
     description: ""
     table_name: ""
@@ -21,7 +21,7 @@
   pk: 1
   fields:
     name: "Attribute"
-    entity: 1
+    simple_entity: 1
     type: 1
 
 - model: entity.SimpleEntity
@@ -104,7 +104,7 @@
 - model: entity.SimpleEntity
   pk: 10
   fields:
-    name: "EntityTreeNode"
+    name: "EntityNode"
     module: "entity"
     description: ""
     table_name: ""
@@ -115,40 +115,13 @@
 - model: entity.SimpleEntity
   pk: 11
   fields:
-    name: "EntityTree"
+    name: "Entity"
     module: "entity"
     description: ""
     table_name: ""
     id_field: "id"
     name_field: "name"
     description_field: ""
-
-- model: entity.EntityNode
-  pk: 15
-  fields:
-    simple_entity: 1
-    attribute: "entity"
-    child_nodes: []
-    external_reference: True
-    
-- model: entity.EntityNode
-  pk: 12
-  fields:
-    simple_entity: 10
-    attribute: "child_nodes"
-    child_nodes: [12, 15]
-- model: entity.EntityNode
-  pk: 14
-  fields:
-    simple_entity: 10
-    attribute: "entry_point"
-    child_nodes: [12, 15]
-- model: entity.EntityNode
-  pk: 13
-  fields:
-    simple_entity: 11
-    attribute: ""
-    child_nodes: [14]
 
 
 - model: entity.EntityNode
@@ -168,6 +141,12 @@
   fields:
     simple_entity: 1
     child_nodes: [2]
+- model: entity.Entity
+  pk: 1
+  fields:
+    URI: "com.koa/EntityTree/SimpleEntity-attributes"
+    name: "SimpleEntity-attributes"
+    entry_point: 1
 
 
 - model: entity.EntityNode
@@ -190,6 +169,12 @@
     attribute: "method_set"
     child_nodes: [8]
 - model: entity.EntityNode
+  pk: 5
+  fields:
+    simple_entity: 5
+    attribute: "workflows"
+    child_nodes: [6, 7]
+- model: entity.EntityNode
   pk: 11
   fields:
     simple_entity: 9
@@ -208,42 +193,56 @@
     attribute: "attribute_set"
     child_nodes: [10]
 - model: entity.EntityNode
-  pk: 5
-  fields:
-    simple_entity: 5
-    attribute: "workflow"
-    child_nodes: [6, 7]
-- model: entity.EntityNode
   pk: 3
   fields:
     simple_entity: 1
-    child_nodes: [4]
-
-- model: entity.Entity
-  pk: 1
-  fields:
-    URI: "com.koa/EntityTree/Entity-attributes"
-    name: "Entity-attributes"
-    entry_point: 1
+    child_nodes: [4, 5]
 - model: entity.Entity
   pk: 2
   fields:
-    URI: "com.koa/EntityTree/Entity-...-Application"
-    name: "Entity-...-Application"
+    URI: "com.koa/EntityTree/SimpleEntity-...-Application"
+    name: "SimpleEntity-...-Application"
     entry_point: 3
+
+
+
+    
+- model: entity.EntityNode
+  pk: 13
+  fields:
+    simple_entity: 1
+    attribute: "simple_entity"
+    child_nodes: []
+    external_reference: True
+- model: entity.EntityNode
+  pk: 15
+  fields:
+    simple_entity: 10
+    attribute: "child_nodes"
+    child_nodes: [13,15]
+- model: entity.EntityNode
+  pk: 14
+  fields:
+    simple_entity: 10
+    attribute: "entry_point"
+    child_nodes: [13,15]
+- model: entity.EntityNode
+  pk: 10
+  fields:
+    simple_entity: 11
+    attribute: ""
+    child_nodes: [14]
 - model: entity.Entity
   pk: 3
   fields:
-    URI: "com.koa/EntityTree/EntityTree-EntityTreeNode"
+    URI: "com.koa/EntityTree/Entity-EntityNode"
     name: "EntityTree-EntityTreeNode"
-    entry_point: 13
-
-
+    entry_point: 10
 
 - model: entity.EntityNode
   pk: 19
   fields:
-    simple_entity: 5
+    simple_entity: 6
     attribute: "workflowstatus_set"
     child_nodes: []
 - model: entity.EntityNode
@@ -258,4 +257,3 @@
     URI: "com.koa/EntityTree/Workflow-Statuses"
     name: "Workflow-statuses"
     entry_point: 18
-    

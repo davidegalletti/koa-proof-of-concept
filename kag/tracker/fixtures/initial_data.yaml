@@ -121,7 +121,7 @@
   pk: 1
   fields:
     name: "Title"
-    entity: 12
+    simple_entity: 12
     type: 1
     
 - model: application.AttributeInAMethod
@@ -149,7 +149,7 @@
   pk: 2
   fields:
     name: "Notes"
-    entity: 13
+    simple_entity: 13
     type: 1
     
 - model: application.AttributeInAMethod
@@ -164,7 +164,7 @@
   pk: 3
   fields:
     name: "text"
-    entity: 13
+    simple_entity: 13
     type: 1
     
 - model: application.AttributeInAMethod

@@ -259,8 +259,6 @@ class WorkflowEntityInstance(SerializableEntity):
     workflow = models.ForeignKey(Workflow)
     current_status = models.ForeignKey(WorkflowStatus)
 
-    class Meta:
-        abstract = True
 
 
 class WorkflowMethod(SerializableEntity):
@@ -309,7 +307,7 @@ class AttributeType(SerializableEntity):
 
 class Attribute(SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
-    entity = models.ForeignKey('SimpleEntity', null=True, blank=True)
+    simple_entity = models.ForeignKey('SimpleEntity', null=True, blank=True)
     type = models.ForeignKey('AttributeType')
     def __str__(self):
         return self.entity.name + "." + self.name
