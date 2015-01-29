@@ -17,7 +17,7 @@ class SerializableEntity(models.Model):
         '''
         finds the instance of class SimpleEntity where the name corresponds to the name of the class of self
         '''
-        return Entity.objects.get(name=self.__class__.__name__)
+        return SimpleEntity.objects.get(name=self.__class__.__name__)
 
     def entity_trees(self):
         '''
@@ -188,11 +188,11 @@ class SerializableEntity(models.Model):
                 #setattr(stub_model, rel.field.name, stub_model)
                 #TODO: gestire meglio la presenza di .models  dentro il nome del modulo
                 try:
-                    rel_entity = Entity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
+                    rel_entity = SimpleEntity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                 except:
                     rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                     rel_entity.save()
-                rel_etn = EntityNode(entity=rel_entity)
+                rel_etn = EntityNode(simple_entity=rel_entity)
                 rel_xml = rel_entity.entity_tree_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
                 stub_xml.documentElement.appendChild(rel_xml.documentElement)
 
@@ -202,11 +202,11 @@ class SerializableEntity(models.Model):
                 setattr(actual_rel, rel.field.name, stub_model)
                 #TODO: gestire meglio la presenza di .models  dentro il nome del modulo
                 try:
-                    rel_entity = Entity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
+                    rel_entity = SimpleEntity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                 except:
                     rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                     rel_entity.save()
-                rel_etn = EntityNode(entity=rel_entity)
+                rel_etn = EntityNode(simple_entity=rel_entity)
                 rel_xml = rel_entity.entity_tree_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
                 stub_xml.documentElement.appendChild(rel_xml.documentElement)
         return stub_xml

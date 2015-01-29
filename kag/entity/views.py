@@ -201,15 +201,15 @@ def perform_import(request):
 
 def entity_tree_stub(request, entity_id):
     entity = get_object_or_404(SimpleEntity, pk=entity_id)
-    etn = EntityNode(entity=entity)
+    etn = EntityNode(simple_entity=entity)
     et = Entity(entry_point=etn)
 
     etn_entity = SimpleEntity.objects.get(name="EntityNode")
-    export_etn = EntityNode(entity=etn_entity)
+    export_etn = EntityNode(simple_entity=etn_entity)
     #l'ORM di django ci obbliga a salvarlo sul db
     export_etn.save()
     e_entity = SimpleEntity.objects.get(name="SimpleEntity")
-    export_etn_child = EntityNode(entity=e_entity, attribute="entity")
+    export_etn_child = EntityNode(simple_entity=e_entity, attribute="entity")
     export_etn_child.save()
     export_etn.child_nodes.add(export_etn_child)
     export_etn.save()
