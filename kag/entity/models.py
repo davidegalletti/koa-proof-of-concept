@@ -23,7 +23,7 @@ class SerializableEntity(models.Model):
         '''
         Lists the entity trees associated whose entry point is the instance of class SimpleEntity corresponding to the class of self
         '''
-        return Entity.objects.filter(entry_point__entity=self.entity_instance())
+        return Entity.objects.filter(entry_point__simple_entity=self.entity_instance())
 
     def get_name(self):
         return getattr(self, self.entity_instance().name_field)
@@ -174,6 +174,9 @@ class SerializableEntity(models.Model):
                         self.save()
 
     def entity_tree_stub(self, etn, export_etn, class_list=[]):
+        '''
+        
+        '''
         module_name = self.module
         actual_class = utils.load_class(module_name + ".models", self.name)
         stub_model = actual_class()

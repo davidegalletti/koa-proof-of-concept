@@ -1,4 +1,5 @@
 {% if instance_list %}
+    <h2>{{ class_name }}</h2>
     <ul>
     {% for instance in instance_list %}
         <li>
@@ -12,11 +13,11 @@
                 <a href="{% url 'export' entity_tree.id instance.id instance.entity_instance.id %}">Export {{ entity_tree.name }}</a>
             {% endfor %}
             <br>
-            {% if instance.entity_instance.name == 'EntityTree' %}
+            {% if instance.entity_instance.name == 'Entity' %}
                 <a href="{% url 'export_stub' instance.id %}">Export a stub</a>
             {% endif %}
-            {% if instance.entity_instance.name == 'Entity' %}
-                <a href="{% url 'entity_tree_stub' instance.id %}">Export a stub of an EntityTree</a>
+            {% if instance.entity_instance.name == 'SimpleEntity' %}
+                <a href="{% url 'entity_tree_stub' instance.id %}">Export an Entity stub of this SimpleEntity based on Django model</a>
             {% endif %}
 
         </li>

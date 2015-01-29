@@ -26,7 +26,7 @@ def index(request):
 #         e = SimpleEntity.objects.get(name=entity_instance.__class__.__name__)
 #         entity_trees = Entity.objects.filter(entry_point__entity = e)
 #         entities_and_trees.append([entity_instance, entity_trees])
-    context = {'instance_list': instance_list}
+    context = {'instance_list': instance_list, "class_name": "SimpleEntity"}
     
     return render(request, 'entity/index.html', context)
 
@@ -34,7 +34,7 @@ def entity_index(request, entity_id):
     e = SimpleEntity.objects.get(pk=entity_id)
     actual_class = utils.load_class(e.module + ".models", e.name)
     instance_list = actual_class.objects.all() # eval(e.name + ".objects.all()")
-    context = {'instance_list': instance_list}
+    context = {'instance_list': instance_list, "class_name": e.name}
     
     return render(request, 'entity/index.html', context)
 
