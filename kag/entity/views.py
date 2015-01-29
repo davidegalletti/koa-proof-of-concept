@@ -209,7 +209,7 @@ def entity_tree_stub(request, entity_id):
     #l'ORM di django ci obbliga a salvarlo sul db
     export_etn.save()
     e_entity = SimpleEntity.objects.get(name="SimpleEntity")
-    export_etn_child = EntityNode(simple_entity=e_entity, attribute="entity")
+    export_etn_child = EntityNode(simple_entity=e_entity, attribute="simple_entity")
     export_etn_child.save()
     export_etn.child_nodes.add(export_etn_child)
     export_etn.save()
