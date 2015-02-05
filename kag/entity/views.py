@@ -88,8 +88,8 @@ def method(request, entity_id, application_id, method_id):
     return render(request, 'entity/method.html', {'entity': entity, 'application': application, 'authenticated_user': authenticated_user, 'method': method, 'form': attrib_form})
 
 def export(request, entity_tree_id, entity_instance_id, entity_id):
-    e = SimpleEntity.objects.get(pk = entity_id)
-    actual_class = utils.load_class(e.module + ".models", e.name)
+    se = SimpleEntity.objects.get(pk = entity_id)
+    actual_class = utils.load_class(se.module + ".models", se.name)
     instance = get_object_or_404(actual_class, pk=entity_instance_id)
     et = Entity.objects.get(pk = entity_tree_id)
     exported_xml = "<Export EntityURI=\"" + et.URI + "\">" + instance.to_xml(et.entry_point) + "</Export>"
@@ -131,56 +131,85 @@ def upload_page(request):
                 initial_data['new_uploaded_file_relpath'] = new_uploaded_file.docfile.url
                 xmldoc = minidom.parseString(xml_uploaded)
                 URI = xmldoc.childNodes[0].attributes["EntityURI"].firstChild.data
-                et = Entity.objects.get(URI=URI)
-                # TODO: now we assume that the Entity is always specified, in the future we must generalize
-                entity_id = xmldoc.childNodes[0].childNodes[0].attributes["id"].firstChild.data
-                initial_data['entity_id'] = entity_id
-                try:
-                    initial_data['entity_name'] = xmldoc.childNodes[0].childNodes[0].attributes[et.entry_point.simple_entity.name_field].firstChild.data
-                except:
-                    initial_data['entity_name'] = None
-                try:
-                    initial_data['entity_description'] = xmldoc.childNodes[0].childNodes[0].attributes[et.entry_point.simple_entity.description_field].firstChild.data
-                except:
-                    initial_data['entity_description'] = None
-                module_name = et.entry_point.simple_entity.module
-                child_node = xmldoc.childNodes[0].childNodes[0]
-                actual_class_name = module_name + ".models " + child_node.tagName
-                initial_data['actual_class_name'] = actual_class_name
-                actual_class = utils.load_class(module_name + ".models", child_node.tagName)
-                try:
-                    entity_on_db = actual_class.objects.get(pk=entity_id)
-                    initial_data['entity_on_db'] = entity_on_db
-                    try:
-                        initial_data['entity_on_db_name'] = getattr(entity_on_db, et.entry_point.simple_entity.name_field)
-                    except:
-                        initial_data['entity_on_db_name'] = None
-                    try:
-                        initial_data['entity_on_db_description'] = getattr(entity_on_db, et.entry_point.simple_entity.description_field)
-                    except:
-                        initial_data['entity_on_db_description'] = None
-                except:
-                    initial_data['entity_on_db'] = None
-                initial_data['prettyxml'] = xmldoc.toprettyxml(indent="    ")
-                initial_data['file'] = request.FILES['file']
-                initial_data['new_uploaded_file'] = new_uploaded_file
-                if initial_data['entity_on_db'] is None:
-                    import_choice_form = ImportChoiceNothingOnDB(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url, 'how_to_import': 1})
+                e = Entity.objects.get(URI=URI)
+                # I check that the first SimpleEntity is the same simple_entity of the Entity's entry_point
+                if e.entry_point.simple_entity.name != xmldoc.childNodes[0].childNodes[0].tagName:
+                    message = "The Entity structure tells that the first SimpleEntity should be " + e.entry_point.simple_entity.name + " but the first TAG in the file is " + xmldoc.childNodes[0].childNodes[0].tagName
+                    raise Exception(message) 
                 else:
-                    import_choice_form = ImportChoice(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url})
-                initial_data['import_choice_form'] = import_choice_form
-                return render(request, 'entity/import_file.html', initial_data)
+                    try: 
+                        simple_entity_id = xmldoc.childNodes[0].childNodes[0].attributes[e.entry_point.simple_entity.id_field].firstChild.data
+                    except:
+                        simple_entity_id = None
+                    initial_data['simple_entity_id'] = simple_entity_id
+                    initial_data['simple_entity_name'] = xmldoc.childNodes[0].childNodes[0].tagName
+                    try:
+                        initial_data['simple_entity_description'] = xmldoc.childNodes[0].childNodes[0].attributes[e.entry_point.simple_entity.description_field].firstChild.data
+                    except:
+                        initial_data['simple_entity_description'] = None
+
+                
+                # TODO: now we assume that the Entity is always specified, in the future we must generalize
+#                 entity_id = xmldoc.childNodes[0].childNodes[0].attributes["id"].firstChild.data
+#                 initial_data['entity_id'] = entity_id
+#                 try:
+#                     initial_data['entity_name'] = xmldoc.childNodes[0].childNodes[0].attributes[e.entry_point.simple_entity.name_field].firstChild.data
+#                 except:
+#                     initial_data['entity_name'] = None
+#                 try:
+#                     initial_data['entity_description'] = xmldoc.childNodes[0].childNodes[0].attributes[e.entry_point.simple_entity.description_field].firstChild.data
+#                 except:
+#                     initial_data['entity_description'] = None
+                    module_name = e.entry_point.simple_entity.module
+                    child_node = xmldoc.childNodes[0].childNodes[0]
+                    actual_class_name = module_name + ".models " + child_node.tagName
+                    initial_data['actual_class_name'] = actual_class_name
+                    actual_class = utils.load_class(module_name + ".models", child_node.tagName)
+                    try:
+                        simple_entity_on_db = actual_class.objects.get(pk=simple_entity_id)
+                        initial_data['simple_entity_on_db'] = simple_entity_on_db
+                        try:
+                            initial_data['simple_entity_on_db_name'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.name_field)
+                        except:
+                            initial_data['simple_entity_on_db_name'] = None
+                        try:
+                            initial_data['simple_entity_on_db_description'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.description_field)
+                        except:
+                            initial_data['simple_entity_on_db_description'] = None
+                    except:
+                        initial_data['simple_entity_on_db'] = None
+                    initial_data['prettyxml'] = xmldoc.toprettyxml(indent="    ")
+                    initial_data['file'] = request.FILES['file']
+                    initial_data['new_uploaded_file'] = new_uploaded_file
+                    if initial_data['simple_entity_on_db'] is None:
+                        import_choice_form = ImportChoiceNothingOnDB(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url, 'how_to_import': 1})
+                    else:
+                        import_choice_form = ImportChoice(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url})
+                    initial_data['import_choice_form'] = import_choice_form
+                    return render(request, 'entity/import_file.html', initial_data)
             except Exception as ex:
                 message = 'Error parsing uploaded file: ' + str(ex)
-                print message
     else:
         form = UploadFileForm()
     return render_to_response('entity/upload_page.html', {'form': form, 'message': message}, context_instance=RequestContext(request))
 
 def perform_import(request):
+    '''
+    Import is performed according to an Entity i.e. a structure of SimpleEntity(s)
+    The structure allows to have references to a SimpleEntity; use a reference
+    when you need to associate to that SimpleEntity but do not want to import/export that
+    SimpleEntity. When a SimpleEntity is a reference its ID does not count; its URI is 
+    relevant. The import behaviour is:
+    it looks for a SimpleEntity with the same URI, if it does exist it takes it's ID and
+    uses it for the relationships; otherwise it creates it (which of course happens only once)
+    '''
     new_uploaded_file_relpath = request.POST["new_uploaded_file_relpath"]
+#     request.POST['how_to_import']
+#     0   Update if ID exists, create if ID is empty or non existent
+#     1   Always create new records
+
     # how_to_import = true ==> always_insert 
-#     always_insert = False #(int(request.POST.get("how_to_import", "")) == 1)
+    always_insert = (int(request.POST.get("how_to_import", "")) == 1)
     with open(settings.BASE_DIR + "/" + new_uploaded_file_relpath, 'r') as content_file:
         xml_uploaded = content_file.read()
     # http://stackoverflow.com/questions/3310614/remove-whitespaces-in-xml-string 
@@ -195,7 +224,7 @@ def perform_import(request):
     actual_class = utils.load_class(module_name + ".models", child_node.tagName)
     instance = actual_class()
     #At least the first node has full export = True otherwise I would not import anything but just load something from the db 
-    instance.from_xml(child_node, et.entry_point, False)
+    instance.from_xml(child_node, et.entry_point, always_insert)
     return HttpResponse("OK")
 
 
