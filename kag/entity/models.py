@@ -175,7 +175,8 @@ class SerializableEntity(models.Model):
 
     def entity_tree_stub(self, etn, export_etn, class_list=[]):
         '''
-        
+        Starting from Django ORM model we produce an Entity structure (formerly EntityTree or EntityGraph) 
+        with all the relationships we find in the Django model
         '''
         module_name = self.module
         actual_class = utils.load_class(module_name + ".models", self.name)
@@ -220,11 +221,6 @@ class SerializableEntity(models.Model):
 
 class DBConnection(models.Model):
     connection_string = models.CharField(max_length=255L)
-
-# class WorkflowEntity(SerializableEntity):
-#     '''
-#     WorkflowEntity is a generic entity with a work-flow status; such a status is used also for minimal work-flow of entities that are either in "working" or "released" status
-#     '''
 
 
 class Workflow(SerializableEntity):
@@ -290,7 +286,7 @@ class SimpleEntity(SerializableEntity):
     '''
     Every entity has a work-flow; the basic one is the one that allows a method to create an instance
     '''
-    URI = models.CharField(max_length=400L, blank=True)
+    URI = models.CharField(max_length=500L, blank=True)
     # name corresponds to the class name
     name = models.CharField(max_length=100L)
     # for Django it corresponds to the module which contains the class 
