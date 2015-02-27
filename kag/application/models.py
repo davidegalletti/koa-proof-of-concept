@@ -2,6 +2,9 @@ from django.db import models
 from entity.models import Workflow, WorkflowMethod, SerializableEntity, Attribute
 
 class AttributeInAMethod(models.Model):
+    '''
+    TODO: check why not inherit from SerializableEntity
+    '''
     attribute = models.ForeignKey(Attribute)
     # workflow is blank unless the attribute is an entity or a set of entities; it can be blank if a method is specified
     workflow = models.ForeignKey(Workflow, blank=True, null=True)

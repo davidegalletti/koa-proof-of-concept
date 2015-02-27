@@ -4,15 +4,15 @@
     <h2>Import Entities</h2>
     <p>You have uploaded the file "<strong>{{ file }}</strong>"</p>
     <h3>In the file you have uploaded:</h3>
-        <p>The main entity is a "<strong>{{ actual_class_name }}</strong>"; it's ID is <strong>{{ simple_entity_id }}</strong></p>
+        <p>The first SimpleEntity is a "<strong>{{ actual_class_name }}</strong>"; it's URI is <strong>{{ simple_entity_uri_instance }}</strong></p>
         {% if simple_entity_name %}
         <p>It's name is "{{ simple_entity_name }}"</p>
         {% endif %}
         {% if simple_entity_description %}
         <p>It's description is "{{ simple_entity_description }}"</p>
         {% endif %}
-    <h3>Searching on the database for "<strong>{{ actual_class_name }}</strong>" with the same ID, I have found:</h3>
         {% if simple_entity_on_db %}
+    <h3>Searching on the database for "<strong>{{ actual_class_name }}</strong>" with the same URI_Instance, I have found:</h3>
             <p>An entity with</p>
             {% if simple_entity_on_db_name %}
             <p> name "{{ simple_entity_on_db_name }}"</p>
@@ -20,8 +20,9 @@
             {% if simple_entity_on_db_description %}
             <p> description "{{ simple_entity_on_db_description }}"</p>
             {% endif %}
+            <p>URI_Instance "{{ simple_entity_on_db.URI_Instance }}"</p>
         {% else %}
-        <p>Nothing with the same ID.</p>
+    <h3>There is no "<strong>{{ actual_class_name }}</strong>" in the database  with the same URI_Instance.</h3>
         {% endif %}
     <hr>
     <form action="{% url 'perform_import' %}" method="post">{% csrf_token %}
@@ -29,18 +30,10 @@
     <p>
         <input type="submit" value="Import file now">
     </p>
-    </form>    <PRE>
+    </form>    
+    <PRE>
     
-        file {{ file }}
-        new_uploaded_file.id {{ new_uploaded_file.id }}
-        new_uploaded_file.docfile.url {{ new_uploaded_file.docfile.url }}
-        new_uploaded_file.docfile.name {{ new_uploaded_file.docfile.name }}
-        {{ methodology_version_on_file.id }}
-        
-        {{ analysis_on_file.id }}
-        {{ analysis_on_file.name }}
-    
-    
+        FILE: {{ file }}
     
 {{ prettyxml }}
     </PRE>

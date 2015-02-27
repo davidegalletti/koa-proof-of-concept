@@ -1,7 +1,34 @@
+- model: entity.Organization
+  pk: 1
+  fields:
+    name: "Knowledge Oriented Architecture Foundation"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/Organization/1"
+    description: ""
+    ks_uri: "http://KnowledgeOrientedArchitecture.org/KS"
+
+- model: entity.SimpleEntity
+  pk: 14
+  fields:
+    name: "Organization"
+    owner_organization: 1
+    namespace: "entity"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/14"
+    name_in_this_namespace: "Organization"
+    module: "entity"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: "description"
+
 - model: entity.SimpleEntity
   pk: 1
   fields:
     name: "SimpleEntity"
+    owner_organization: 1
+    namespace: "entity"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1"
+    name_in_this_namespace: "SimpleEntity"
     module: "entity"
     description: ""
     table_name: ""
@@ -13,14 +40,25 @@
   pk: 1
   fields:
     name: "Text"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/AttributeType/1"
 - model: entity.AttributeType
   pk: 2
   fields:
     name: "Date"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/AttributeType/2"
+- model: entity.AttributeType
+  pk: 3
+  fields:
+    name: "ForeignKey"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/AttributeType/3"
+
+
+
 - model: entity.Attribute
   pk: 1
   fields:
     name: "Attribute"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/Attribute/1"
     simple_entity: 1
     type: 1
 
@@ -28,6 +66,10 @@
   pk: 2
   fields:
     name: "Attribute"
+    owner_organization: 1
+    namespace: "entity"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/2"
+    name_in_this_namespace: "Attribute"
     module: "entity"
     description: ""
     table_name: ""
@@ -39,6 +81,10 @@
   pk: 3
   fields:
     name: "Application"
+    owner_organization: 1
+    namespace: "entity"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/3"
+    name_in_this_namespace: "Application"
     module: "application"
     description: ""
     table_name: ""
@@ -50,6 +96,10 @@
   pk: 5
   fields:
     name: "Workflow"
+    owner_organization: 1
+    namespace: "entity"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/5"
+    name_in_this_namespace: "Workflow"
     module: "entity"
     description: ""
     table_name: ""
@@ -61,6 +111,10 @@
   pk: 6
   fields:
     name: "WorkflowStatus"
+    owner_organization: 1
+    namespace: "entity"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/6"
+    name_in_this_namespace: "WorkflowStatus"
     module: "entity"
     description: ""
     table_name: ""
@@ -72,6 +126,10 @@
   pk: 7
   fields:
     name: "Method"
+    owner_organization: 1
+    namespace: "entity"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/7"
+    name_in_this_namespace: "Method"
     module: "application"
     description: ""
     table_name: ""
@@ -83,6 +141,10 @@
   pk: 8
   fields:
     name: "AttributeType"
+    owner_organization: 1
+    namespace: "entity"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/8"
+    name_in_this_namespace: "AttributeType"
     module: "entity"
     description: ""
     table_name: ""
@@ -94,6 +156,10 @@
   pk: 9
   fields:
     name: "Widget"
+    owner_organization: 1
+    namespace: "entity"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/9"
+    name_in_this_namespace: "Widget"
     module: "application"
     description: ""
     table_name: ""
@@ -105,6 +171,10 @@
   pk: 10
   fields:
     name: "EntityNode"
+    owner_organization: 1
+    namespace: "entity"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/10"
+    name_in_this_namespace: "EntityNode"
     module: "entity"
     description: ""
     table_name: ""
@@ -116,6 +186,10 @@
   pk: 11
   fields:
     name: "Entity"
+    owner_organization: 1
+    namespace: "entity"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/11"
+    name_in_this_namespace: "Entity"
     module: "entity"
     description: ""
     table_name: ""
@@ -127,24 +201,27 @@
 - model: entity.EntityNode
   pk: 9
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/9"
     simple_entity: 8
     attribute: "type"
     child_nodes: []
 - model: entity.EntityNode
   pk: 2
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/2"
     simple_entity: 2
     attribute: "attribute_set"
     child_nodes: [9]
 - model: entity.EntityNode
   pk: 1
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/1"
     simple_entity: 1
     child_nodes: [2]
 - model: entity.Entity
   pk: 1
   fields:
-    URI: "com.koa/EntityTree/SimpleEntity-attributes"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/Entity/1"
     name: "SimpleEntity-attributes"
     entry_point: 1
 
@@ -152,56 +229,73 @@
 - model: entity.EntityNode
   pk: 6
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/6"
     simple_entity: 6
     attribute: "workflowstatus_set"
     child_nodes: []
 - model: entity.EntityNode
-  pk: 8
-  fields:
-    simple_entity: 3
-    attribute: "application_set"
-    child_nodes: []
-    external_reference: True
-- model: entity.EntityNode
   pk: 7
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/7"
     simple_entity: 7
     attribute: "method_set"
     child_nodes: [8]
 - model: entity.EntityNode
   pk: 5
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/5"
     simple_entity: 5
     attribute: "workflows"
     child_nodes: [6, 7]
 - model: entity.EntityNode
+  pk: 8
+  fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/8"
+    simple_entity: 3
+    attribute: "application_set"
+    child_nodes: [5]
+    external_reference: True
+- model: entity.EntityNode
   pk: 11
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/11"
     simple_entity: 9
     attribute: "widgets"
     child_nodes: []
 - model: entity.EntityNode
   pk: 10
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/10"
     simple_entity: 8
     attribute: "type"
     child_nodes: [11]
+    external_reference: True
 - model: entity.EntityNode
   pk: 4
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/2"
     simple_entity: 2
     attribute: "attribute_set"
     child_nodes: [10]
 - model: entity.EntityNode
+  pk: 23
+  fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/2"
+    simple_entity: 14
+    attribute: "owner_organization"
+    child_nodes: []
+    external_reference: True
+- model: entity.EntityNode
   pk: 3
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/3"
     simple_entity: 1
-    child_nodes: [4, 5]
+    child_nodes: [4, 23]
 - model: entity.Entity
   pk: 2
   fields:
-    URI: "com.koa/EntityTree/SimpleEntity-...-Application"
-    name: "SimpleEntity-...-Application"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/Entity/2"
+    name: "SimpleEntity-application"
     entry_point: 3
 
 
@@ -209,6 +303,7 @@
 - model: entity.EntityNode
   pk: 13
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/13"
     simple_entity: 1
     attribute: "simple_entity"
     child_nodes: []
@@ -216,43 +311,48 @@
 - model: entity.EntityNode
   pk: 15
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/15"
     simple_entity: 10
     attribute: "child_nodes"
     child_nodes: [13,15]
 - model: entity.EntityNode
   pk: 14
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/14"
     simple_entity: 10
     attribute: "entry_point"
     child_nodes: [13,15]
 - model: entity.EntityNode
-  pk: 10
+  pk: 22
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/22"
     simple_entity: 11
     attribute: ""
     child_nodes: [14]
 - model: entity.Entity
   pk: 3
   fields:
-    URI: "com.koa/EntityTree/Entity-EntityNode"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/Entity/3"
     name: "EntityTree-EntityTreeNode"
-    entry_point: 10
+    entry_point: 22
 
 - model: entity.EntityNode
   pk: 19
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/19"
     simple_entity: 6
     attribute: "workflowstatus_set"
     child_nodes: []
 - model: entity.EntityNode
   pk: 18
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/18"
     simple_entity: 5
     attribute: ""
     child_nodes: [19]
 - model: entity.Entity
   pk: 5
   fields:
-    URI: "com.koa/EntityTree/Workflow-Statuses"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/Entity/5"
     name: "Workflow-statuses"
     entry_point: 18
