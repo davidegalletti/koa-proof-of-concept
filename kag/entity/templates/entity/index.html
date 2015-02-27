@@ -3,20 +3,20 @@
     <ul>
     {% for instance in instance_list %}
         <li>
-            {% if instance.entity_instance.name == 'SimpleEntity' %}
+            {% if instance.get_simple_entity.name == 'SimpleEntity' %}
                 <a href="{% url 'entity_index' instance.id %}">{{ instance.get_name }}</a>
             {% else %}
                 {{ instance.get_name }}
             {% endif %}
             <br>
             {% for entity_tree in instance.entity_trees %}
-                <a href="{% url 'export' entity_tree.id instance.id instance.entity_instance.id %}">Export {{ entity_tree.name }}</a>
+                <a href="{% url 'export' entity_tree.id instance.id instance.get_simple_entity.id %}">Export {{ entity_tree.name }}</a>
             {% endfor %}
             <br>
-            {% if instance.entity_instance.name == 'Entity' %}
+            {% if instance.get_simple_entity.name == 'Entity' %}
                 <a href="{% url 'export_stub' instance.id %}">Export a stub</a>
             {% endif %}
-            {% if instance.entity_instance.name == 'SimpleEntity' %}
+            {% if instance.get_simple_entity.name == 'SimpleEntity' %}
                 <a href="{% url 'entity_tree_stub' instance.id %}">Export an Entity stub of this SimpleEntity based on Django model</a>
             {% endif %}
 

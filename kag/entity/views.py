@@ -1,22 +1,20 @@
-from django.conf import settings
-from django.http import HttpResponseRedirect
-from django.core.urlresolvers import reverse
-from entity.models import SimpleEntity, Entity, EntityNode, UploadedFile
-from django.shortcuts import render, get_object_or_404, redirect
-from application.models import Application, Method
-from userauthorization.models import KUser, PermissionHolder
+# -*- coding: utf-8 -*-
 
-from django.http import HttpResponse
-from xml.dom import minidom
-from lxml import etree
-from django.db import models
 from django import forms
+from django.conf import settings
+from django.db import models
+from django.http import HttpResponse
+from django.shortcuts import render, get_object_or_404, redirect, render_to_response
 from django.template import RequestContext
+
+from application.models import Application, Method
+from entity.models import SimpleEntity, Entity, EntityNode, UploadedFile
 from forms import UploadFileForm, ImportChoice, ImportChoiceNothingOnDB
-from django.shortcuts import render_to_response
+from lxml import etree
+from userauthorization.models import KUser, PermissionHolder
+from xml.dom import minidom
+
 import kag.utils as utils
-
-
 
 def index(request):
 #    instance_list = SimpleEntity.objects.order_by('name')
@@ -92,7 +90,7 @@ def export(request, entity_tree_id, entity_instance_id, entity_id):
     actual_class = utils.load_class(se.module + ".models", se.name)
     instance = get_object_or_404(actual_class, pk=entity_instance_id)
     et = Entity.objects.get(pk = entity_tree_id)
-    exported_xml = "<Export EntityURI=\"" + et.URI + "\">" + instance.to_xml(et.entry_point) + "</Export>"
+    exported_xml = "<Export EntityURI=\"" + et.URI_instance + "\">" + instance.to_xml(et.entry_point) + "</Export>"
     
     return render(request, 'entity/export.xml', {'xml': exported_xml}, content_type="application/xhtml+xml")
     
@@ -103,7 +101,7 @@ def export_stub(request, entity_tree_id):
     instance = actual_class()
     # I need a dictionary to prevent infinite loop and to control how many times I export a specific class
     export_count_per_class = {}
-    exported_xml = "<Export EntityURI=\"" + et.URI + "\">" + instance.to_xml(et.entry_point, True, export_count_per_class) + "</Export>"
+    exported_xml = "<Export EntityURI=\"" + et.URI_instance + "\">" + instance.to_xml(et.entry_point, True, export_count_per_class) + "</Export>"
     
     return render(request, 'entity/export.xml', {'xml': exported_xml}, content_type="application/xhtml+xml")
     
@@ -131,52 +129,55 @@ def upload_page(request):
                 initial_data['new_uploaded_file_relpath'] = new_uploaded_file.docfile.url
                 xmldoc = minidom.parseString(xml_uploaded)
                 URI = xmldoc.childNodes[0].attributes["EntityURI"].firstChild.data
-                e = Entity.objects.get(URI=URI)
+                e = Entity.objects.get(URI_instance=URI)
                 # I check that the first SimpleEntity is the same simple_entity of the Entity's entry_point
                 if e.entry_point.simple_entity.name != xmldoc.childNodes[0].childNodes[0].tagName:
                     message = "The Entity structure tells that the first SimpleEntity should be " + e.entry_point.simple_entity.name + " but the first TAG in the file is " + xmldoc.childNodes[0].childNodes[0].tagName
                     raise Exception(message) 
                 else:
-                    try: 
-                        simple_entity_id = xmldoc.childNodes[0].childNodes[0].attributes[e.entry_point.simple_entity.id_field].firstChild.data
+                    # Is there a URI_instance of the first SimpleEntity;
+                    try:
+                        simple_entity_uri_instance = xmldoc.childNodes[0].childNodes[0].attributes["URI_instance"].firstChild.data
+                    except Exception as ex:
+                        # if it's not in the file it means that the data in the file does not come from a KS
+                        simple_entity_uri_instance = None
+                    initial_data['simple_entity_uri_instance'] = simple_entity_uri_instance
+                    try:
+                        initial_data['simple_entity_name'] = xmldoc.childNodes[0].childNodes[0].attributes[e.entry_point.simple_entity.name_field].firstChild.data
                     except:
-                        simple_entity_id = None
-                    initial_data['simple_entity_id'] = simple_entity_id
-                    initial_data['simple_entity_name'] = xmldoc.childNodes[0].childNodes[0].tagName
+                        initial_data['simple_entity_name'] = None
                     try:
                         initial_data['simple_entity_description'] = xmldoc.childNodes[0].childNodes[0].attributes[e.entry_point.simple_entity.description_field].firstChild.data
                     except:
                         initial_data['simple_entity_description'] = None
-
-                
                 # TODO: now we assume that the Entity is always specified, in the future we must generalize
-#                 entity_id = xmldoc.childNodes[0].childNodes[0].attributes["id"].firstChild.data
-#                 initial_data['entity_id'] = entity_id
-#                 try:
-#                     initial_data['entity_name'] = xmldoc.childNodes[0].childNodes[0].attributes[e.entry_point.simple_entity.name_field].firstChild.data
-#                 except:
-#                     initial_data['entity_name'] = None
-#                 try:
-#                     initial_data['entity_description'] = xmldoc.childNodes[0].childNodes[0].attributes[e.entry_point.simple_entity.description_field].firstChild.data
-#                 except:
-#                     initial_data['entity_description'] = None
                     module_name = e.entry_point.simple_entity.module
                     child_node = xmldoc.childNodes[0].childNodes[0]
                     actual_class_name = module_name + ".models " + child_node.tagName
                     initial_data['actual_class_name'] = actual_class_name
                     actual_class = utils.load_class(module_name + ".models", child_node.tagName)
                     try:
-                        simple_entity_on_db = actual_class.objects.get(pk=simple_entity_id)
-                        initial_data['simple_entity_on_db'] = simple_entity_on_db
-                        try:
+                        '''
+                        ?How does the import work wrt uri_instance? A SerializableEntity has
+                            URI_instance
+                            URI_imported_instance
+                        attributes; the second comes from the imported record (if any); the first is generated
+                        upon record creation; so the first always refer to local KS; the second, if present,
+                        will tell you where the record comes from via import or fetch (fetch not implemented yet) 
+                        '''
+                        if not simple_entity_uri_instance is None:
+                            simple_entity_on_db = actual_class.objects.get(URI_imported_instance=simple_entity_uri_instance)
+                            initial_data['simple_entity_on_db'] = simple_entity_on_db
                             initial_data['simple_entity_on_db_name'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.name_field)
-                        except:
-                            initial_data['simple_entity_on_db_name'] = None
-                        try:
                             initial_data['simple_entity_on_db_description'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.description_field)
-                        except:
-                            initial_data['simple_entity_on_db_description'] = None
+                        else:
+                            initial_data['simple_entity_on_db'] = None
                     except:
+                        #TODO: .get returning more than one record would be a logical error and should be raised here 
+                        # it could actually happen if I use an export from this ks to import again into new records
+                        # then I modify the file and import again; instead of modifying the file the preferred behavior
+                        # should be to export, modify the newly exported file and import again; this last method would work
+                        # the first wouldn yeald initial_data['simple_entity_on_db'] = None
                         initial_data['simple_entity_on_db'] = None
                     initial_data['prettyxml'] = xmldoc.toprettyxml(indent="    ")
                     initial_data['file'] = request.FILES['file']
@@ -184,7 +185,7 @@ def upload_page(request):
                     if initial_data['simple_entity_on_db'] is None:
                         import_choice_form = ImportChoiceNothingOnDB(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url, 'how_to_import': 1})
                     else:
-                        import_choice_form = ImportChoice(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url})
+                        import_choice_form = ImportChoice(initial={'uploaded_file_id': new_uploaded_file.id, 'new_uploaded_file_relpath': new_uploaded_file.docfile.url, 'how_to_import': 0})
                     initial_data['import_choice_form'] = import_choice_form
                     return render(request, 'entity/import_file.html', initial_data)
             except Exception as ex:
@@ -198,17 +199,20 @@ def perform_import(request):
     Import is performed according to an Entity i.e. a structure of SimpleEntity(s)
     The structure allows to have references to a SimpleEntity; use a reference
     when you need to associate to that SimpleEntity but do not want to import/export that
-    SimpleEntity. When a SimpleEntity is a reference its ID does not count; its URI is 
-    relevant. The import behaviour is:
+    SimpleEntity. When a SimpleEntity is a reference its ID does not matter; its URI is 
+    relevant. The import behavior for reference is:
     it looks for a SimpleEntity with the same URI, if it does exist it takes it's ID and
     uses it for the relationships; otherwise it creates it (which of course happens only once)
+    TODO: scrivi un commento che descrive
+    The import behavior when not reference is .................................
     '''
     new_uploaded_file_relpath = request.POST["new_uploaded_file_relpath"]
 #     request.POST['how_to_import']
 #     0   Update if ID exists, create if ID is empty or non existent
 #     1   Always create new records
 
-    # how_to_import = true ==> always_insert 
+    # how_to_import = true  ==> always_insert = always create 
+    # how_to_import = false ==> Update if ID exists, create if ID is empty or non existent 
     always_insert = (int(request.POST.get("how_to_import", "")) == 1)
     with open(settings.BASE_DIR + "/" + new_uploaded_file_relpath, 'r') as content_file:
         xml_uploaded = content_file.read()
@@ -217,14 +221,34 @@ def perform_import(request):
     elem = etree.XML(xml_uploaded, parser=p)
     xml_uploaded = etree.tostring(elem)
     xmldoc = minidom.parseString(xml_uploaded)
-    URI = xmldoc.childNodes[0].attributes["EntityURI"].firstChild.data
-    et = Entity.objects.get(URI=URI)
+    try:
+        URI_instance = xmldoc.childNodes[0].attributes["EntityURI"].firstChild.data
+        et = Entity.objects.get(URI_instance=URI_instance)
+    except Exception as ex:
+        raise Exception("I cannot find the Entity in my database or it's EntityURI in the file you submitted: " + str(ex))
     child_node = xmldoc.childNodes[0].childNodes[0]
+
+    try:
+        se = SimpleEntity.objects.get(URI_instance = child_node.attributes["URISimpleEntity"].firstChild.data)
+    except Exception as ex:
+        raise Exception("I cannot find the SimpleEntity " + child_node.attributes["URISimpleEntity"].firstChild.data + " Error: " + str(ex))
+    assert (et.entry_point.simple_entity.name == child_node.tagName == se.name), "child_node.simple_entity.name - child_node.tagName - se.name: " + child_node.simple_entity.name + ' - ' + child_node.tagName + ' - ' + se.name
+
     module_name = et.entry_point.simple_entity.module
     actual_class = utils.load_class(module_name + ".models", child_node.tagName)
-    instance = actual_class()
+    
+    try:
+        simple_entity_uri_instance = xmldoc.childNodes[0].childNodes[0].attributes["URI_instance"].firstChild.data
+    except Exception as ex:
+        # if it's not in the file it means that the data in the file does not come from a KS
+        simple_entity_uri_instance = None
+    if always_insert or (simple_entity_uri_instance is None):
+        instance = actual_class()
+    else:
+        instance = actual_class.objects.get(URI_imported_instance=simple_entity_uri_instance)
     #At least the first node has full export = True otherwise I would not import anything but just load something from the db 
     instance.from_xml(child_node, et.entry_point, always_insert)
+    #TODO: return something more meaningful or redirect somewhere with a message
     return HttpResponse("OK")
 
 

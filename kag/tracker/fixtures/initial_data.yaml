@@ -2,28 +2,46 @@
   pk: 1
   fields:
     name: "Resolved"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/ResolutionType/1"
   pk: 2
   fields:
     name: "Postponed"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/ResolutionType/2"
   pk: 3
   fields:
     name: "Won't fix"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/ResolutionType/3"
+
+- model: entity.Organization
+  pk: 2
+  fields:
+    name: "Knowledge Oriented Architecture - test"
+    ks_uri: "http://KnowledgeOrientedArchitecture.org/KStest"
+    description: ""
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Organization/2"
 
 - model: entity.SimpleEntity
   pk: 12
   fields:
     name: "Issue"
+    owner_organization: 2
+    namespace: "tracker"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/SimpleEntity/12"
+    name_in_this_namespace: "Issue"
     module: "tracker"
     description: ""
     table_name: ""
     id_field: "id"
     name_field: "title"
-    description_field: "description"
+    description_field: "Issue is a Redmine-like entity"
 
 - model: entity.SimpleEntity
   pk: 13
   fields:
     name: "Note"
+    owner_organization: 2
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/SimpleEntity/13"
+    name_in_this_namespace: "Note"
     module: "tracker"
     description: ""
     table_name: ""
@@ -34,32 +52,35 @@
 - model: entity.EntityNode
   pk: 20
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/EntityNode/20"
     simple_entity: 12
     attribute: ""
     child_nodes: []
 - model: entity.Entity
   pk: 6
   fields:
-    URI: "com.koa/Entity/Issue-"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Entity/6"
     name: "tracker Issue-"
     entry_point: 20
     
 - model: entity.EntityNode
   pk: 21
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/EntityNode/21"
     simple_entity: 13
     attribute: ""
     child_nodes: []
 - model: entity.Entity
   pk: 7
   fields:
-    URI: "com.koa/Entity/Notes-"
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Entity/7"
     name: "tracker Note-"
     entry_point: 21
 
 - model: entity.Workflow
   pk: 1
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Workflow/1"
     name: "Software Bug workflow"
     description: ""
     entity_tree: 6 
@@ -67,24 +88,28 @@
 - model: entity.WorkflowStatus
   pk: 1
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/WorkflowStatus/1"
     name: "Initial"
     description: ""
     workflow: 1
 - model: entity.WorkflowStatus
   pk: 2
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/WorkflowStatus/2"
     name: "resolved"
     description: ""
     workflow: 1
 - model: entity.WorkflowStatus
   pk: 3
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/WorkflowStatus/3"
     name: "closed"
     description: ""
     workflow: 1
 - model: entity.WorkflowStatus
   pk: 4
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/WorkflowStatus/4"
     name: "assigned"
     description: ""
     workflow: 1
@@ -93,12 +118,14 @@
 - model: entity.Workflow
   pk: 2
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Workflow/2"
     name: "Notes handling"
     description: ""
     entity_tree: 7
 - model: entity.WorkflowStatus
   pk: 5
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/WorkflowStatus/5"
     name: "Initial"
     description: ""
     workflow: 1
@@ -108,18 +135,15 @@
 - model: application.Application
   pk: 1
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Application/1"
     name: "Bug tracker"
     description: "Better than Redmine"
     workflows: [1]
     
-- model: entity.AttributeType
-  pk: 1
-  fields:
-    name: "Text"
-    
 - model: entity.Attribute
-  pk: 1
+  pk: 2
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Attribute/1"
     name: "Title"
     simple_entity: 12
     type: 1
@@ -128,10 +152,12 @@
   pk: 1
   fields:
     attribute: 1
+#    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/AttributeInAMethod/1"
     
 - model: application.Method
   pk: 1
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Method/1"
     name: "Create"
     description: "Create issue"
     attributes: [1, 2]
@@ -146,8 +172,9 @@
  
     
 - model: entity.Attribute
-  pk: 2
+  pk: 3
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Attribute/2"
     name: "Notes"
     simple_entity: 13
     type: 1
@@ -155,14 +182,16 @@
 - model: application.AttributeInAMethod
   pk: 2
   fields:
+#    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/AttributeInAMethod/2"
     attribute: 2
     implementation_method: 2
     
 
 
 - model: entity.Attribute
-  pk: 3
+  pk: 4
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Attribute/3"
     name: "text"
     simple_entity: 13
     type: 1
@@ -170,11 +199,13 @@
 - model: application.AttributeInAMethod
   pk: 3
   fields:
+#    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/AttributeInAMethod/3"
     attribute: 3
 
 - model: application.Method
   pk: 2
   fields:
+    URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Method/2"
     name: "Add a note"
     description: "Add a note"
     attributes: [3]
