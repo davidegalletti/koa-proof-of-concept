@@ -272,7 +272,7 @@ def entity_tree_stub(request, entity_id):
     et_xml = minidom.parseString(et_xml_str)
     et_xml.documentElement.appendChild(ets.documentElement)
 
-    exp_str = '<Export EntityURI="' + et.URI + '"></Export>'
+    exp_str = '<Export EntityURI="' + et.URI_instance + '"></Export>'
     exp_xml = minidom.parseString(exp_str)
     exp_xml.documentElement.appendChild(et_xml.documentElement)
     #cancello gli oggetti salvati
