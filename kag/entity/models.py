@@ -330,7 +330,8 @@ class SerializableEntity(models.Model):
                 try:
                     rel_entity = SimpleEntity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                 except:
-                    rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
+                    owner_organization = Organization.objects.get(pk=1) #TODO: I have to use a default organization from configuration
+                    rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0],owner_organization=owner_organization)
                     rel_entity.save()
                 rel_etn = EntityNode(simple_entity=rel_entity)
                 rel_xml = rel_entity.entity_tree_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
@@ -344,7 +345,8 @@ class SerializableEntity(models.Model):
                 try:
                     rel_entity = SimpleEntity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                 except:
-                    rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
+                    owner_organization = Organization.objects.get(pk=1) #TODO: I have to use a default organization from configuration
+                    rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0],owner_organization=owner_organization)
                     rel_entity.save()
                 rel_etn = EntityNode(simple_entity=rel_entity)
                 rel_xml = rel_entity.entity_tree_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
