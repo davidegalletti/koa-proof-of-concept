@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export EntityURI="http://KnowledgeOrientedArchitecture.org/KS/entity/Entity/2">
+   <SimpleEntity URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" URI_instance="http://KnowledgeOrientedArchitecture.org/KStest/tracker/SimpleEntity/12" namespace="tracker" name_in_this_namespace="Issue" name="Issue" 
+				 module="tracker" 
+				 description="Issue is a Redmine-like entity and now with an updated description" 
+				 id_field="id" 
+				 name_field="title" 
+				 table_name=""
+				 description_field="description">
+	  <Organization URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/14" URI_instance="http://KnowledgeOrientedArchitecture.org/KStest/tracker/Organization/2" id="2" name="Knowledge Oriented Architecture - test" description="" ks_uri="http://KnowledgeOrientedArchitecture.org/KStest" />
+      <Attribute name="title" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/2">
+		 <AttributeType URI_instance="http://KnowledgeOrientedArchitecture.org/KS/entity/AttributeType/1" name="Text" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/8" />
+      </Attribute>
+      <Attribute name="description" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/2">
+		 <AttributeType URI_instance="http://KnowledgeOrientedArchitecture.org/KS/entity/AttributeType/1" name="Text" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/8" />
+      </Attribute>
+      <Attribute name="resolution_type" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/2">
+		 <AttributeType URI_instance="http://KnowledgeOrientedArchitecture.org/KS/entity/AttributeType/3" name="ForeignKey" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/8" />
+		 <SimpleEntity URI_instance="http://KnowledgeOrientedArchitecture.org/KStest/tracker/SimpleEntity/12" namespace="tracker" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" />
+      </Attribute>
+   </SimpleEntity>
+</Export>
