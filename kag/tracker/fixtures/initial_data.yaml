@@ -61,6 +61,7 @@
   fields:
     URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Entity/6"
     name: "tracker Issue-"
+    description: ""
     entry_point: 20
     
 - model: entity.EntityNode
@@ -75,6 +76,7 @@
   fields:
     URI_instance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Entity/7"
     name: "tracker Note-"
+    description: ""
     entry_point: 21
 
 - model: entity.Workflow
