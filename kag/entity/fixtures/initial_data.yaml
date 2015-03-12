@@ -223,6 +223,7 @@
   fields:
     URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/Entity/1"
     name: "SimpleEntity-attributes"
+    description: ""
     entry_point: 1
 
 
@@ -296,6 +297,7 @@
   fields:
     URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/Entity/2"
     name: "SimpleEntity-application"
+    description: ""
     entry_point: 3
 
 
@@ -334,6 +336,7 @@
   fields:
     URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/Entity/3"
     name: "EntityTree-EntityTreeNode"
+    description: ""
     entry_point: 22
 
 - model: entity.EntityNode
@@ -355,4 +358,5 @@
   fields:
     URI_instance: "http://KnowledgeOrientedArchitecture.org/KS/entity/Entity/5"
     name: "Workflow-statuses"
+    description: ""
     entry_point: 18

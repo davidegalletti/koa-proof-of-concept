@@ -170,6 +170,28 @@ class SerializableEntity(models.Model):
             pass
         return se
 
+    @staticmethod
+    def retrieve(actual_class, URI_instance, retrieve_externally):
+        '''
+        It returns an instance of a SerializableEntity stored in this KS
+        It searches first on the URI_instance field (e.g. is it already an instance of this KS? ) 
+        It searches then on the URI_imported_instance field (e.g. has is been imported in this KS from the same source? )
+        TODO: It fetches the instance from the source as it is not in this KS yet 
+        '''
+        actual_instance = None
+        try:
+            actual_instance = actual_class.objects.get(URI_instance=URI_instance)
+        except:
+            try:
+                actual_instance = actual_class.objects.get(URI_imported_instance=URI_instance)
+            except:
+                if retrieve_externally:
+                    #TODO: It fetches the instance from the source as it is not in this KS yet
+                    raise("To be implemented: It fetches the instance from the source as it is not in this KS yet")
+                else:
+                    raise("Can't find instance with URI: " + URI_instance)
+            
+
     def from_xml(self, xmldoc, entity_node, insert=True, parent=None):
         '''
         from_xml loads from the xml an object and saves it; it searches for child nodes according
@@ -232,7 +254,7 @@ class SerializableEntity(models.Model):
                         '''
                         try:
                             # let's search it in the database
-                            instance = actual_class.objects.get(URI_instance=xml_child_node.attributes["URI_instance"].firstChild.data)
+                            instance = SerializableEntity.retrieve(actual_class, xml_child_node.attributes["URI_instance"].firstChild.data, True)
                         except ObjectDoesNotExist:
                             # I must create it fetching it from its URI
                             pass
@@ -254,9 +276,7 @@ class SerializableEntity(models.Model):
                             instance = actual_class()
                         else:
                             try:
-                                # I search it in the database trying to match the URI_instance in the XML with
-                                # the URI_imported_instance in the database
-                                instance = actual_class.objects.get(URI_imported_instance=xml_child_node.attributes["URI_instance"].firstChild.data)
+                                instance = SerializableEntity.retrieve(actual_class, xml_child_node.attributes["URI_instance"].firstChild.data, False)
                             except:
                                 # didn't find it; I create the instance anyway
                                 instance = actual_class()
@@ -288,26 +308,25 @@ class SerializableEntity(models.Model):
                 module_name = current_en_child_node.simple_entity.module
                 assert (current_en_child_node.simple_entity.name == xml_child_node.tagName == se.name), "current_en_child_node.simple_entity.name - xml_child_node.tagName - se.name: " + current_en_child_node.simple_entity.name + ' - ' + xml_child_node.tagName + ' - ' + se.name
                 actual_class = utils.load_class(module_name + ".models", xml_child_node.tagName)
-                if not current_en_child_node.external_reference:
+                if current_en_child_node.external_reference:
+                    instance = SerializableEntity.retrieve(actual_class, xml_child_node.attributes["URI_instance"].firstChild.data, True)
+                    # TODO: il test succesivo forse si fa meglio guardando il concrete_model
+                    # TODO: capire questo test e mettere un commento
+                    if current_en_child_node.attribute in self._meta.fields:
+                        setattr(instance, current_en_child_node.attribute, self)
+                        instance.save()
+                    else:  
+                        setattr(self, current_en_child_node.attribute, instance)
+                        self.save()
+                else:
                     if insert:
                         instance = actual_class()
                     else:
                         try:
-                            instance = actual_class.objects.get(URI_imported_instance=xml_child_node.attributes["URI_instance"].firstChild.data)
+                            instance = SerializableEntity.retrieve(actual_class, xml_child_node.attributes["URI_instance"].firstChild.data, False)
                         except:
                             instance = actual_class()
                     instance.from_xml(xml_child_node, current_en_child_node, insert, self)
-                else:
-#                    instance = actual_class.objects.get(##################)
-                    # TODO: il test succesivo forse si fa meglio guardando il concrete_model
-                    if current_en_child_node.attribute in self._meta.fields:
-#                         TODO: test
-                        setattr(instance, current_en_child_node.attribute, self)
-                        instance.save()
-                    else:  
-#                         TODO: test
-                        setattr(self, current_en_child_node.attribute, instance)
-                        self.save()
 
     def entity_tree_stub(self, etn, export_etn, class_list=[]):
         '''
@@ -463,7 +482,7 @@ class EntityNode(SerializableEntity):
 
 class Entity(SerializableEntity):
     '''
-    It is a tree that defines a set of entities on which we can perform a task; the tree has
+    It is a graph that defines a set of entities on which we can perform a task; the tree has
     an entry point which is a Node e.g. an entity; from an instance of an entity we can use
     the "attribute" attribute from the corresponding EntityNode to get the instances of
     the entities related to each of the child_nodes. An Entity could, for example, tell
@@ -472,6 +491,7 @@ class Entity(SerializableEntity):
     The name should describe its use
     '''
     name = models.CharField(max_length=200L)
+    description = models.CharField(max_length=2000L)
     entry_point = models.ForeignKey('EntityNode')
 
 class EntityInstance(SerializableEntity):
