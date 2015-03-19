@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
+
 from random import randrange, uniform
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -26,6 +28,29 @@ class SerializableEntity(models.Model):
     from XML and still have a proper local URI_instance
     '''
     URI_imported_instance = models.CharField(max_length=2000L)
+    
+    def SetNotNullFields(self):
+        '''
+        I need to make sure that every SerializableEntity can be saved on the database right after being created (*)
+        hence I need to give a value to any attribute that can't be null
+        (*) It's needed because during the import I can find a reference to an instance whose data is further away in the file
+        then I create the instance in the DB just with the URI_instance but no other data
+        TODO: handle field default value
+        '''
+        for key in self._meta.fields:
+            if (not key.null) and key.__class__.__name__ != "ForeignKey" and (not key.primary_key):
+                # TODO: make sure the list of ype is complete
+                if key.__class__.__name__ in ("CharField", "TextField"):
+                    if key.blank:
+                        setattr(self, key.name, "")
+                    else:
+                        setattr(self, key.name, "dummy")
+                if key.__class__.__name__ in ("IntegerField", "FloatField"):
+                    setattr(self, key.name, 0)
+                if key.__class__.__name__ in ("DateField", "DateTimeField"):
+                    setattr(self, key.name, datetime.now())
+                
+                
     
     # URI points to the a specific instance in a specific KS
     def generate_URI_instance(self, stub = False):
@@ -71,7 +96,7 @@ class SerializableEntity(models.Model):
                 attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'
         return attributes
      
-    def serialized_URIs(self, stub = False):
+    def serialized_URI_SE(self, stub = False):
         return ' URISimpleEntity="' + self.get_simple_entity().URI_instance + '" '
     
     def serialized_attributes(self, stub = False):
@@ -95,8 +120,12 @@ class SerializableEntity(models.Model):
                     attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'
         return attributes
 
-    def to_xml(self, etn, stub = False, export_count_per_class = {}):
+    def to_xml(self, etn, stub = False, export_count_per_class = {}, exported_instances = []):
         str_xml = ""
+        # If I have already exported this instance I need just to export it's URI_instance
+        if (not stub) and self.URI_instance and self.URI_instance in exported_instances:
+            return '<' + self.__class__.__name__ + ' URI_instance="' + self.URI_instance + '"/>'
+        exported_instances.append(self.URI_instance) 
         if stub:
             if not self.__class__.__name__ in  export_count_per_class.keys():
                 export_count_per_class[self.__class__.__name__] = 0
@@ -118,27 +147,27 @@ class SerializableEntity(models.Model):
                             actual_class = utils.load_class(child_class_module + ".models", child_class_instance_name)
                             child_instance = actual_class()
                             # I can add a couple of children just to make it evident it is a list
-                            str_xml += child_instance.to_xml(child_node, True, export_count_per_class)
-                            str_xml += child_instance.to_xml(child_node, True, export_count_per_class)
+                            str_xml += child_instance.to_xml(child_node, True, export_count_per_class, exported_instances)
+                            str_xml += child_instance.to_xml(child_node, True, export_count_per_class, exported_instances)
                         else:
                             child_instances = eval("self." + child_node.attribute + ".all()")
                             for child_instance in child_instances:
                                 # let's prevent infinite loops if self relationships
                                 if (child_instance.__class__.__name__ <> self.__class__.__name__) or (self.pk <> child_node.pk):
-                                    str_xml += child_instance.to_xml(child_node)
+                                    str_xml += child_instance.to_xml(child_node, exported_instances=exported_instances)
                     else:
                         if stub:
                             actual_class = utils.load_class(child_class_module + ".models", child_class_instance_name)
                             child_instance = actual_class()
-                            str_xml += child_instance.to_xml (child_node, True, export_count_per_class)
+                            str_xml += child_instance.to_xml (child_node, True, export_count_per_class, exported_instances)
                         else:
                             print "Invoking \".to_xml\" for self." + child_node.attribute
                             child_instance = eval("self." + child_node.attribute)
                             if not child_instance is None:
-                                str_xml += child_instance.to_xml (child_node)
+                                str_xml += child_instance.to_xml (child_node, exported_instances=exported_instances)
             except Exception as es:
                 print es
-            return '<' + self.__class__.__name__ + self.serialized_URIs(stub) + self.serialized_attributes(stub) + '>' + str_xml + '</' + self.__class__.__name__ + '>'
+            return '<' + self.__class__.__name__ + self.serialized_URI_SE(stub) + self.serialized_attributes(stub) + '>' + str_xml + '</' + self.__class__.__name__ + '>'
         else:
             # etn.external_reference = True
             xml_name = ''
@@ -148,9 +177,9 @@ class SerializableEntity(models.Model):
                 else:
                     xml_name = " " + etn.simple_entity.name_field + "=\"" + getattr(self, etn.simple_entity.name_field) + "\""
             if stub:
-                return '<' + self.__class__.__name__ + self.serialized_URIs(True) + self._meta.pk.attname + '="-1"' + xml_name + '/>'
+                return '<' + self.__class__.__name__ + self.serialized_URI_SE(True) + 'URI_instance="' + self.generate_URI_instance(stub) + '" ' + self._meta.pk.attname + '="-1"' + xml_name + '/>'
             else:
-                return '<' + self.__class__.__name__ + self.serialized_URIs() + self._meta.pk.attname + '="' + str(self.pk) + '"' + xml_name + '/>'
+                return '<' + self.__class__.__name__ + self.serialized_URI_SE() + 'URI_instance="' + self.URI_instance + '" ' + self._meta.pk.attname + '="' + str(self.pk) + '"' + xml_name + '/>'
 
     @staticmethod
     def simple_entity_from_xml_tag(self, xml_child_node):
@@ -167,7 +196,7 @@ class SerializableEntity(models.Model):
             SimpleEntity URI 2: "http://finanze.it/KS/sanzione"
             
             '''
-            pass
+            raise Exception("TO BE IMPLEMENTED in simple_entity_from_xml_tag: get SimpleEntity from appropriate KS.")
         return se
 
     @staticmethod
@@ -187,10 +216,10 @@ class SerializableEntity(models.Model):
             except:
                 if retrieve_externally:
                     #TODO: It fetches the instance from the source as it is not in this KS yet
-                    raise("To be implemented: It fetches the instance from the source as it is not in this KS yet")
+                    raise Exception("To be implemented: It fetches the instance from the source as it is not in this KS yet")
                 else:
-                    raise("Can't find instance with URI: " + URI_instance)
-            
+                    raise Exception("Can't find instance with URI: " + URI_instance)
+        return actual_instance
 
     def from_xml(self, xmldoc, entity_node, insert=True, parent=None):
         '''
@@ -221,6 +250,11 @@ class SerializableEntity(models.Model):
             if related_parent.__class__.__name__ == "ReverseSingleRelatedObjectDescriptor":   #TODO: David comment on this
                 field_name = related_parent.field.name
                 setattr(self, field_name, parent)
+        # If I have just the URI_instance attribute I have to save this instance but I will find its attribute later in the imported file
+        if len(xmldoc.attributes) == 1 and xmldoc.attributes[0].name == "URI_instance":
+            setattr(self, "URI_instance", xmldoc.attributes["URI_instance"].firstChild.data)
+            self.SetNotNullFields()
+            self.save()
         for key in self._meta.fields:
 #              let's setattr the other attributes
             if key.__class__.__name__ != "ForeignKey" and (not parent or key.name != field_name):
@@ -456,10 +490,10 @@ class SimpleEntity(SerializableEntity):
     description_field = models.CharField(max_length=255L, db_column='descriptionField', blank=True)
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
 
-    # URI points to the KS that manages SimpleEntity's metadata
-    # e.g. http://finanze.it/KS/fattura
-    def URI(self):
-        return self.owner_organization.ks_uri + "/" + self.namespace + "/" + self.name
+#     # URI points to the KS that manages SimpleEntity's metadata
+#     # e.g. http://finanze.it/KS/fattura
+#     def URI(self):    UNUSED ????
+#         return self.owner_organization.ks_uri + "/" + self.namespace + "/" + self.name
 
 class AttributeType(SerializableEntity):
     name = models.CharField(max_length=255L, blank=True)
@@ -470,7 +504,7 @@ class Attribute(SerializableEntity):
     simple_entity = models.ForeignKey('SimpleEntity', null=True, blank=True)
     type = models.ForeignKey('AttributeType')
     def __str__(self):
-        return self.entity.name + "." + self.name
+        return self.simple_entity.name + "." + self.name
 
 class EntityNode(SerializableEntity):
     simple_entity = models.ForeignKey('SimpleEntity')

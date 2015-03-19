@@ -8,7 +8,7 @@ from django.shortcuts import render, get_object_or_404, redirect, render_to_resp
 from django.template import RequestContext
 
 from application.models import Application, Method
-from entity.models import SimpleEntity, Entity, EntityNode, UploadedFile
+from entity.models import SimpleEntity, Entity, EntityNode, UploadedFile, SerializableEntity
 from forms import UploadFileForm, ImportChoice, ImportChoiceNothingOnDB
 from lxml import etree
 from userauthorization.models import KUser, PermissionHolder
@@ -95,6 +95,7 @@ def export(request, entity_tree_id, entity_instance_id, entity_id):
     return render(request, 'entity/export.xml', {'xml': exported_xml}, content_type="application/xhtml+xml")
     
 def export_stub(request, entity_tree_id):
+    #TODO: chiarire il nome stub e l'utilizzo del parametro stub in to_xml 
     et = get_object_or_404(Entity, pk = entity_tree_id)
     e = et.entry_point.simple_entity
     actual_class = utils.load_class(e.module + ".models", e.name)
@@ -166,10 +167,10 @@ def upload_page(request):
                         will tell you where the record comes from via import or fetch (fetch not implemented yet) 
                         '''
                         if not simple_entity_uri_instance is None:
-                            simple_entity_on_db = actual_class.objects.get(URI_imported_instance=simple_entity_uri_instance)
+                            simple_entity_on_db = SerializableEntity.retrieve(actual_class, simple_entity_uri_instance, False)
                             initial_data['simple_entity_on_db'] = simple_entity_on_db
-                            initial_data['simple_entity_on_db_name'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.name_field)
-                            initial_data['simple_entity_on_db_description'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.description_field)
+                            initial_data['simple_entity_on_db_name'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.name_field) if e.entry_point.simple_entity.name_field else ""
+                            initial_data['simple_entity_on_db_description'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.description_field) if e.entry_point.simple_entity.description_field else ""
                         else:
                             initial_data['simple_entity_on_db'] = None
                     except:
@@ -245,7 +246,7 @@ def perform_import(request):
     if always_insert or (simple_entity_uri_instance is None):
         instance = actual_class()
     else:
-        instance = actual_class.objects.get(URI_imported_instance=simple_entity_uri_instance)
+        instance = SerializableEntity.retrieve(actual_class, simple_entity_uri_instance, False)
     #At least the first node has full export = True otherwise I would not import anything but just load something from the db 
     instance.from_xml(child_node, et.entry_point, always_insert)
     #TODO: return something more meaningful or redirect somewhere with a message
