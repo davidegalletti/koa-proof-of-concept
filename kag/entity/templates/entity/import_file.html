@@ -12,7 +12,7 @@
         <p>It's description is "{{ simple_entity_description }}"</p>
         {% endif %}
         {% if simple_entity_on_db %}
-    <h3>Searching on the database for "<strong>{{ actual_class_name }}</strong>" with the same URI_Instance, I have found:</h3>
+    <h3>Searching on the database for "<strong>{{ actual_class_name }}</strong>" with the same URIInstance, I have found:</h3>
             <p>An entity with</p>
             {% if simple_entity_on_db_name %}
             <p> name "{{ simple_entity_on_db_name }}"</p>
@@ -20,9 +20,9 @@
             {% if simple_entity_on_db_description %}
             <p> description "{{ simple_entity_on_db_description }}"</p>
             {% endif %}
-            <p>URI_Instance "{{ simple_entity_on_db.URI_Instance }}"</p>
+            <p> URIInstance "{{ simple_entity_on_db_URIInstance }}"</p>
         {% else %}
-    <h3>There is no "<strong>{{ actual_class_name }}</strong>" in the database  with the same URI_Instance.</h3>
+    <h3>There is no "<strong>{{ actual_class_name }}</strong>" in the database  with the same URIInstance.</h3>
         {% endif %}
     <hr>
     <form action="{% url 'perform_import' %}" method="post">{% csrf_token %}
