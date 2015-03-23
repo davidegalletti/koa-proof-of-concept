@@ -27,8 +27,6 @@ class Method(WorkflowMethod):
     def __str__(self):
         return self.name
 
-
-
 class Widget(SerializableEntity):
     '''
     It is a django widget; TBC
