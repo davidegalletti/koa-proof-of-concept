@@ -130,7 +130,7 @@ class SerializableEntity(models.Model):
         if (not stub) and self.URIInstance and self.URIInstance in exported_instances:
             xml_name = " " + etn.simple_entity.name_field + "=\"" + getattr(self, etn.simple_entity.name_field) + "\""
             return '<' + self.__class__.__name__ + self.serialized_URI_SE() + xml_name + ' URIInstance="' + self.URIInstance + '" KS_TAG_WITH_NO_DATA=\"\"/>'  
-            
+        
         exported_instances.append(self.URIInstance) 
         if stub:
             if not self.__class__.__name__ in  export_count_per_class.keys():
@@ -141,10 +141,10 @@ class SerializableEntity(models.Model):
                 return ''
             try:
                 for child_node in etn.child_nodes.all():
-                    print ("self." + child_node.attribute + ".__class__.__name__")
                     child_class_instance_name = child_node.simple_entity.name
                     try:
                         child_class_name = eval("self." + child_node.attribute + ".__class__.__name__")
+                        print ("self." + child_node.attribute + ".__class__.__name__ = " + child_class_name)
                     except:
                         child_class_name = ""
                     child_class_module = child_node.simple_entity.module
@@ -229,7 +229,7 @@ class SerializableEntity(models.Model):
 
     def from_xml(self, xmldoc, entity_node, insert=True, parent=None):
         '''
-        from_xml loads from the xml an object and saves it; it searches for child nodes according
+        from_xml gets from xmldoc the attributes of self and saves it; it searches for child nodes according
         to what the entity_node says, creates instances of child objects and call itself recursively
         Every tag corresponds to a SimpleEntity, hence it
             contains a tag <Organization> with ks_uri attribute which points to the KS managing the SimpleEntity definition
@@ -251,9 +251,9 @@ class SerializableEntity(models.Model):
             related_parent = getattr(parent._meta.concrete_model, entity_node.attribute)
             if related_parent.__class__.__name__ == "ForeignRelatedObjectsDescriptor":   #TODO: David comment on this
                 field_name = related_parent.related.field.name
-                setattr(self, field_name, parent)
             if related_parent.__class__.__name__ == "ReverseSingleRelatedObjectDescriptor":   #TODO: David comment on this
                 field_name = related_parent.field.name
+            if field_name:
                 setattr(self, field_name, parent)
         '''
         Some TAGS have no data (attribute KS_TAG_WITH_NO_DATA is present) because the instance they describe
@@ -272,11 +272,12 @@ class SerializableEntity(models.Model):
                 # It's in the database; I just need to set its parent; data is either already there or it will be updated later on
                 if parent:
                     related_parent = getattr(parent._meta.concrete_model, entity_node.attribute)
+                    field_name = ""
                     if related_parent.__class__.__name__ == "ForeignRelatedObjectsDescriptor":   #TODO: David comment on this
                         field_name = related_parent.related.field.name
-                        setattr(instance, field_name, parent)
                     if related_parent.__class__.__name__ == "ReverseSingleRelatedObjectDescriptor":   #TODO: David comment on this
                         field_name = related_parent.field.name
+                    if field_name:
                         setattr(instance, field_name, parent)
                     instance.save()
             except:
@@ -307,7 +308,7 @@ class SerializableEntity(models.Model):
         except:
             # there's no URIInstance in the XML; it doesn't matter
             pass
-        # I must process some child nodes BEFORE SAVING self otherwise I get an error for ForeignKeys not being set
+        # I must set foreign_key child nodes BEFORE SAVING self otherwise I get an error for ForeignKeys not being set
         for en_child_node in entity_node.child_nodes.all():
             if en_child_node.attribute in self.foreign_key_atributes():
                 try:
@@ -329,20 +330,10 @@ class SerializableEntity(models.Model):
                             # let's search it in the database
                             instance = SerializableEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
                         except ObjectDoesNotExist:
-                            # I must create it fetching it from its URI
+                            # TODO: if it is not there I fetch it using it's URI and then create it in the database
                             pass
                         except:
-                            # TODO: if it is not there I fetch it using it's URI and then create it in the database
                             raise Exception("\"" + module_name + ".models " + xml_child_node.tagName + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data)
-#                         # TODO: CHECK maybe next condition is better tested using concrete_model
-#                         if en_child_node.attribute in self._meta.fields:
-#     #                         TODO: test and add comment
-#                             setattr(instance, en_child_node.attribute, self)
-#                             instance.save()
-#                         else:  
-#     #                         TODO: test and add comment
-#                             setattr(self, en_child_node.attribute, instance)
-#                             self.save()
                     else:
                         if insert:
                             # the user asked to "always create", let's create the instance
@@ -356,17 +347,21 @@ class SerializableEntity(models.Model):
                         # from_xml takes care of saving instance with a self.save() at the end
                         instance.from_xml(xml_child_node, en_child_node, insert) #the fourth parameter, "parent" shouldn't be necessary in this case as this is a ForeignKeys
                     setattr(self, en_child_node.attribute, instance)
-                except Exception  as ex:
+                except Exception as ex:
+                    print (ex.message)
                     pass
                     #raise Exception("### add relevant message: from_xml")
                 
         # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
         self.save()
-        # Now I have a local ID and I can generate the URIInstance and save self again
-        self.URIInstance = self.generate_URIInstance()
-        self.save()
+        # from_xml can be invoked on an instance retrieved from the database (where URIInstance is set)
+        # or created on the fly (and URIInstance is not set); in the latter case, only now I can generate URIInstance
+        # as I have saved and I have a local ID
+        if not self.URIInstance:
+            self.URIInstance = self.generate_URIInstance()
+            self.save()
 
-#TODO: scambiare il nesting dei loop come per le ForeignKeys
+#TODO: scambiare il nesting dei loop come fatto sopra per le ForeignKeys
         for xml_child_node in xmldoc.childNodes:
             current_en_child_node = None
             for en_child_node in entity_node.child_nodes.all():
