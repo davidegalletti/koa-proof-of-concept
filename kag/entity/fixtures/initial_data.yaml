@@ -197,6 +197,20 @@
     name_field: "name"
     description_field: ""
 
+- model: entity.SimpleEntity
+  pk: 14
+  fields:
+    name: "AttributeInAMethod"
+    owner_organization: 1
+    namespace: "entity"
+    URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/14"
+    name_in_this_namespace: "AttributeInAMethod"
+    module: "entity"
+    description: ""
+    table_name: ""
+    id_field: "id"
+    name_field: "name"
+    description_field: ""
 
 - model: entity.EntityNode
   pk: 9
@@ -274,14 +288,14 @@
 - model: entity.EntityNode
   pk: 4
   fields:
-    URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/2"
+    URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/4"
     simple_entity: 2
     attribute: "attribute_set"
     child_nodes: [10]
 - model: entity.EntityNode
   pk: 23
   fields:
-    URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/2"
+    URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/23"
     simple_entity: 14
     attribute: "owner_organization"
     child_nodes: []
