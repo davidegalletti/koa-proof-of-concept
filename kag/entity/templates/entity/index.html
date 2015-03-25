@@ -9,15 +9,15 @@
                 {{ instance.get_name }}
             {% endif %}
             <br>
-            {% for entity_tree in instance.entity_trees %}
-                <a href="{% url 'export' entity_tree.id instance.id instance.get_simple_entity.id %}">Export {{ entity_tree.name }}</a>
+            {% for entity in instance.entities %}
+                <a href="{% url 'export' entity.id instance.id instance.get_simple_entity.id %}">Export {{ entity.name }}</a>
             {% endfor %}
             <br>
             {% if instance.get_simple_entity.name == 'Entity' %}
                 <a href="{% url 'export_stub' instance.id %}">Export a stub</a>
             {% endif %}
             {% if instance.get_simple_entity.name == 'SimpleEntity' %}
-                <a href="{% url 'entity_tree_stub' instance.id %}">Export an Entity stub of this SimpleEntity based on Django model</a>
+                <a href="{% url 'entity_stub' instance.id %}">Export an Entity stub of this SimpleEntity based on Django model</a>
             {% endif %}
 
         </li>

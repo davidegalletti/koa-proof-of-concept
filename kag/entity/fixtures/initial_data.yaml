@@ -349,7 +349,7 @@
   pk: 3
   fields:
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/Entity/3"
-    name: "EntityTree-EntityTreeNode"
+    name: "Entity-EntityNode"
     description: ""
     entry_point: 22
 

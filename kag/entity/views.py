@@ -23,8 +23,8 @@ def index(request):
 #     entities_and_trees = []
 #     for entity_instance in entity_list:
 #         e = SimpleEntity.objects.get(name=entity_instance.__class__.__name__)
-#         entity_trees = Entity.objects.filter(entry_point__entity = e)
-#         entities_and_trees.append([entity_instance, entity_trees])
+#         entities = Entity.objects.filter(entry_point__entity = e)
+#         entities_and_trees.append([entity_instance, entities])
     context = {'instance_list': instance_list, "class_name": "SimpleEntity"}
     
     return render(request, 'entity/index.html', context)
@@ -257,7 +257,7 @@ def perform_import(request):
     return HttpResponse("OK")
 
 
-def entity_tree_stub(request, entity_id):
+def entity_stub(request, entity_id):
     entity = get_object_or_404(SimpleEntity, pk=entity_id)
     etn = EntityNode(simple_entity=entity)
     et = Entity(entry_point=etn)
@@ -271,7 +271,7 @@ def entity_tree_stub(request, entity_id):
     export_etn_child.save()
     export_etn.child_nodes.add(export_etn_child)
     export_etn.save()
-    ets = entity.entity_tree_stub(etn=etn, export_etn=export_etn, class_list=[])
+    ets = entity.entity_stub(etn=etn, export_etn=export_etn, class_list=[])
 
     et_xml_str = et.to_xml(et.entry_point)
     et_xml = minidom.parseString(et_xml_str)
