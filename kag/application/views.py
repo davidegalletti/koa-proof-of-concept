@@ -15,8 +15,8 @@ def index(request):
     kuser_list = KUser.objects.all()
     application_list = Application.objects.order_by('name')[:5]
     e = SimpleEntity.objects.get(name="Application")
-    entity_trees = Entity.objects.filter(entry_point__entity = e)
-    context = {'application_list': application_list, 'kuser_list': kuser_list, 'authenticated_user':authenticated_user, entity_trees: entity_trees }
+    entities = Entity.objects.filter(entry_point__entity = e)
+    context = {'application_list': application_list, 'kuser_list': kuser_list, 'authenticated_user':authenticated_user, entities: entities }
     return render(request, 'application/index.html', context)
 
 def detail(request, application_id):

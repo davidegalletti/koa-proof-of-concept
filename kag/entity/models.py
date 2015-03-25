@@ -65,10 +65,9 @@ class SerializableEntity(models.Model):
         '''
         return SimpleEntity.objects.get(name=self.__class__.__name__)
 
-    def entity_trees(self):
+    def entities(self):
         '''
-        Lists the entity trees associated whose entry point is the instance of class SimpleEntity corresponding to the class of self
-        TODO: rinominiamo in entities ?
+        Lists the entities associated whose entry point is the instance of class SimpleEntity corresponding to the class of self
         '''
         return Entity.objects.filter(entry_point__simple_entity=self.get_simple_entity())
 
@@ -406,7 +405,7 @@ class SerializableEntity(models.Model):
                             related_list.add(instance)
                             self.save()
 
-    def entity_tree_stub(self, etn, export_etn, class_list=[]):
+    def entity_stub(self, etn, export_etn, class_list=[]):
         '''
         Starting from Django ORM model we produce an Entity structure (formerly EntityTree or EntityGraph) 
         with all the relationships we find in the Django model
@@ -431,7 +430,7 @@ class SerializableEntity(models.Model):
                     rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0],owner_organization=owner_organization)
                     rel_entity.save()
                 rel_etn = EntityNode(simple_entity=rel_entity)
-                rel_xml = rel_entity.entity_tree_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
+                rel_xml = rel_entity.entity_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
                 stub_xml.documentElement.appendChild(rel_xml.documentElement)
 
 
@@ -446,7 +445,7 @@ class SerializableEntity(models.Model):
                     rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0],owner_organization=owner_organization)
                     rel_entity.save()
                 rel_etn = EntityNode(simple_entity=rel_entity)
-                rel_xml = rel_entity.entity_tree_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
+                rel_xml = rel_entity.entity_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
                 stub_xml.documentElement.appendChild(rel_xml.documentElement)
         return stub_xml
 
@@ -463,11 +462,11 @@ class Workflow(SerializableEntity):
     '''
     name = models.CharField(max_length=100L)
     description = models.CharField(max_length=2000L, blank=True)
-    entity_tree = models.ForeignKey('Entity')
+    entity = models.ForeignKey('Entity')
 #     ASSERT: I metodi di un wf devono avere impatto solo su SimpleEntity contenute nell'ET
 #     ASSERT: tutte le SimpleEntity nell'ET devono ereditare da WorkflowEntityInstance
 #     Un'istanza di SimpleEntity, quando viene creata, crea automaticamente un ET con solo l'SimpleEntity stessa
-#     e lo associa all'istanza stessa nell'attributo: default_entity_tree
+#     e lo associa all'istanza stessa nell'attributo: default_entity   TODO: dov'è questo attributo????
 #     ASSERT: all entities must inherit from tutte le SimpleEntity devono ereditare da WorkflowEntityInstance (in cui è specificato il wf (non potrebbe essere specificato su ET
 #     perché non c'è ETinstance) e lo stato corrente).
 
@@ -589,7 +588,7 @@ class EntityInstance(SerializableEntity):
     '''
     root_version_id = models.IntegerField()
     
-    entity_tree = models.ForeignKey(Entity)
+    entity = models.ForeignKey(Entity)
     entry_point_id = models.IntegerField()
     version_major = models.IntegerField(blank=True)
     version_minor = models.IntegerField(blank=True)

@@ -85,7 +85,7 @@
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Workflow/1"
     name: "Software Bug workflow"
     description: ""
-    entity_tree: 6 
+    entity: 6 
 
 - model: entity.WorkflowStatus
   pk: 1
@@ -123,7 +123,7 @@
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Workflow/2"
     name: "Notes handling"
     description: ""
-    entity_tree: 7
+    entity: 7
 - model: entity.WorkflowStatus
   pk: 5
   fields:
