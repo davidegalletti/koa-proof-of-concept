@@ -75,7 +75,7 @@ class SerializableEntity(models.Model):
     def get_name(self):
         return getattr(self, self.get_simple_entity().name_field)
     
-    def foreign_key_atributes(self): 
+    def foreign_key_attributes(self): 
         attributes = []
         for key in self._meta.fields:
             if key.__class__.__name__ == "ForeignKey":
@@ -310,7 +310,7 @@ class SerializableEntity(models.Model):
             pass
         # I must set foreign_key child nodes BEFORE SAVING self otherwise I get an error for ForeignKeys not being set
         for en_child_node in entity_node.child_nodes.all():
-            if en_child_node.attribute in self.foreign_key_atributes():
+            if en_child_node.attribute in self.foreign_key_attributes():
                 try:
                     # TODO: add assert. I assume in the XML there is exactly one child tag
                     xml_child_node = xmldoc.getElementsByTagName(en_child_node.simple_entity.name)[0] 
@@ -369,7 +369,7 @@ class SerializableEntity(models.Model):
                     current_en_child_node = en_child_node
                     break
             # I have already processed foreign keys, I skip now
-            if current_en_child_node and (not current_en_child_node.attribute in self.foreign_key_atributes()):
+            if current_en_child_node and (not current_en_child_node.attribute in self.foreign_key_attributes()):
                 # about to import the child node;
                 # do I have its "URISimpleEntity" SimpleEntity in my KS?
                 se = SerializableEntity.simple_entity_from_xml_tag(self, xml_child_node)
@@ -394,7 +394,17 @@ class SerializableEntity(models.Model):
                             instance = SerializableEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, False)
                         except:
                             instance = actual_class()
+
                     instance.from_xml(xml_child_node, current_en_child_node, insert, self)
+                    related_parent = getattr(self._meta.concrete_model, current_en_child_node.attribute)
+                    # if the previous from_xml invocation has created an instance that is related to self with a many to many ...
+                    if related_parent.__class__.__name__ == "ReverseManyRelatedObjectsDescriptor": 
+                        related_list = getattr(self, current_en_child_node.attribute)
+                        # if it is not there yet ...
+                        if long(instance.id) not in [long(i.id) for i in related_list.all()]:
+                            # I add it
+                            related_list.add(instance)
+                            self.save()
 
     def entity_tree_stub(self, etn, export_etn, class_list=[]):
         '''
@@ -544,7 +554,8 @@ class EntityNode(SerializableEntity):
     simple_entity = models.ForeignKey('SimpleEntity')
     # attribute is blank for the entry point
     attribute = models.CharField(max_length=255L, blank=True)
-    child_nodes = models.ManyToManyField('self', blank=True, symmetrical=False)
+    # related_name "parent_entity_node" is not used now
+    child_nodes = models.ManyToManyField('self', blank=True, symmetrical=False, related_name="parent_entity_node")
     # if not external_reference all attributes are exported, otherwise only the id
     external_reference = models.BooleanField(default=False, db_column='externalReference')
 
