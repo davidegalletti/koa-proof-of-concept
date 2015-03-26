@@ -202,10 +202,10 @@
   fields:
     name: "AttributeInAMethod"
     owner_organization: 1
-    namespace: "entity"
+    namespace: "application"
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/14"
     name_in_this_namespace: "AttributeInAMethod"
-    module: "entity"
+    module: "application"
     description: ""
     table_name: ""
     id_field: "id"
