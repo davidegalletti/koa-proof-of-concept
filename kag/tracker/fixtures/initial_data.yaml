@@ -54,7 +54,6 @@
   fields:
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/EntityNode/20"
     simple_entity: 12
-    attribute: ""
     child_nodes: []
 - model: entity.Entity
   pk: 6
@@ -69,7 +68,6 @@
   fields:
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/EntityNode/21"
     simple_entity: 13
-    attribute: ""
     child_nodes: []
 - model: entity.Entity
   pk: 7

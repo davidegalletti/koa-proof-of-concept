@@ -7,7 +7,7 @@
     ks_uri: "http://KnowledgeOrientedArchitecture.org/KS"
 
 - model: entity.SimpleEntity
-  pk: 14
+  pk: 15
   fields:
     name: "Organization"
     owner_organization: 1
@@ -225,6 +225,7 @@
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/2"
     simple_entity: 2
     attribute: "attribute_set"
+    is_many: True
     child_nodes: [9]
 - model: entity.EntityNode
   pk: 1
@@ -247,6 +248,7 @@
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/6"
     simple_entity: 6
     attribute: "workflowstatus_set"
+    is_many: True
     child_nodes: []
 - model: entity.EntityNode
   pk: 7
@@ -254,6 +256,7 @@
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/7"
     simple_entity: 7
     attribute: "method_set"
+    is_many: True
     child_nodes: [8]
 - model: entity.EntityNode
   pk: 5
@@ -261,6 +264,7 @@
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/5"
     simple_entity: 5
     attribute: "workflows"
+    is_many: True
     child_nodes: [6, 7]
 - model: entity.EntityNode
   pk: 8
@@ -268,14 +272,16 @@
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/8"
     simple_entity: 3
     attribute: "application_set"
+    is_many: True
     child_nodes: [5]
-    external_reference: True
+    external_reference: False
 - model: entity.EntityNode
   pk: 11
   fields:
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/11"
     simple_entity: 9
     attribute: "widgets"
+    is_many: True
     child_nodes: []
 - model: entity.EntityNode
   pk: 10
@@ -291,12 +297,13 @@
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/4"
     simple_entity: 2
     attribute: "attribute_set"
+    is_many: True
     child_nodes: [10]
 - model: entity.EntityNode
   pk: 23
   fields:
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/23"
-    simple_entity: 14
+    simple_entity: 15
     attribute: "owner_organization"
     child_nodes: []
     external_reference: True
@@ -330,6 +337,7 @@
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/15"
     simple_entity: 10
     attribute: "child_nodes"
+    is_many: True
     child_nodes: [13,15]
 - model: entity.EntityNode
   pk: 14
@@ -359,13 +367,13 @@
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/19"
     simple_entity: 6
     attribute: "workflowstatus_set"
+    is_many: True
     child_nodes: []
 - model: entity.EntityNode
   pk: 18
   fields:
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/18"
     simple_entity: 5
-    attribute: ""
     child_nodes: [19]
 - model: entity.Entity
   pk: 5

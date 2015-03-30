@@ -121,14 +121,21 @@ class SerializableEntity(models.Model):
 
     def to_xml(self, etn, stub = False, export_count_per_class = {}, exported_instances = []):
         str_xml = ""
-        # If I have already exported this instance I don't want to duplicate all details hence I just export it's URIInstance, 
-        # name and SimpleEntity URI. Then I need to add an attribute so that when importing it I will recognize that its details
-        # are somewhere else in the file
-        # <EntityNode URISimpleEntity="....." URIInstance="...." attribute="...." KS_TAG_WITH_NO_DATA=""
-        # the TAG "KS_TAG_WITH_NO_DATA" is used to mark the fact that the details of this entity are somewhereelse in the file
+        '''
+            If I have already exported this instance I don't want to duplicate all details hence I just export it's URIInstance, 
+            name and SimpleEntity URI. Then I need to add an attribute so that when importing it I will recognize that its details
+            are somewhere else in the file
+            <EntityNode URISimpleEntity="....." URIInstance="...." attribute="...." KS_TAG_WITH_NO_DATA=""
+            the TAG "KS_TAG_WITH_NO_DATA" is used to mark the fact that the details of this entity are somewhereelse in the file
+        '''
+        if etn.is_many:
+            # the attribute correspond to a list of instances of the SimpleEntity 
+            tag_name = etn.simple_entity.name
+        else:
+            tag_name = self.__class__.__name__ if etn.attribute == "" else etn.attribute
         if (not stub) and self.URIInstance and self.URIInstance in exported_instances:
             xml_name = " " + etn.simple_entity.name_field + "=\"" + getattr(self, etn.simple_entity.name_field) + "\""
-            return '<' + self.__class__.__name__ + self.serialized_URI_SE() + xml_name + ' URIInstance="' + self.URIInstance + '" KS_TAG_WITH_NO_DATA=\"\"/>'  
+            return '<' + tag_name + ' KS_TAG_WITH_NO_DATA=\"\"' + self.serialized_URI_SE() + xml_name + ' URIInstance="' + self.URIInstance + '"/>'  
         
         exported_instances.append(self.URIInstance) 
         if stub:
@@ -147,19 +154,26 @@ class SerializableEntity(models.Model):
                     except:
                         child_class_name = ""
                     child_class_module = child_node.simple_entity.module
-                    if child_class_name == 'RelatedManager' or child_class_name == 'ManyRelatedManager':
+#                    if child_class_name == 'RelatedManager' or child_class_name == 'ManyRelatedManager':
+                    if child_node.is_many:
                         if stub:
                             actual_class = utils.load_class(child_class_module + ".models", child_class_instance_name)
                             child_instance = actual_class()
+                            if child_class_name == 'ManyRelatedManager':
+                                str_xml += "<" + child_node.attribute + ">"
                             # I can add a couple of children just to make it evident it is a list
                             str_xml += child_instance.to_xml(child_node, True, export_count_per_class, exported_instances)
                             str_xml += child_instance.to_xml(child_node, True, export_count_per_class, exported_instances)
+                            if child_class_name == 'ManyRelatedManager':
+                                str_xml += "</" + child_node.attribute + ">"
                         else:
                             child_instances = eval("self." + child_node.attribute + ".all()")
+                            str_xml += "<" + child_node.attribute + ">"
                             for child_instance in child_instances:
                                 # let's prevent infinite loops if self relationships
                                 if (child_instance.__class__.__name__ <> self.__class__.__name__) or (self.pk <> child_node.pk):
                                     str_xml += child_instance.to_xml(child_node, exported_instances=exported_instances)
+                            str_xml += "</" + child_node.attribute + ">"
                     else:
                         if stub:
                             actual_class = utils.load_class(child_class_module + ".models", child_class_instance_name)
@@ -172,7 +186,7 @@ class SerializableEntity(models.Model):
                                 str_xml += child_instance.to_xml (child_node, exported_instances=exported_instances)
             except Exception as es:
                 print es
-            return '<' + self.__class__.__name__ + self.serialized_URI_SE(stub) + self.serialized_attributes(stub) + '>' + str_xml + '</' + self.__class__.__name__ + '>'
+            return '<' + tag_name + self.serialized_URI_SE(stub) + self.serialized_attributes(stub) + '>' + str_xml + '</' + tag_name + '>'
         else:
             # etn.external_reference = True
             xml_name = ''
@@ -182,9 +196,9 @@ class SerializableEntity(models.Model):
                 else:
                     xml_name = " " + etn.simple_entity.name_field + "=\"" + getattr(self, etn.simple_entity.name_field) + "\""
             if stub:
-                return '<' + self.__class__.__name__ + self.serialized_URI_SE(True) + 'URIInstance="' + self.generate_URIInstance(stub) + '" ' + self._meta.pk.attname + '="-1"' + xml_name + '/>'
+                return '<' + tag_name + self.serialized_URI_SE(True) + 'URIInstance="' + self.generate_URIInstance(stub) + '" ' + self._meta.pk.attname + '="-1"' + xml_name + '/>'
             else:
-                return '<' + self.__class__.__name__ + self.serialized_URI_SE() + 'URIInstance="' + self.URIInstance + '" ' + self._meta.pk.attname + '="' + str(self.pk) + '"' + xml_name + '/>'
+                return '<' + tag_name + self.serialized_URI_SE() + 'URIInstance="' + self.URIInstance + '" ' + self._meta.pk.attname + '="' + str(self.pk) + '"' + xml_name + '/>'
 
     @staticmethod
     def simple_entity_from_xml_tag(self, xml_child_node):
@@ -312,12 +326,12 @@ class SerializableEntity(models.Model):
             if en_child_node.attribute in self.foreign_key_attributes():
                 try:
                     # TODO: add assert. I assume in the XML there is exactly one child tag
-                    xml_child_node = xmldoc.getElementsByTagName(en_child_node.simple_entity.name)[0] 
+                    xml_child_node = xmldoc.getElementsByTagName(en_child_node.attribute)[0]   #it was en_child_node.simple_entity.name 
                     # I search for the corresponding SimpleEntity
                     
                     se = SerializableEntity.simple_entity_from_xml_tag(self, xml_child_node)
                     # TODO: I'd like the module name to be function of the organization and namespace
-                    assert (en_child_node.simple_entity.name == xml_child_node.tagName == se.name), "en_child_node.simple_entity.name - xml_child_node.tagName - se.name: " + en_child_node.simple_entity.name + ' - ' + xml_child_node.tagName + ' - ' + se.name
+                    assert (en_child_node.simple_entity.name == se.name), "en_child_node.simple_entity.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
                     module_name = en_child_node.simple_entity.module
                     actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
                     if en_child_node.external_reference:
@@ -332,7 +346,7 @@ class SerializableEntity(models.Model):
                             # TODO: if it is not there I fetch it using it's URI and then create it in the database
                             pass
                         except:
-                            raise Exception("\"" + module_name + ".models " + xml_child_node.tagName + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data)
+                            raise Exception("\"" + module_name + ".models " + se.name + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data)
                     else:
                         if insert:
                             # the user asked to "always create", let's create the instance
@@ -364,7 +378,7 @@ class SerializableEntity(models.Model):
         for xml_child_node in xmldoc.childNodes:
             current_en_child_node = None
             for en_child_node in entity_node.child_nodes.all():
-                if xml_child_node.tagName == en_child_node.simple_entity.name:
+                if xml_child_node.tagName == en_child_node.attribute:
                     current_en_child_node = en_child_node
                     break
             # I have already processed foreign keys, I skip now
@@ -373,7 +387,7 @@ class SerializableEntity(models.Model):
                 # do I have its "URISimpleEntity" SimpleEntity in my KS?
                 se = SerializableEntity.simple_entity_from_xml_tag(self, xml_child_node)
                 module_name = current_en_child_node.simple_entity.module
-                assert (current_en_child_node.simple_entity.name == xml_child_node.tagName == se.name), "current_en_child_node.simple_entity.name - xml_child_node.tagName - se.name: " + current_en_child_node.simple_entity.name + ' - ' + xml_child_node.tagName + ' - ' + se.name
+                assert (current_en_child_node.simple_entity.name == se.name), "current_en_child_node.name - se.name: " + current_en_child_node.simple_entity.name + ' - ' + se.name
                 actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
                 if current_en_child_node.external_reference:
                     instance = SerializableEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
@@ -557,6 +571,8 @@ class EntityNode(SerializableEntity):
     child_nodes = models.ManyToManyField('self', blank=True, symmetrical=False, related_name="parent_entity_node")
     # if not external_reference all attributes are exported, otherwise only the id
     external_reference = models.BooleanField(default=False, db_column='externalReference')
+    # is_many is true if the attribute correspond to a list of instances of the SimpleEntity
+    is_many = models.BooleanField(default=False, db_column='isMany')
 
 class Entity(SerializableEntity):
     '''

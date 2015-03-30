@@ -104,7 +104,7 @@ def export_stub(request, entity_id):
     instance = actual_class()
     # I need a dictionary to prevent infinite loop and to control how many times I export a specific class
     export_count_per_class = {}
-    exported_xml = "<Export EntityURI=\"" + e.URIInstance + "\">" + instance.to_xml(e.entry_point, True, export_count_per_class) + "</Export>"
+    exported_xml = "<Export EntityName=\"" + e.name + "\" EntityURI=\"" + e.URIInstance + "\">" + instance.to_xml(e.entry_point, True, export_count_per_class) + "</Export>"
     xmldoc = minidom.parseString(exported_xml)
     exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
     return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
@@ -264,7 +264,7 @@ def entity_stub(request, entity_id):
 
     etn_entity = SimpleEntity.objects.get(name="EntityNode")
     export_etn = EntityNode(simple_entity=etn_entity)
-    #l'ORM di django ci obbliga a salvarlo sul db
+    #Django's ORM forces us to save it on the db
     export_etn.save()
     e_entity = SimpleEntity.objects.get(name="SimpleEntity")
     export_etn_child = EntityNode(simple_entity=e_entity, attribute="simple_entity")

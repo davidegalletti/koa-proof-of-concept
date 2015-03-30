@@ -17,7 +17,7 @@ class AttributeInAMethod(SerializableEntity):
 class Method(WorkflowMethod):
     name = models.CharField(max_length=255L, blank=True)
     description = models.TextField(blank=True)
-    attributes = models.ManyToManyField(AttributeInAMethod, blank=True, related_name="container_method")
+    attributes = models.ManyToManyField(AttributeInAMethod, blank=True, null=True, related_name="container_method")
     create_instance = models.BooleanField(default=False)
     script_precondition = models.TextField(blank=True)
     script_postcondition = models.TextField(blank=True)
