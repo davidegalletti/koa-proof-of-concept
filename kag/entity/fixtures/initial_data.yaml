@@ -12,7 +12,7 @@
     name: "Organization"
     owner_organization: 1
     namespace: "entity"
-    URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/14"
+    URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/15"
     name_in_this_namespace: "Organization"
     module: "entity"
     description: ""
