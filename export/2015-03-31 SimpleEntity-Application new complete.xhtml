@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export EntityName="Entity-EntityNode" EntityURI="http://KnowledgeOrientedArchitecture.org/KS/entity/Entity/3" ExportDateTime="2015-03-31 12:15:25.813811">
+    <Entity name="SimpleEntity-application" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/Entity/2" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/11" URI_imported_instance="" description="" id="2">
+        <entry_point URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/3" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/10" URI_imported_instance="" attribute="" external_reference="False" id="3" is_many="False">
+            <simple_entity name="SimpleEntity" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" id="1"/>
+            <child_nodes>
+                <EntityNode attribute="attribute_set" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/4" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/10" URI_imported_instance="" external_reference="False" id="4" is_many="True">
+                    <simple_entity name="Attribute" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/2" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" id="2"/>
+                    <child_nodes>
+                        <EntityNode attribute="type" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/10" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/10" URI_imported_instance="" external_reference="True" id="10" is_many="False">
+                            <simple_entity name="AttributeType" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/8" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" id="8"/>
+                            <child_nodes>
+                                <EntityNode attribute="widgets" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/11" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/10" URI_imported_instance="" external_reference="False" id="11" is_many="True">
+                                    <simple_entity name="Widget" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/9" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" id="9"/>
+                                    <child_nodes/>
+                                </EntityNode>
+                            </child_nodes>
+                        </EntityNode>
+                        <EntityNode attribute="attributeinamethod_set" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/10" external_reference="False" is_many="True">
+							<simple_entity name="AttributeInAMethod" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/14" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" id="14"/>
+                            <child_nodes>
+								<EntityNode attribute="implementation_method" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/10" external_reference="False" is_many="False">
+									<simple_entity name="Method" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/7" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" id="7"/>
+									<child_nodes>
+										<EntityNode attribute="workflow" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/10" external_reference="False" is_many="False">
+											<simple_entity name="Workflow" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/5" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" id="5"/>
+											<child_nodes>
+												<EntityNode attribute="application_set" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/10" external_reference="False" is_many="True">
+													<simple_entity name="Application" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/3" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" id="3"/>
+                                                    <child_nodes/>
+												</EntityNode>
+											</child_nodes>
+										</EntityNode>
+										<EntityNode attribute="final_status" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/10" external_reference="False" is_many="False">
+											<simple_entity name="WorkflowStatus" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/6" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" id="6"/>
+											<child_nodes/>
+										</EntityNode>
+										<EntityNode attribute="initial_statuses" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/29" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/10" URI_imported_instance="http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/29" external_reference="False" is_many="True">
+											<simple_entity name="WorkflowStatus" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/6" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" id="6"/>
+											<child_nodes/>
+										</EntityNode>
+									</child_nodes>
+								</EntityNode>
+                            </child_nodes>
+                        </EntityNode>
+                    </child_nodes>
+                </EntityNode>
+                <EntityNode attribute="owner_organization" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/EntityNode/23" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/10" URI_imported_instance="" external_reference="True" id="23" is_many="False">
+                    <simple_entity name="Organization" URIInstance="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/15" URISimpleEntity="http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1" id="15"/>
+                    <child_nodes/>
+                </EntityNode>
+            </child_nodes>
+        </entry_point>
+    </Entity>
+</Export>
