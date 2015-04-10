@@ -3,14 +3,15 @@
 <h3>Methods "create_instance"</h3>
 <ul>
 {% for method in initial_methods %}
-    <li><a href="{% url 'method' 0 application.id method.id %}">{{ method.id }} - {{ method.name }}<a></li>
+     
+    <li><a href="{ url 'method' 0 application.id method.id }">{{ method.id }} - {{ method.name }}<a></li>
 {% endfor %}
 </ul>
 
 <h3>Entities</h3>
 <ul>
 {% for entity in entity_list %}
-    <li><a href="/entity/{{ entity.id }}/{{ application.id }}/">{{ entity.name }}</a></li>
+    <li><a href="/entity/{{ entity.id }}/{{ application.id }}/">{{ entity.entry_point.simple_entity.name }} - {{ entity.name }}</a></li>
 {% endfor %}
 </ul>
 
