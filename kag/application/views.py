@@ -22,12 +22,16 @@ def index(request):
 def detail(request, application_id):
     application =  get_object_or_404(Application, pk=application_id)
     entity_list = []
-    for m in application.methods.all():
-        for a in m.attributes.all():
-            entity_list.append(a.entity)
-    # following line makes entries unique
+    initial_methods = []
+    
+    for wf in application.workflows.all():
+        entity_list.append(wf.entity)
+#         entity_list.append(wf.entity.entry_point.simple_entity)
+        for m in wf.method_set.all().filter(create_instance=1):
+            initial_methods.append(m)
+    # following lines makes entries unique
     entity_list = list(set(entity_list))
-    initial_methods = application.methods.filter(create_instance=1)
+    initial_methods = list(set(initial_methods))
     return render(request, 'application/detail.html', {'application': application, 'entity_list': entity_list, 'initial_methods': initial_methods})
 
 def klogin(request, username, password):

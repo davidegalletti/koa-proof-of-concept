@@ -628,7 +628,7 @@ class EntityInstance(SerializableEntity):
     root_version_id = models.IntegerField()
     
     entity = models.ForeignKey(Entity)
-    entry_point_id = models.IntegerField()
+    entry_point_instance_id = models.IntegerField()
     version_major = models.IntegerField(blank=True)
     version_minor = models.IntegerField(blank=True)
     version_patch = models.IntegerField(blank=True)
@@ -640,6 +640,20 @@ class EntityInstance(SerializableEntity):
     obsolete are the others 
     '''
     version_released = models.BooleanField(default=False)
+
+    def __init__(self, entity, version_major=0, version_minor=1, version_patch=0):
+        '''
+        
+        '''
+        self.entity = entity
+        actual_class = utils.load_class(entity.entry_point.simple_entity.module + ".models", entity.entry_point.simple_entity.name)
+        entry_point_instance = actual_class()
+        entry_point_instance.SetNotNullFields()
+        entry_point_instance.save()
+        self.entry_point_instance_id = entry_point_instance.id
+        self.version_major = version_major
+        self.version_minor = version_minor
+        self.version_patch = version_patch
        
 class UploadedFile(models.Model):
     '''
