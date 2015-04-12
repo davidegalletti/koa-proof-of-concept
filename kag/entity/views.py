@@ -285,3 +285,7 @@ def entity_stub(request, entity_id):
     export_etn.delete()
     res = exp_xml.toprettyxml()
     return HttpResponse(res, content_type="application/xhtml+xml")
+
+def home(request):
+    
+    return render(request, 'entity/home.html')
