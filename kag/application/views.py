@@ -26,7 +26,6 @@ def detail(request, application_id):
     
     for wf in application.workflows.all():
         entity_list.append(wf.entity)
-#         entity_list.append(wf.entity.entry_point.simple_entity)
         for m in wf.method_set.all().filter(create_instance=1):
             initial_methods.append(m)
     # following lines makes entries unique

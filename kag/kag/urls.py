@@ -6,8 +6,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     # Examples:
-    # url(r'^$', 'kag.views.home', name='home'),
-    # url(r'^kag/', include('kag.foo.urls')),
+    url(r'^$', 'entity.views.home', name='home'),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
