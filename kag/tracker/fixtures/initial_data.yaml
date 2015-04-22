@@ -152,7 +152,13 @@
   pk: 1
   fields:
     attribute: 1
-#    URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/AttributeInAMethod/1"
+    
+- model: entity.WorkflowMethod
+  pk: 1
+  fields:
+    workflow: 1
+    final_status: 1 
+    initial_statuses: []
     
 - model: application.Method
   pk: 1
@@ -166,11 +172,7 @@
     script_postcondition: ""
     script_premethod: ""
     script_postmethod: ""
-    workflow: 1
-    initial_statuses: []
-    final_status: 1 
  
-    
 - model: entity.Attribute
   pk: 3
   fields:
@@ -182,12 +184,9 @@
 - model: application.AttributeInAMethod
   pk: 2
   fields:
-#    URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/AttributeInAMethod/2"
     attribute: 2
     implementation_method: 2
     
-
-
 - model: entity.Attribute
   pk: 4
   fields:
@@ -199,8 +198,14 @@
 - model: application.AttributeInAMethod
   pk: 3
   fields:
-#    URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/AttributeInAMethod/3"
     attribute: 3
+
+- model: entity.WorkflowMethod
+  pk: 2
+  fields:
+    workflow: 2
+    final_status: 5 
+    initial_statuses: []
 
 - model: application.Method
   pk: 2
@@ -214,6 +219,4 @@
     script_postcondition: ""
     script_premethod: ""
     script_postmethod: ""
-    workflow: 2
-    initial_statuses: []
-    final_status: 5
+    

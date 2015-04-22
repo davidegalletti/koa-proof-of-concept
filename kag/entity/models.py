@@ -8,8 +8,6 @@ from django.db import models
 from django.conf import settings
 
 import kag.utils as utils
-from django.db.models.manager import Manager
-from django.db.models.related import RelatedObject
 
 from xml.dom import minidom
 
@@ -49,8 +47,6 @@ class SerializableEntity(models.Model):
                 if key.__class__.__name__ in ("DateField", "DateTimeField"):
                     setattr(self, key.name, datetime.now())
                 
-                
-    
     # URI points to the a specific instance in a specific KS
     def generate_URIInstance(self, stub = False):
         if stub:
@@ -70,8 +66,8 @@ class SerializableEntity(models.Model):
         '''
         return Entity.objects.filter(entry_point__simple_entity=self.get_simple_entity())
 
-    def get_name(self):
-        return getattr(self, self.get_simple_entity().name_field)
+#     def get_name(self):
+#         return getattr(self, self.get_simple_entity().name_field)
     
     def foreign_key_attributes(self): 
         attributes = []
@@ -275,7 +271,7 @@ class SerializableEntity(models.Model):
            I have to save this instance but I will find its attribute later in the imported file
         '''
         try:
-            foo = xmldoc.attributes["KS_TAG_WITH_NO_DATA"]
+            xmldoc.attributes["KS_TAG_WITH_NO_DATA"]
             # if the TAG is not there an exception will be raised and the method will continue and expect to find all data
             module_name = entity_node.simple_entity.module
             actual_class = utils.load_class(module_name + ".models", entity_node.simple_entity.name) 
@@ -518,12 +514,15 @@ class WorkflowStatus(SerializableEntity):
     workflow = models.ForeignKey(Workflow, null=True, blank=True)
     description = models.CharField(max_length=2000L, blank=True)
 
-class WorkflowEntityInstance(SerializableEntity):
+class WorkflowEntityInstance(models.Model):
     '''
     WorkflowEntityInstance
     '''
     workflow = models.ForeignKey(Workflow)
     current_status = models.ForeignKey(WorkflowStatus)
+    class Meta:
+        abstract = True
+
 
 class WorkflowMethod(SerializableEntity):
     '''
@@ -534,11 +533,8 @@ class WorkflowMethod(SerializableEntity):
     final_status = models.ForeignKey(WorkflowStatus, related_name="+")
     workflow = models.ForeignKey(Workflow)
 
-    class Meta:
-        abstract = True
-
-class WorkflowTransition():
-    instance = models.ForeignKey(WorkflowEntityInstance)
+class WorkflowTransition(SerializableEntity):
+    instance = models.ForeignKey("EntityInstance")
     workflow_method = models.ForeignKey('WorkflowMethod')
     notes = models.TextField()
     user = models.ForeignKey('userauthorization.KUser')
@@ -599,19 +595,41 @@ class EntityNode(SerializableEntity):
 
 class Entity(SerializableEntity):
     '''
-    It is a graph that defines a set of entities on which we can perform a task; the tree has
-    an entry point which is a Node e.g. an entity; from an instance of an entity we can use
+    Main idea behind the model: an entity is not represented by a single class or a single 
+    table in a database but it is usually represented using a collection of them: more than 
+    one class and more than one table in the database. An Issue in a tracking system is an 
+    entity; it has a list of notes that can be appended to it, it has a user who has created
+    it, and many other attributes. The user does not belong just to this entity, hence it
+    is a reference; the notes do belong to the issue. The idea is to map the set of tables
+    in a (relational) database into entities so that our operations can handle this more
+    generic entity that we are defining, composed with more than one simple entity (in 
+    more direct correspondence with a database table, SimpleEntity in our model). A simple
+    entity can be in more than one entity; because, for instance, we might like to render/...
+    .../export/... a subset of the simple entities of a complex entity.
+    When we get to EntityInstance (which inherits from VersionableEntityInstance and 
+    WorkflowEntityInstance) we must add a constraint because we want a unique way
+    to know the version and the status of a simple instance: take the set of entities
+    in the entity attribute of all instances of EntityInstance. In the graph of each
+    entity, consider only the simple entities that are not references; the constraint
+    is that each simple entity must not be in the graph of more than one entity; otherwise
+    it would be impossible to determine its version and status. In other words the entities
+    used by EntityInstance must partition the E/R diagram of our database in graphs without
+    any intersection. 
+     
+    
+    An Entity is a graph that defines a set of simple entities on which we can perform a task; 
+    it has an entry point which is a Node e.g. an entity; from an instance of an entity we can use
     the "attribute" attribute from the corresponding EntityNode to get the instances of
     the entities related to each of the child_nodes. An Entity could, for example, tell
-    us what to export to xml/json, what to consider as a "VersionableMultiEntity" (e.g. an
+    us what to export to xml/json, ???????????????? what to consider as a "VersionableMultiEntity" (e.g. an
     instance of VersionableEntityInstance + an Entity where the entry_point points to that instance)
-    The name should describe its use
+    The name should describe its use ?????????????????
     '''
     name = models.CharField(max_length=200L)
     description = models.CharField(max_length=2000L)
     entry_point = models.ForeignKey('EntityNode')
 
-class EntityInstance(SerializableEntity):
+class VersionableEntityInstance(models.Model):
     '''
     Versionable
     an Instance belongs to a set of instances which are basically the same but with a different version
@@ -623,23 +641,30 @@ class EntityInstance(SerializableEntity):
     
     '''
     an Instance belongs to a set of instances which are basically the same but with a different version
-    root_version_id is the id of the first instance of this set 
+    root is the first instance of this set 
     '''
-    root_version_id = models.IntegerField()
-    
-    entity = models.ForeignKey(Entity)
-    entry_point_instance_id = models.IntegerField()
+    root = models.ForeignKey('self', null=True, related_name='versions', blank=True)
+    # http://semver.org/
     version_major = models.IntegerField(blank=True)
     version_minor = models.IntegerField(blank=True)
     version_patch = models.IntegerField(blank=True)
     '''
-    At most one instance with the same root_version_id has version_released = True
-    Three states: working, released, obsolete
-    working is the latest version where version_released = False
-    released is the one with version_released = True
-    obsolete are the others 
+    Assert: At most one instance with the same root_version_id has version_released = True
+    Three implicit states: working, released, obsolete  
+    TODO: make it a property
+     -  working: the latest version where version_released = False
+     -  released: the one with version_released = True
+     -  obsolete: all the others
     '''
     version_released = models.BooleanField(default=False)
+
+    class Meta:
+        abstract = True
+    
+class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, SerializableEntity):
+    entity = models.ForeignKey(Entity)
+    # we have the ID of the instance because we do not know its class so we can't have a ForeignKey to an unknown class
+    entry_point_instance_id = models.IntegerField()
 
     def __init__(self, entity, version_major=0, version_minor=1, version_patch=0):
         '''
@@ -654,7 +679,8 @@ class EntityInstance(SerializableEntity):
         self.version_major = version_major
         self.version_minor = version_minor
         self.version_patch = version_patch
-       
+
+   
 class UploadedFile(models.Model):
     '''
     Used to save uploaded xml file so that it can be later retrieved and imported
