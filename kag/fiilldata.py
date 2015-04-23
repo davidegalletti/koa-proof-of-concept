@@ -155,6 +155,9 @@ ph2.save()
 sara = KUser(name='Sara', surname='Galletti', login='sara', password='sara', permission_holder=ph2)
 sara.save()
 
+
+
+
 create_bug =Method.objects.get(name="Create")
 add_note_bug =Method.objects.get(name="Add a note")
 

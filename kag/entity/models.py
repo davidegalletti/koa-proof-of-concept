@@ -203,6 +203,7 @@ class SerializableEntity(models.Model):
             '''
             I go get it from the appropriate KS
             TODO: David
+            See API definition here: http://redmine.davide.galletti.name/issues/33
             When I get a SimpleEntity I must generate its model in an appropriate module; the module
             name must be generated so that it is unique based on the SimpleEntity's BASE URI and on the module 
             name; 
@@ -216,6 +217,11 @@ class SerializableEntity(models.Model):
     @staticmethod
     def retrieve(actual_class, URIInstance, retrieve_externally):
         '''
+        TODO: now it's invoked SerializableEntity.retrieve and the actual_class parameter is needed
+              if we invoke it directly as a static method of the actual_class, e.g.
+              SimpleEntity.retrieve
+              we can drop the first parameter
+        
         It returns an instance of a SerializableEntity stored in this KS
         It searches first on the URIInstance field (e.g. is it already an instance of this KS? ) 
         It searches then on the URI_imported_instance field (e.g. has is been imported in this KS from the same source? )
