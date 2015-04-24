@@ -1,4 +1,4 @@
-# Django settings for kag project.
+# Django settings _ for kag project.
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
