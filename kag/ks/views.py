@@ -5,16 +5,16 @@ from entity import models as entity_models
 from entity import views as entity_views
 from xml.dom import minidom
 from datetime import datetime
+import base64
 
 
 
-def simple_entity_info(request, URISimpleEntity):
-
-    URISimpleEntity = """http://KnowledgeOrientedArchitecture.org/KS/entity/SimpleEntity/1"""
+def simple_entity_info(request, base64URISimpleEntity):
+    URISimpleEntity = base64.decodestring(base64URISimpleEntity)
     actual_class = entity_models.SimpleEntity
 
     se = entity_models.SimpleEntity.retrieve(actual_class, URISimpleEntity, False)
-    #TODO: trovare un modo per togliere 1 cablato e ricavare Attributes in modo più pulito
+    #TODO: trovare un modo per togliere 1 cablato e ricavare l'entity SimpleEntity-Attributes in modo più pulito
     entity_id = 1
     instance = get_object_or_404(actual_class, pk=se.id)
     e = entity_models.Entity.objects.get(pk = entity_id)
