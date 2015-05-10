@@ -7,5 +7,6 @@ from django.conf.urls import patterns, url
 from ks import views
 
 urlpatterns = patterns('',
-    url(r'^simple_entity_info/(?P<base64URISimpleEntity>[\w|=|%|.]+)/$', views.simple_entity_info, name='simple_entity_info'),
+    url(r'^api/simple_entity_definition/(?P<base64URISimpleEntity>[\w|=|%|.]+)/$', views.api_simple_entity_info, name='api_simple_entity_definition'),
+    url(r'^api/entity_instance/(?P<base64URIInstance>[\w|=|%|.]+)/$', views.api_entity_instance, name='api_entity_instance'),
 )

@@ -78,57 +78,57 @@
     entry_point: 21
 
 - model: entity.Workflow
-  pk: 1
+  pk: 2
   fields:
-    URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Workflow/1"
+    URIInstance: "http://KnowledgeOrientedArchitecture.org/KS/entity/Workflow/1"
     name: "Software Bug workflow"
     description: ""
     entity: 6 
 
 - model: entity.WorkflowStatus
-  pk: 1
-  fields:
-    URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/WorkflowStatus/1"
-    name: "Initial"
-    description: ""
-    workflow: 1
-- model: entity.WorkflowStatus
   pk: 2
   fields:
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/WorkflowStatus/2"
-    name: "resolved"
+    name: "Initial"
     description: ""
-    workflow: 1
+    workflow: 2
 - model: entity.WorkflowStatus
   pk: 3
   fields:
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/WorkflowStatus/3"
-    name: "closed"
+    name: "resolved"
     description: ""
-    workflow: 1
+    workflow: 2
 - model: entity.WorkflowStatus
   pk: 4
   fields:
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/WorkflowStatus/4"
-    name: "assigned"
+    name: "closed"
     description: ""
-    workflow: 1
-
-
-- model: entity.Workflow
-  pk: 2
-  fields:
-    URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Workflow/2"
-    name: "Notes handling"
-    description: ""
-    entity: 7
+    workflow: 2
 - model: entity.WorkflowStatus
   pk: 5
   fields:
     URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/WorkflowStatus/5"
+    name: "assigned"
+    description: ""
+    workflow: 2
+
+
+- model: entity.Workflow
+  pk: 3
+  fields:
+    URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/Workflow/3"
+    name: "Notes handling"
+    description: ""
+    entity: 7
+- model: entity.WorkflowStatus
+  pk: 6
+  fields:
+    URIInstance: "http://KnowledgeOrientedArchitecture.org/KStest/tracker/WorkflowStatus/6"
     name: "Initial"
     description: ""
-    workflow: 1
+    workflow: 2
 
 
 
@@ -156,7 +156,7 @@
 - model: entity.WorkflowMethod
   pk: 1
   fields:
-    workflow: 1
+    workflow: 2
     final_status: 1 
     initial_statuses: []
     

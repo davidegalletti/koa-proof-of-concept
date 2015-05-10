@@ -219,7 +219,7 @@ class SerializableEntity(models.Model):
         '''
         TODO: now it's invoked SerializableEntity.retrieve and the actual_class parameter is needed
               if we invoke it directly as a static method of the actual_class, e.g.
-              SimpleEntity.retrieve
+              SimpleEntity.retrieve or EntityInstance.retrieve
               we can drop the first parameter
         
         It returns an instance of a SerializableEntity stored in this KS
@@ -501,10 +501,10 @@ class Workflow(SerializableEntity):
     '''
     name = models.CharField(max_length=100L)
     description = models.CharField(max_length=2000L, blank=True)
-    entity = models.ForeignKey('Entity')
-#     ASSERT: I metodi di un wf devono avere impatto solo su SimpleEntity contenute nell'ET
-#     ASSERT: tutte le SimpleEntity nell'ET devono ereditare da WorkflowEntityInstance
-#     Un'istanza di SimpleEntity, quando viene creata, crea automaticamente un ET con solo l'SimpleEntity stessa
+    entity = models.ForeignKey('Entity', null = True, blank=True)
+#     ASSERT: I metodi di un wf devono avere impatto solo su SimpleEntity contenute nell'Entity
+#     ASSERT: tutte le SimpleEntity nell'Entity devono ereditare da WorkflowEntityInstance
+#     TODO: NOT YET, VERIFICARE: Un'istanza di SimpleEntity, quando viene creata, crea automaticamente un Entity con solo l'SimpleEntity stessa
 #     e lo associa all'istanza stessa nell'attributo: default_entity   TODO: dov'è questo attributo????
 #     ASSERT: all entities must inherit from tutte le SimpleEntity devono ereditare da WorkflowEntityInstance (in cui è specificato il wf (non potrebbe essere specificato su ET
 #     perché non c'è ETinstance) e lo stato corrente).
@@ -672,9 +672,9 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
     # we have the ID of the instance because we do not know its class so we can't have a ForeignKey to an unknown class
     entry_point_instance_id = models.IntegerField()
 
-    def __init__(self, entity, version_major=0, version_minor=1, version_patch=0):
+    def initialize(self, entity, version_major=0, version_minor=1, version_patch=0):
         '''
-        
+        ???It was a __init__ not 100% clear apart from initializing a version and a entry_point_instance_id???
         '''
         self.entity = entity
         actual_class = utils.load_class(entity.entry_point.simple_entity.module + ".models", entity.entry_point.simple_entity.name)
