@@ -197,8 +197,9 @@ class SerializableEntity(models.Model):
 
     @staticmethod
     def simple_entity_from_xml_tag(self, xml_child_node):
+        URIInstance = xml_child_node.attributes["URISimpleEntity"].firstChild.data
         try:
-            se = SimpleEntity.objects.get(URIInstance = xml_child_node.attributes["URISimpleEntity"].firstChild.data)
+            se = SimpleEntity.objects.get(URIInstance = URIInstance)
         except:
             '''
             I go get it from the appropriate KS
@@ -211,6 +212,11 @@ class SerializableEntity(models.Model):
             SimpleEntity URI 2: "http://finanze.it/KS/sanzione"
             
             '''
+            #estrarre l'url del KS
+            ks_url = ""
+            #encode di URIInstance
+            URIInstance_base64 = ""
+            #wget ks_url + "/ks/api/simple_entity_definition/" + URIInstance_base64
             raise Exception("TO BE IMPLEMENTED in simple_entity_from_xml_tag: get SimpleEntity from appropriate KS.")
         return se
 

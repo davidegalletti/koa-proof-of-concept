@@ -4,12 +4,12 @@
     {% for instance in instance_list %}
         <li>
             {% if instance.get_simple_entity.name == 'SimpleEntity' %}
-                <a href="{% url 'entity_index' instance.id %}">{{ instance.get_name }}</a>
+                <a href="{% url 'entity_index' instance.id %}">{{ instance.name }}</a>
             {% else %}
                 {% if instance.get_simple_entity.name == 'Application' %}
-                <a href="{% url 'detail' instance.id %}">{{ instance.get_name }}</a>
+                <a href="{% url 'detail' instance.id %}">{{ instance.name }}</a>
                 {% else %}
-                    {{ instance.get_name }}
+                    {{ instance.name }}
                 {% endif %}
             {% endif %}
             <br>
