@@ -462,7 +462,10 @@ class SerializableEntity(models.Model):
             class_list.append(actual_class)
             fk = [f.related for f in stub_model._meta.concrete_fields if f.__class__.__name__ == "ForeignKey" or f.__class__.__name__ == "OneToOneField"]
             for rel in fk:
-                actual_rel = rel.parent_model()
+                if rel.__class__.__name__ == "ManyToOneRel":
+                    actual_rel = rel.related_model()
+                else:
+                    actual_rel = rel.parent_model()
                 try:
                     rel_entity = SimpleEntity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                 except:
