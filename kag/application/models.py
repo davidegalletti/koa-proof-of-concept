@@ -7,12 +7,14 @@ class AttributeInAMethod(SerializableEntity):
     '''
     '''
     attribute = models.ForeignKey(Attribute)
-    # workflow is blank unless the attribute is an entity or a set of entities; it can be blank if a method is specified
-    # TODO: chiarire il commento di sopra: significa che entità collegate possono avere un sotto workflow?
+    # ASSERT: exactly one out of workflow and implementation_method is not null
+    # workflow not null means we have a sub-workflow for the attribute; ASSERT: in this case
+    # the attribute must point to an instance of a SimpleEntity of the same class of the SimpleEntity
+    # that is in the entry_point of workflow.entity
     workflow = models.ForeignKey(Workflow, blank=True, null=True)
     # method (inline)
     implementation_method = models.ForeignKey("Method", blank=True, null=True)
-    #TODO: forse andra' aggiunta qualche informazione per indicare come implementare (e.g. inline)
+    #forse andra' aggiunta qualche informazione per indicare come implementare (e.g. inline)
     
 class Method(WorkflowMethod):
     name = models.CharField(max_length=255L, blank=True)

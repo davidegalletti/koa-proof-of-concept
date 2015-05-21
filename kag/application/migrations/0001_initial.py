@@ -7,6 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
+        ('entity', '__first__'),
     ]
 
     operations = [
@@ -18,6 +19,7 @@ class Migration(migrations.Migration):
                 ('URI_imported_instance', models.CharField(max_length=2000L)),
                 ('name', models.CharField(max_length=255L, blank=True)),
                 ('description', models.TextField(blank=True)),
+                ('workflows', models.ManyToManyField(to='entity.Workflow')),
             ],
             options={
                 'abstract': False,
@@ -29,9 +31,50 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('URIInstance', models.CharField(max_length=2000L)),
                 ('URI_imported_instance', models.CharField(max_length=2000L)),
+                ('attribute', models.ForeignKey(to='entity.Attribute')),
             ],
             options={
                 'abstract': False,
             },
+        ),
+        migrations.CreateModel(
+            name='Method',
+            fields=[
+                ('workflowmethod_ptr', models.OneToOneField(parent_link=True, auto_created=True, primary_key=True, serialize=False, to='entity.WorkflowMethod')),
+                ('name', models.CharField(max_length=255L, blank=True)),
+                ('description', models.TextField(blank=True)),
+                ('create_instance', models.BooleanField(default=False)),
+                ('script_precondition', models.TextField(blank=True)),
+                ('script_postcondition', models.TextField(blank=True)),
+                ('script_premethod', models.TextField(blank=True)),
+                ('script_postmethod', models.TextField(blank=True)),
+                ('attributes', models.ManyToManyField(related_name='container_method', to='application.AttributeInAMethod')),
+            ],
+            options={
+                'abstract': False,
+            },
+            bases=('entity.workflowmethod',),
+        ),
+        migrations.CreateModel(
+            name='Widget',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('URIInstance', models.CharField(max_length=2000L)),
+                ('URI_imported_instance', models.CharField(max_length=2000L)),
+                ('widgetname', models.CharField(max_length=255L, blank=True)),
+            ],
+            options={
+                'abstract': False,
+            },
+        ),
+        migrations.AddField(
+            model_name='attributeinamethod',
+            name='implementation_method',
+            field=models.ForeignKey(blank=True, to='application.Method', null=True),
+        ),
+        migrations.AddField(
+            model_name='attributeinamethod',
+            name='workflow',
+            field=models.ForeignKey(blank=True, to='entity.Workflow', null=True),
         ),
     ]

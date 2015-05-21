@@ -5,8 +5,10 @@ from datetime import datetime
 from random import randrange, uniform
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from django.conf import settings
+from django.db.models import Max
 
+from django.conf import settings
+from userauthorization.models import KUser
 import kag.utils as utils
 
 from xml.dom import minidom
@@ -32,11 +34,9 @@ class SerializableEntity(models.Model):
         hence I need to give a value to any attribute that can't be null
         (*) It's needed because during the import I can find a reference to an instance whose data is further away in the file
         then I create the instance in the DB just with the URIInstance but no other data
-        TODO: handle field default value
         '''
         for key in self._meta.fields:
             if (not key.null) and key.__class__.__name__ != "ForeignKey" and (not key.primary_key):
-                # TODO: make sure the list of ype is complete
                 if key.__class__.__name__ in ("CharField", "TextField"):
                     if key.blank:
                         setattr(self, key.name, "")
@@ -196,7 +196,7 @@ class SerializableEntity(models.Model):
                 return '<' + tag_name + self.serialized_URI_SE() + 'URIInstance="' + self.URIInstance + '" ' + self._meta.pk.attname + '="' + str(self.pk) + '"' + xml_name + '/>'
 
     @staticmethod
-    def simple_entity_from_xml_tag(self, xml_child_node):
+    def simple_entity_from_xml_tag(xml_child_node):
         URIInstance = xml_child_node.attributes["URISimpleEntity"].firstChild.data
         try:
             se = SimpleEntity.objects.get(URIInstance = URIInstance)
@@ -223,15 +223,10 @@ class SerializableEntity(models.Model):
     @staticmethod
     def retrieve(actual_class, URIInstance, retrieve_externally):
         '''
-        TODO: now it's invoked SerializableEntity.retrieve and the actual_class parameter is needed
-              if we invoke it directly as a static method of the actual_class, e.g.
-              SimpleEntity.retrieve or EntityInstance.retrieve
-              we can drop the first parameter
-        
         It returns an instance of a SerializableEntity stored in this KS
         It searches first on the URIInstance field (e.g. is it already an instance of this KS? ) 
         It searches then on the URI_imported_instance field (e.g. has is been imported in this KS from the same source? )
-        TODO: It fetches the instance from the source as it is not in this KS yet 
+        It fetches the instance from the source as it is not in this KS yet 
         '''
         actual_instance = None
         try:
@@ -247,6 +242,20 @@ class SerializableEntity(models.Model):
                     raise Exception("Can't find instance with URI: " + URIInstance)
         return actual_instance
 
+    @staticmethod
+    def get_parent_field_name(parent, attribute):
+        '''
+        TODO: describe *ObjectsDescriptor or link to docs
+              make sure it is complete (e.g. we are not missing any other *ObjectsDescriptor)
+        '''
+        field_name = ""
+        related_parent = getattr(parent._meta.concrete_model, attribute)
+        if related_parent.__class__.__name__ == "ForeignRelatedObjectsDescriptor":
+            field_name = related_parent.related.field.name
+        if related_parent.__class__.__name__ == "ReverseSingleRelatedObjectDescriptor":
+            field_name = related_parent.field.name
+        return field_name
+        
     def from_xml(self, xmldoc, entity_node, insert=True, parent=None):
         '''
         from_xml gets from xmldoc the attributes of self and saves it; it searches for child nodes according
@@ -254,7 +263,6 @@ class SerializableEntity(models.Model):
         Every tag corresponds to a SimpleEntity, hence it
             contains a tag <Organization> with ks_uri attribute which points to the KS managing the SimpleEntity definition
             has an attribute namespace in which SimpleEntity's name is unique;
-        TODO: I would like to enforce a one-to-one correspondence between (Organization.ks_uri, namespace) and module_name
         
         Each SerializableEntity has URIInstance and URI_imported_instance attributes. 
         
@@ -267,12 +275,7 @@ class SerializableEntity(models.Model):
         field_name = ""
         if parent:
 #           I have a parent; let's set it
-#           TODO: Duplicated code, see few lines below KS_TAG_WITH_NO_DATA case; let's make a method
-            related_parent = getattr(parent._meta.concrete_model, entity_node.attribute)
-            if related_parent.__class__.__name__ == "ForeignRelatedObjectsDescriptor":   #TODO: David comment on this
-                field_name = related_parent.related.field.name
-            if related_parent.__class__.__name__ == "ReverseSingleRelatedObjectDescriptor":   #TODO: David comment on this
-                field_name = related_parent.field.name
+            field_name = SerializableEntity.get_parent_field_name(parent, entity_node.attribute)
             if field_name:
                 setattr(self, field_name, parent)
         '''
@@ -291,12 +294,7 @@ class SerializableEntity(models.Model):
                 instance = SerializableEntity.retrieve(actual_class, xmldoc.attributes["URIInstance"].firstChild.data, False)
                 # It's in the database; I just need to set its parent; data is either already there or it will be updated later on
                 if parent:
-                    related_parent = getattr(parent._meta.concrete_model, entity_node.attribute)
-                    field_name = ""
-                    if related_parent.__class__.__name__ == "ForeignRelatedObjectsDescriptor":   #TODO: David comment on this
-                        field_name = related_parent.related.field.name
-                    if related_parent.__class__.__name__ == "ReverseSingleRelatedObjectDescriptor":   #TODO: David comment on this
-                        field_name = related_parent.field.name
+                    field_name = SerializableEntity.get_parent_field_name(parent, entity_node.attribute)
                     if field_name:
                         setattr(instance, field_name, parent)
                     instance.save()
@@ -317,7 +315,8 @@ class SerializableEntity(models.Model):
             pass
         for key in self._meta.fields:
 #              let's setattr the other attributes
-#              TODO: explain in comment the following condition
+#                that are not ForeignKey as those are treated separately
+#                and is not the field_name pointing at the parent as it has been already set
             if key.__class__.__name__ != "ForeignKey" and (not parent or key.name != field_name):
                 try:
                     if key.__class__.__name__ == "BooleanField":
@@ -336,11 +335,11 @@ class SerializableEntity(models.Model):
         for en_child_node in entity_node.child_nodes.all():
             if en_child_node.attribute in self.foreign_key_attributes():
                 try:
-                    # TODO: add assert. I assume in the XML there is exactly one child tag
+                    # ASSERT: in the XML there is exactly one child tag
                     xml_child_node = xmldoc.getElementsByTagName(en_child_node.attribute)[0] 
                     # I search for the corresponding SimpleEntity
                      
-                    se = SerializableEntity.simple_entity_from_xml_tag(self, xml_child_node)
+                    se = SerializableEntity.simple_entity_from_xml_tag(xml_child_node)
                     # TODO: I'd like the module name to be function of the organization and namespace
                     assert (en_child_node.simple_entity.name == se.name), "en_child_node.simple_entity.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
                     module_name = en_child_node.simple_entity.module
@@ -388,18 +387,17 @@ class SerializableEntity(models.Model):
         for en_child_node in entity_node.child_nodes.all():
             # I have already processed foreign keys, I skip them now
             if (not en_child_node.attribute in self.foreign_key_attributes()):
-                # TODO: add assert. I assume in the XML there is exactly one child tag
+                # ASSERT: in the XML there is exactly one child tag
                 xml_attribute_node = xmldoc.getElementsByTagName(en_child_node.attribute)[0]
                 if en_child_node.is_many:
                     for xml_child_node in xml_attribute_node.childNodes:
-                        se = SerializableEntity.simple_entity_from_xml_tag(self, xml_child_node)
+                        se = SerializableEntity.simple_entity_from_xml_tag(xml_child_node)
                         module_name = en_child_node.simple_entity.module
                         assert (en_child_node.simple_entity.name == se.name), "en_child_node.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
                         actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
                         if en_child_node.external_reference:
                             instance = SerializableEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
-                            # TODO: il test succesivo forse si fa meglio guardando il concrete_model
-                            # TODO: capire questo test e mettere un commento
+                            # # TODO: il test succesivo forse si fa meglio guardando il concrete_model - capire questo test e mettere un commento
                             if en_child_node.attribute in self._meta.fields:
                                 setattr(instance, en_child_node.attribute, self)
                                 instance.save()
@@ -426,14 +424,13 @@ class SerializableEntity(models.Model):
                 else:
                     # is_many == False
                     xml_child_node = xml_attribute_node
-                    se = SerializableEntity.simple_entity_from_xml_tag(self, xml_child_node)
+                    se = SerializableEntity.simple_entity_from_xml_tag(xml_child_node)
                     module_name = en_child_node.simple_entity.module
                     assert (en_child_node.simple_entity.name == se.name), "en_child_node.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
                     actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
                     if en_child_node.external_reference:
                         instance = SerializableEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
-                        # TODO: il test succesivo forse si fa meglio guardando il concrete_model
-                        # TODO: capire questo test e mettere un commento
+                        # TODO: il test succesivo forse si fa meglio guardando il concrete_model - capire questo test e mettere un commento
                         if en_child_node.attribute in self._meta.fields:
                             setattr(instance, en_child_node.attribute, self)
                             instance.save()
@@ -466,12 +463,10 @@ class SerializableEntity(models.Model):
             fk = [f.related for f in stub_model._meta.concrete_fields if f.__class__.__name__ == "ForeignKey" or f.__class__.__name__ == "OneToOneField"]
             for rel in fk:
                 actual_rel = rel.parent_model()
-                #setattr(stub_model, rel.field.name, stub_model)
-                #TODO: gestire meglio la presenza di .models  dentro il nome del modulo
                 try:
                     rel_entity = SimpleEntity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                 except:
-                    owner_organization = Organization.objects.get(pk=1) #TODO: I have to use a default organization from configuration
+                    owner_organization = Organization.objects.get(pk=1) #I have to use a default organization from configuration
                     rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0],owner_organization=owner_organization)
                     rel_entity.save()
                 rel_etn = EntityNode(simple_entity=rel_entity)
@@ -482,11 +477,10 @@ class SerializableEntity(models.Model):
             for rel in stub_model._meta.get_all_related_objects():
                 actual_rel = rel.model()
                 setattr(actual_rel, rel.field.name, stub_model)
-                #TODO: gestire meglio la presenza di .models  dentro il nome del modulo
                 try:
                     rel_entity = SimpleEntity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
                 except:
-                    owner_organization = Organization.objects.get(pk=1) #TODO: I have to use a default organization from configuration
+                    owner_organization = Organization.objects.get(pk=1) #I have to use a default organization from configuration
                     rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0],owner_organization=owner_organization)
                     rel_entity.save()
                 rel_etn = EntityNode(simple_entity=rel_entity)
@@ -509,18 +503,9 @@ class Workflow(SerializableEntity):
     description = models.CharField(max_length=2000L, blank=True)
     entity = models.ForeignKey('Entity', null = True, blank=True)
 #     ASSERT: I metodi di un wf devono avere impatto solo su SimpleEntity contenute nell'Entity
-#     ASSERT: tutte le SimpleEntity nell'Entity devono ereditare da WorkflowEntityInstance
-#     TODO: NOT YET, VERIFICARE: Un'istanza di SimpleEntity, quando viene creata, crea automaticamente un Entity con solo l'SimpleEntity stessa
-#     e lo associa all'istanza stessa nell'attributo: default_entity   TODO: dov'è questo attributo????
-#     ASSERT: all entities must inherit from tutte le SimpleEntity devono ereditare da WorkflowEntityInstance (in cui è specificato il wf (non potrebbe essere specificato su ET
-#     perché non c'è ETinstance) e lo stato corrente).
 
 class WorkflowStatus(SerializableEntity):
     '''
-    TODO: We need to have some statuses that are available to any entity and some just to specific entities; how?
-    Maybe we can add a type to the statuses so that we can say that a status is of type "Initial" or "Closed"
-    and the type can have some functional implications: e.g. "Closed" are not listed in a default view.
-    Do we really need what's above?????? 
     '''
     name = models.CharField(max_length=100L)
     workflow = models.ForeignKey(Workflow, null=True, blank=True)
@@ -539,7 +524,6 @@ class WorkflowEntityInstance(models.Model):
 class WorkflowMethod(SerializableEntity):
     '''
     If there are no initial_statuses then this is a method which creates the entity
-    TODO: Can the final status be dynamically determined by the implementation?
     '''
     initial_statuses = models.ManyToManyField(WorkflowStatus, blank=True, related_name="+")
     final_status = models.ForeignKey(WorkflowStatus, related_name="+")
@@ -549,7 +533,8 @@ class WorkflowTransition(SerializableEntity):
     instance = models.ForeignKey("EntityInstance")
     workflow_method = models.ForeignKey('WorkflowMethod')
     notes = models.TextField()
-    user = models.ForeignKey('userauthorization.KUser')
+    #TODO: non voglio null=True ma non so come gestire la migration nella quale mi chiede un default value 
+    user = models.ForeignKey(KUser, null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     status_from = models.ForeignKey(WorkflowStatus, related_name="+")
 
@@ -660,16 +645,35 @@ class VersionableEntityInstance(models.Model):
     version_major = models.IntegerField(blank=True)
     version_minor = models.IntegerField(blank=True)
     version_patch = models.IntegerField(blank=True)
+    version_description = models.CharField(max_length=2000L, null = True, blank=True)
     '''
     Assert: At most one instance with the same root_version_id has version_released = True
-    Three implicit states: working, released, obsolete  
-    TODO: make it a property
-     -  working: the latest version where version_released = False
-     -  released: the one with version_released = True
-     -  obsolete: all the others
     '''
     version_released = models.BooleanField(default=False)
 
+    def get_state(self):
+        '''
+        Three implicit states: working, released, obsolete  
+         -  working: the latest version where version_released = False
+         -  released: the one with version_released = True
+         -  obsolete: all the others
+        '''
+        if self.version_released:
+            return "released"
+        version_major__max = self.__class__.objects.all().aggregate(Max('version_major'))['version_major__max']
+        if self.version_major == version_major__max:
+            version_minor__max = self.__class__.objects.filter(version_major=version_major__max).aggregate(Max('version_minor'))['version_minor__max']
+            if self.version_minor == version_minor__max:
+                version_patch__max = self.__class__.objects.filter(version_major=version_major__max, version_minor=version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
+                if self.version_patch == version_patch__max:
+                    return "working"
+        return "obsolete"
+        
+    def set_version(self, version_major=0, version_minor=1, version_patch=0):
+        self.version_major = version_major
+        self.version_minor = version_minor
+        self.version_patch = version_patch
+        
     class Meta:
         abstract = True
     
@@ -678,19 +682,15 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
     # we have the ID of the instance because we do not know its class so we can't have a ForeignKey to an unknown class
     entry_point_instance_id = models.IntegerField()
 
-    def initialize(self, entity, version_major=0, version_minor=1, version_patch=0):
-        '''
-        ???It was a __init__ not 100% clear apart from initializing a version and a entry_point_instance_id???
-        '''
-        self.entity = entity
-        actual_class = utils.load_class(entity.entry_point.simple_entity.module + ".models", entity.entry_point.simple_entity.name)
-        entry_point_instance = actual_class()
-        entry_point_instance.SetNotNullFields()
-        entry_point_instance.save()
-        self.entry_point_instance_id = entry_point_instance.id
-        self.version_major = version_major
-        self.version_minor = version_minor
-        self.version_patch = version_patch
+#     def initialize(self, version_major=0, version_minor=1, version_patch=0):
+#         '''
+#         ???It was a __init__ not 100% clear apart from initializing a version and a entry_point_instance_id???
+#         '''
+#         actual_class = utils.load_class(self.entity.entry_point.simple_entity.module + ".models", self.entity.entry_point.simple_entity.name)
+#         entry_point_instance = actual_class()
+#         entry_point_instance.SetNotNullFields()
+#         entry_point_instance.save()
+#         self.entry_point_instance_id = entry_point_instance.id
 
    
 class UploadedFile(models.Model):
