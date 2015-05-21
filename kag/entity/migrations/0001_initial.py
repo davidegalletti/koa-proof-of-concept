@@ -7,7 +7,6 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('userauthorization', '__first__'),
     ]
 
     operations = [
@@ -137,7 +136,7 @@ class Migration(migrations.Migration):
                 ('URI_imported_instance', models.CharField(max_length=2000L)),
                 ('name', models.CharField(max_length=100L)),
                 ('description', models.CharField(max_length=2000L, blank=True)),
-                ('entity', models.ForeignKey(to='entity.Entity')),
+                ('entity', models.ForeignKey(blank=True, to='entity.Entity', null=True)),
             ],
             options={
                 'abstract': False,
@@ -178,7 +177,6 @@ class Migration(migrations.Migration):
                 ('timestamp', models.DateTimeField(auto_now_add=True)),
                 ('instance', models.ForeignKey(to='entity.EntityInstance')),
                 ('status_from', models.ForeignKey(related_name='+', to='entity.WorkflowStatus')),
-                ('user', models.ForeignKey(to='userauthorization.KUser')),
                 ('workflow_method', models.ForeignKey(to='entity.WorkflowMethod')),
             ],
             options={
@@ -229,5 +227,15 @@ class Migration(migrations.Migration):
             model_name='entity',
             name='entry_point',
             field=models.ForeignKey(to='entity.EntityNode'),
+        ),
+        migrations.AddField(
+            model_name='attribute',
+            name='simple_entity',
+            field=models.ForeignKey(blank=True, to='entity.SimpleEntity', null=True),
+        ),
+        migrations.AddField(
+            model_name='attribute',
+            name='type',
+            field=models.ForeignKey(to='entity.AttributeType'),
         ),
     ]

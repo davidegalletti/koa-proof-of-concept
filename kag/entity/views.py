@@ -97,7 +97,7 @@ def export(request, entity_id, entity_instance_id, simple_entity_id):
     return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
     
 def export_stub(request, entity_id):
-    #TODO: chiarire il nome stub e l'utilizzo del parametro stub in to_xml 
+    #non funziona al momento; chiarire il nome stub e l'utilizzo del parametro stub in to_xml 
     e = get_object_or_404(Entity, pk = entity_id)
     se = e.entry_point.simple_entity
     actual_class = utils.load_class(se.module + ".models", se.name)
@@ -154,7 +154,6 @@ def upload_page(request):
                         initial_data['simple_entity_description'] = xmldoc.childNodes[0].childNodes[0].attributes[e.entry_point.simple_entity.description_field].firstChild.data
                     except:
                         initial_data['simple_entity_description'] = None
-                # TODO: now we assume that the Entity is always specified, in the future we must generalize
                     module_name = e.entry_point.simple_entity.module
                     child_node = xmldoc.childNodes[0].childNodes[0]
                     actual_class_name = module_name + ".models " + child_node.tagName
@@ -178,7 +177,7 @@ def upload_page(request):
                         else:
                             initial_data['simple_entity_on_db'] = None
                     except:
-                        #TODO: .get returning more than one record would be a logical error and should be raised here 
+                        # .get returning more than one record would be a logical error (CHECK: ?and should be raised here?) 
                         # it could actually happen if I use an export from this ks to import again into new records
                         # then I modify the file and import again; instead of modifying the file the preferred behavior
                         # should be to export, modify the newly exported file and import again; this last method would work
@@ -208,7 +207,6 @@ def perform_import(request):
     relevant. The import behavior for reference is:
     it looks for a SimpleEntity with the same URI, if it does exist it takes it's ID and
     uses it for the relationships; otherwise it creates it (which of course happens only once)
-    TODO: scrivi un commento che descrive
     The import behavior when not reference is .................................
     '''
     new_uploaded_file_relpath = request.POST["new_uploaded_file_relpath"]
@@ -253,13 +251,13 @@ def perform_import(request):
         instance = SerializableEntity.retrieve(actual_class, simple_entity_uri_instance, False)
     #At least the first node has full export = True otherwise I would not import anything but just load something from the db 
     instance.from_xml(child_node, et.entry_point, always_insert)
-    #TODO: return something more meaningful or redirect somewhere with a message
     return HttpResponse("OK")
 
 
 def entity_stub(request, entity_id):
     entity = get_object_or_404(SimpleEntity, pk=entity_id)
     etn = EntityNode(simple_entity=entity)
+    etn.save()
     et = Entity(entry_point=etn)
 
     etn_entity = SimpleEntity.objects.get(name="EntityNode")
@@ -281,6 +279,7 @@ def entity_stub(request, entity_id):
     exp_xml = minidom.parseString(exp_str)
     exp_xml.documentElement.appendChild(et_xml.documentElement)
     #cancello gli oggetti salvati
+    etn.delete()
     export_etn_child.delete()
     export_etn.delete()
     res = exp_xml.toprettyxml()
