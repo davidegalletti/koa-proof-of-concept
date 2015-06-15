@@ -641,9 +641,11 @@ class VersionableEntityInstance(models.Model):
     
     '''
     an Instance belongs to a set of instances which are basically the same but with a different version
-    root is the first instance of this set 
+    root is the first instance of this set; root has root=self so that if I filter for root=smthng
+    I get all of them including the root
+    WE REFER TO SUCH SET AS THE "version set"
     '''
-    root = models.ForeignKey('self', null=True, related_name='versions', blank=True)
+    root = models.ForeignKey('self', related_name='versions')
     # http://semver.org/
     version_major = models.IntegerField(blank=True)
     version_minor = models.IntegerField(blank=True)
@@ -676,6 +678,17 @@ class VersionableEntityInstance(models.Model):
         self.version_major = version_major
         self.version_minor = version_minor
         self.version_patch = version_patch
+    
+    @staticmethod
+    def get_latest(any_from_the_set):
+        '''
+        gets the latest version starting from any EntityInstance in the version set 
+        '''
+        version_major__max = EntityInstance.objects.filter(root = any_from_the_set.root).aggregate(Max('version_major'))['version_major__max']
+        version_minor__max = EntityInstance.objects.filter(root = any_from_the_set.root, version_major = version_major__max).aggregate(Max('version_minor'))['version_minor__max']
+        version_patch__max = EntityInstance.objects.filter(root = any_from_the_set.root, version_major = version_major__max, version_minor = version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
+        return EntityInstance.objects.get(root = any_from_the_set, version_major = version_major__max, version_minor = version_minor__max, version_patch = version_patch__max)
+        
         
     class Meta:
         abstract = True
