@@ -49,10 +49,13 @@ class SerializableEntity(models.Model):
                 
     # URI points to the a specific instance in a specific KS
     def generate_URIInstance(self, stub = False):
-        if stub:
-            return settings.BASE_URI + self.get_simple_entity().name_in_this_namespace
-        else:
-            return settings.BASE_URI + self.get_simple_entity().namespace + "/" + self.get_simple_entity().name_in_this_namespace + "/" + str(getattr(self, self.get_simple_entity().id_field))
+        try:
+            if stub:
+                return settings.BASE_URI + self.get_simple_entity().name_in_this_namespace
+            else:
+                return settings.BASE_URI + self.get_simple_entity().namespace + "/" + self.get_simple_entity().name_in_this_namespace + "/" + str(getattr(self, self.get_simple_entity().id_field))
+        except:
+            return ""
     
     def get_simple_entity(self):
         '''
@@ -128,7 +131,8 @@ class SerializableEntity(models.Model):
             tag_name = etn.simple_entity.name
         else:
             tag_name = self.__class__.__name__ if etn.attribute == "" else etn.attribute
-        if (not stub) and self.URIInstance and self.URIInstance in exported_instances:
+        # already exported, I just export a short reference with the URI_Instance
+        if (not stub) and self.URIInstance and self.URIInstance in exported_instances and etn.simple_entity.name_field:
             xml_name = " " + etn.simple_entity.name_field + "=\"" + getattr(self, etn.simple_entity.name_field) + "\""
             return '<' + tag_name + ' KS_TAG_WITH_NO_DATA=\"\"' + self.serialized_URI_SE() + xml_name + ' URIInstance="' + self.URIInstance + '"/>'  
         
@@ -195,6 +199,7 @@ class SerializableEntity(models.Model):
             else:
                 return '<' + tag_name + self.serialized_URI_SE() + 'URIInstance="' + self.URIInstance + '" ' + self._meta.pk.attname + '="' + str(self.pk) + '"' + xml_name + '/>'
 
+    
     @staticmethod
     def simple_entity_from_xml_tag(xml_child_node):
         URIInstance = xml_child_node.attributes["URISimpleEntity"].firstChild.data
@@ -698,6 +703,39 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
     # we have the ID of the instance because we do not know its class so we can't have a ForeignKey to an unknown class
     entry_point_instance_id = models.IntegerField()
 
+    def serialize(self, format = 'XML', force_external_reference=False):
+        serialized_head = "<EntityInstance EntryPointInstanceId=\"" + str(self.entry_point_instance_id) + "\" EntityInstanceURI=\"" + self.URIInstance + "\" VersionMajor=\"" + str(self.version_major) + "\" VersionMinor=\"" + str(self.version_minor) + "\" VersionPatch=\"" + str(self.version_patch) + "\" VersionReleased=\"" + str(self.version_released) + "\" VersionDescription=\"" + self.version_description + "\">"
+
+        e_simple_entity = SimpleEntity.objects.get(name="Entity")
+        temp_etn = EntityNode(simple_entity=e_simple_entity, external_reference=True, is_many=False, attribute = "")
+        serialized_head += self.entity.to_xml(temp_etn)
+        
+        ei_simple_entity = SimpleEntity.objects.get(name="EntityInstance")
+        temp_etn = EntityNode(simple_entity=ei_simple_entity, external_reference=True, is_many=False, attribute = "root")
+        serialized_head += self.root.to_xml(temp_etn)
+
+        w_simple_entity = SimpleEntity.objects.get(name="Workflow")
+        temp_etn = EntityNode(simple_entity=w_simple_entity, external_reference=True, is_many=False, attribute = "")
+        serialized_head += self.workflow.to_xml(temp_etn)
+        
+        ws_simple_entity = SimpleEntity.objects.get(name="WorkflowStatus")
+        temp_etn = EntityNode(simple_entity=ws_simple_entity, external_reference=True, is_many=False, attribute = "current_status")
+        serialized_head += self.current_status.to_xml(temp_etn)
+        
+
+        se_simple_entity = self.entity.entry_point.simple_entity
+        actual_class = utils.load_class(se_simple_entity.module + ".models", se_simple_entity.name)
+        instance = actual_class.objects.get(pk=self.entry_point_instance_id)
+        if force_external_reference:
+            self.entity.entry_point.external_reference = True
+        serialized_head += instance.to_xml(self.entity.entry_point, exported_instances = [])
+        
+        serialized_tail = "</EntityInstance>"
+        
+#TODO: to_xml-->serialize         super(EntityInstance, self).serialize(format)
+        return serialized_head + serialized_tail
+
+
 #     def initialize(self, version_major=0, version_minor=1, version_patch=0):
 #         '''
 #         ???It was a __init__ not 100% clear apart from initializing a version and a entry_point_instance_id???
@@ -714,3 +752,8 @@ class UploadedFile(models.Model):
     Used to save uploaded xml file so that it can be later retrieved and imported
     '''
     docfile = models.FileField(upload_to='documents/%Y/%m/%d')
+
+
+# class Choices():
+#     serialization_format = (        'XML', 'JSON'    ) #tuple
+#     serialization_format = [        'XML', 'JSON'    ] #list

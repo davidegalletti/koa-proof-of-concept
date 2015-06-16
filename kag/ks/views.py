@@ -39,23 +39,11 @@ def api_entity_instance(request, base64URIInstance):
     '''
     URIInstance = base64.decodestring(base64URIInstance)
     ei = EntityInstance.retrieve(EntityInstance, URIInstance, False)
-    
-    se = ei.entity.entry_point.simple_entity
-    actual_class = utils.load_class(se.module + ".models", se.name)
-    instance = actual_class.objects.get(pk=ei.entry_point_instance_id)
 
-#     TODO: MANCANO:
-#     ei.entity = Entity.objects.get(pk=1)
-#     ei.entry_point_instance_id = 1
-#     ei.workflow = w
-#     ei.current_status = ws
-#     ei.root = self
-#     ei.version_description = "Initial version"
-    exported_xml = "<Export EntityName=\"" + ei.entity.name + "\" EntityInstanceURI=\"" + ei.URIInstance + "\" VersionMajor=\"" + ei.version_major + "\" VersionMinor=\"" + ei.version_minor + "\" VersionPatch=\"" + ei.version_patch + "\" VersionReleased=\"" + ei.version_released + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + instance.to_xml(ei.entity.entry_point, exported_instances = []) + "</Export>"
+    exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\">" + ei.serialize() + "</Export>"
     xmldoc = minidom.parseString(exported_xml)
     exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
     return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
-
 
 
 def api_entity_instances(request, base64URIInstance):
@@ -77,14 +65,10 @@ def api_entity_instances(request, base64URIInstance):
     # I loop and select the latest 
     for rei in root_entity_instances:
         final_ei_list.append(EntityInstance.get_latest(rei))
-        xml = ""     
-    se = e.entry_point.simple_entity
-    actual_class = utils.load_class(se.module + ".models", se.name)
+    xml = ""     
     for ei in final_ei_list:
-        instance = actual_class.objects.get(pk=ei.entry_point_instance_id)
-        xml += "<EntityInstance EntityName=\"" + ei.entity.name + "\" EntityInstanceURI=\"" + ei.URIInstance + "\" VersionMajor=\"" + str(ei.version_major) + "\" VersionMinor=\"" + str(ei.version_minor) + "\" VersionPatch=\"" + str(ei.version_patch) + "\" VersionReleased=\"" + str(ei.version_released) + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + instance.to_xml(e.entry_point, exported_instances = []) + "</EntityInstance>"
+        xml += ei.serialize(force_external_reference=True)
 
-        
     exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\"><EntityInstances>" + xml + "</EntityInstances></Export>"
     xmldoc = minidom.parseString(exported_xml)
     exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
