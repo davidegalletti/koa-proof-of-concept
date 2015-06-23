@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from django.db.models import F, Max
+from django.db.models import F, Min
 from django.shortcuts import render, get_object_or_404
 from entity import models as entity_models
 from entity.models import Entity, EntityInstance
@@ -46,8 +46,26 @@ def api_entity_instance(request, base64URIInstance):
     return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
 
 
+def api_entities(request):
+    '''
+        parameters:
+            None
+        
+        Implementation:
+            Invoking api_entity_instances with parameter "Entity-EntityNode-Application"
+            so that I get all the Entities in a shallow export
+    '''
+    # devo trovare lo URIInstance di "Entity-EntityNode-Application" cioè di un Entity con entry_point.simple_entity Entity
+    # che sia anche released
+    entities_id = Entity.objects.filter(name="Entity-EntityNode-Application").values("id")
+    ei = EntityInstance.objects.get(version_released=True, pk__in=entities_id)
+    e = Entity.objects.get(pk=ei.entry_point_instance_id)
+    
+    return api_entity_instances(request, base64.encodestring(e.URIInstance))
+
 def api_entity_instances(request, base64URIInstance):
     '''
+        http://redmine.davide.galletti.name/issues/64
         parameter:
         * base64URIInstance: URIInstance of the Entity base64 encoded
         
@@ -60,13 +78,10 @@ def api_entity_instances(request, base64URIInstance):
     e = Entity.retrieve(Entity, URIInstance, False)
     
     final_ei_list = []
-    # Now I need to get all the EntityInstance; I start getting all the roots and then loop on them
-    root_entity_instances = EntityInstance.objects.filter(root__id = F("id"))
-    # I loop and select the latest 
-    for rei in root_entity_instances:
-        final_ei_list.append(EntityInstance.get_latest(rei))
-    xml = ""     
-    for ei in final_ei_list:
+    # Now I need to get all the released EntityInstance of the Entity passed as a parameter
+    released_entity_instances = EntityInstance.objects.filter(entity = e, version_released=True)
+    xml = ""
+    for ei in released_entity_instances:
         xml += ei.serialize(force_external_reference=True)
 
     exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\"><EntityInstances>" + xml + "</EntityInstances></Export>"

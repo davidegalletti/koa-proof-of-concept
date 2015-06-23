@@ -741,8 +741,7 @@ class VersionableEntityInstance(models.Model):
         version_minor__max = EntityInstance.objects.filter(root = any_from_the_set.root, version_major = version_major__max).aggregate(Max('version_minor'))['version_minor__max']
         version_patch__max = EntityInstance.objects.filter(root = any_from_the_set.root, version_major = version_major__max, version_minor = version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
         return EntityInstance.objects.get(root = any_from_the_set, version_major = version_major__max, version_minor = version_minor__max, version_patch = version_patch__max)
-        
-        
+    
     class Meta:
         abstract = True
     
@@ -774,13 +773,12 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
         temp_etn = EntityNode(simple_entity=ws_simple_entity, external_reference=True, is_many=False, attribute = "current_status")
         serialized_head += self.current_status.to_xml(temp_etn)
         
-
         se_simple_entity = self.entity.entry_point.simple_entity
         actual_class = utils.load_class(se_simple_entity.module + ".models", se_simple_entity.name)
         instance = actual_class.objects.get(pk=self.entry_point_instance_id)
         if force_external_reference:
             self.entity.entry_point.external_reference = True
-        serialized_head += instance.to_xml(self.entity.entry_point, exported_instances = [])
+        serialized_head += "<ActualInstance>" + instance.to_xml(self.entity.entry_point, exported_instances = []) + "</ActualInstance>"
         
         serialized_tail = "</EntityInstance>"
         
@@ -798,6 +796,18 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
 #         entry_point_instance.save()
 #         self.entry_point_instance_id = entry_point_instance.id
 
+#     def get_version_released(self, released = False, latest = False, version_major=None, version_minor=None, version_patch=None):
+#         '''
+#         version-aware proxy to objects.get 
+#         '''
+#         if released:
+#             pass
+#     
+#     def filter_version_released(self):
+#         '''
+#         version-aware proxy to objects.filter 
+#         '''
+#         pass
    
 class UploadedFile(models.Model):
     '''
