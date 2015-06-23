@@ -9,7 +9,7 @@ from django.shortcuts import render, get_object_or_404, redirect, render_to_resp
 from django.template import RequestContext
 
 from application.models import Application, Method
-from entity.models import SimpleEntity, Entity, EntityNode, UploadedFile, SerializableEntity
+from entity.models import SimpleEntity, Entity, EntityNode, UploadedFile, SerializableSimpleEntity
 from forms import UploadFileForm, ImportChoice, ImportChoiceNothingOnDB
 from lxml import etree
 from userauthorization.models import KUser, PermissionHolder
@@ -86,10 +86,10 @@ def method(request, entity_id, application_id, method_id):
     attrib_form = getForm(method)
     return render(request, 'entity/method.html', {'entity': entity, 'application': application, 'authenticated_user': authenticated_user, 'method': method, 'form': attrib_form})
 
-def export(request, entity_id, entity_instance_id, simple_entity_id):
+def export(request, entity_id, simple_entity_instance_id, simple_entity_id):
     se = SimpleEntity.objects.get(pk = simple_entity_id)
     actual_class = utils.load_class(se.module + ".models", se.name)
-    instance = get_object_or_404(actual_class, pk=entity_instance_id)
+    instance = get_object_or_404(actual_class, pk=simple_entity_instance_id)
     e = Entity.objects.get(pk = entity_id)
     exported_xml = "<Export EntityName=\"" + e.name + "\" EntityURI=\"" + e.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + instance.to_xml(e.entry_point, exported_instances = []) + "</Export>"
     xmldoc = minidom.parseString(exported_xml)
@@ -161,7 +161,7 @@ def upload_page(request):
                     actual_class = utils.load_class(module_name + ".models", child_node.tagName)
                     try:
                         '''
-                        ?How does the import work wrt URIInstance? A SerializableEntity has
+                        ?How does the import work wrt URIInstance? A SerializableSimpleEntity has
                             URIInstance
                             URI_imported_instance
                         attributes; the second comes from the imported record (if any); the first is generated
@@ -169,7 +169,7 @@ def upload_page(request):
                         will tell you where the record comes from via import or fetch (fetch not implemented yet) 
                         '''
                         if not simple_entity_uri_instance is None:
-                            simple_entity_on_db = SerializableEntity.retrieve(actual_class, simple_entity_uri_instance, False)
+                            simple_entity_on_db = SerializableSimpleEntity.retrieve(actual_class, simple_entity_uri_instance, False)
                             initial_data['simple_entity_on_db'] = simple_entity_on_db
                             initial_data['simple_entity_on_db_name'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.name_field) if e.entry_point.simple_entity.name_field else ""
                             initial_data['simple_entity_on_db_description'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.description_field) if e.entry_point.simple_entity.description_field else ""
@@ -248,7 +248,7 @@ def perform_import(request):
     if always_insert or (simple_entity_uri_instance is None):
         instance = actual_class()
     else:
-        instance = SerializableEntity.retrieve(actual_class, simple_entity_uri_instance, False)
+        instance = SerializableSimpleEntity.retrieve(actual_class, simple_entity_uri_instance, False)
     #At least the first node has full export = True otherwise I would not import anything but just load something from the db 
     instance.from_xml(child_node, et.entry_point, always_insert)
     return HttpResponse("OK")

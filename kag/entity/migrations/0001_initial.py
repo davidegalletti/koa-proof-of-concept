@@ -49,6 +49,7 @@ class Migration(migrations.Migration):
                 ('URI_imported_instance', models.CharField(max_length=2000L)),
                 ('name', models.CharField(max_length=200L)),
                 ('description', models.CharField(max_length=2000L)),
+                ('shallow', models.BooleanField(default=False)),
             ],
             options={
                 'abstract': False,
@@ -63,6 +64,7 @@ class Migration(migrations.Migration):
                 ('version_major', models.IntegerField(blank=True)),
                 ('version_minor', models.IntegerField(blank=True)),
                 ('version_patch', models.IntegerField(blank=True)),
+                ('version_description', models.CharField(max_length=2000L, default=b'')),
                 ('version_released', models.BooleanField(default=False)),
                 ('entry_point_instance_id', models.IntegerField()),
             ],
@@ -93,7 +95,22 @@ class Migration(migrations.Migration):
                 ('URI_imported_instance', models.CharField(max_length=2000L)),
                 ('name', models.CharField(max_length=500L, blank=True)),
                 ('description', models.CharField(max_length=2000L, blank=True)),
-                ('ks_uri', models.CharField(max_length=500L, blank=True)),
+            ],
+            options={
+                'abstract': False,
+            },
+        ),
+        migrations.CreateModel(
+            name='KnowledgeServer',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('URIInstance', models.CharField(max_length=2000L)),
+                ('URI_imported_instance', models.CharField(max_length=2000L)),
+                ('name', models.CharField(max_length=500L, blank=True)),
+                ('description', models.CharField(max_length=2000L, blank=True)),
+                ('uri', models.CharField(max_length=500L, blank=True)),
+                ('organization', models.ForeignKey(to='entity.Organization')),
+                ('this_ks', models.BooleanField(default=False)),
             ],
             options={
                 'abstract': False,
@@ -115,7 +132,6 @@ class Migration(migrations.Migration):
                 ('name_field', models.CharField(max_length=255L, db_column=b'nameField', blank=True)),
                 ('description_field', models.CharField(max_length=255L, db_column=b'descriptionField', blank=True)),
                 ('connection', models.ForeignKey(blank=True, to='entity.DBConnection', null=True)),
-                ('owner_organization', models.ForeignKey(to='entity.Organization')),
             ],
             options={
                 'abstract': False,
@@ -215,8 +231,13 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='entityinstance',
+            name='owner_knowledge_server',
+            field=models.ForeignKey(to='entity.KnowledgeServer'),
+        ),
+        migrations.AddField(
+            model_name='entityinstance',
             name='root',
-            field=models.ForeignKey(related_name='versions', blank=True, to='entity.EntityInstance', null=True),
+            field=models.ForeignKey(related_name='versions', to='entity.EntityInstance'),
         ),
         migrations.AddField(
             model_name='entityinstance',

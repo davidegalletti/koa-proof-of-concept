@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from django.db import models
-from entity.models import Workflow, WorkflowMethod, SerializableEntity, Attribute
+from entity.models import Workflow, WorkflowMethod, SerializableSimpleEntity, Attribute
 
-class AttributeInAMethod(SerializableEntity):
+class AttributeInAMethod(SerializableSimpleEntity):
     '''
     '''
     attribute = models.ForeignKey(Attribute)
@@ -29,13 +29,13 @@ class Method(WorkflowMethod):
     def __str__(self):
         return self.name
 
-class Widget(SerializableEntity):
+class Widget(SerializableSimpleEntity):
     '''
     It is a django widget; TBC
     '''
     widgetname = models.CharField(max_length=255L, blank=True)
 
-class Application(SerializableEntity):
+class Application(SerializableSimpleEntity):
     name = models.CharField(max_length=255L, blank=True)
     description = models.TextField(blank=True)
     workflows = models.ManyToManyField(Workflow)
