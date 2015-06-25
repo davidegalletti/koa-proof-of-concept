@@ -1,20 +1,29 @@
 # -*- coding: utf-8 -*-
 
+import base64
+from datetime import datetime
+import json
+import urllib2
+from xml.dom import minidom
+
+from django.core.urlresolvers import reverse
 from django.db.models import F, Min
-from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponseRedirect
+from django.shortcuts import render, get_object_or_404, render_to_response
+from django.template import RequestContext
+
 from entity import models as entity_models
 from entity.models import Entity, EntityInstance
 from entity import views as entity_views
-from xml.dom import minidom
-from datetime import datetime
-import base64
 import kag.utils as utils
+import forms as myforms 
 
 
 
-def api_simple_entity_definition(request, base64URISimpleEntity):
+def api_simple_entity_definition(request, format, base64URISimpleEntity):
     '''
     '''
+    format = format.upper()
     URISimpleEntity = base64.decodestring(base64URISimpleEntity)
     actual_class = entity_models.SimpleEntity
 
@@ -22,13 +31,19 @@ def api_simple_entity_definition(request, base64URISimpleEntity):
     entity_id = 1
     instance = get_object_or_404(actual_class, pk=se.id)
     e = entity_models.Entity.objects.get(pk = entity_id)
-    exported_xml = "<Export EntityName=\"" + e.name + "\" EntityURI=\"" + e.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + instance.to_xml(e.entry_point, exported_instances = []) + "</Export>"
-    xmldoc = minidom.parseString(exported_xml)
-    exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
-    return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
+    if format == 'JSON':
+        exported_json = '{ "Export" : { "EntityName" : "' + e.name + '", "EntityURI" : "' + e.URIInstance + '", "ExportDateTime" : "' + str(datetime.now()) + '", ' + instance.serialize(e.entry_point, format=format, exported_instances = []) + ' } }'
+        return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
+    if format == 'XML':
+        exported_xml = "<Export EntityName=\"" + e.name + "\" EntityURI=\"" + e.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + instance.serialize(e.entry_point, format=format, exported_instances = []) + "</Export>"
+        xmldoc = minidom.parseString(exported_xml)
+        exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
+        return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
 
-def api_entity_instance(request, base64URIInstance):
+def api_entity_instance(request, format, base64URIInstance):
     '''
+        It returns the EntityInstance with the URIInstance in the parameter 
+        
         parameter:
         * base64URIInstance: URIInstance of the EntityInstance base64 encoded
         
@@ -37,16 +52,20 @@ def api_entity_instance(request, base64URIInstance):
         # fetches from the DB the one with pk = EntityInstance.entry_point_instance_id
         # it runs to_xml of the SimpleEntity using EntityInstance.entity.entry_point
     '''
+    format = format.upper()
     URIInstance = base64.decodestring(base64URIInstance)
     ei = EntityInstance.retrieve(EntityInstance, URIInstance, False)
 
-    exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\">" + ei.serialize() + "</Export>"
-    xmldoc = minidom.parseString(exported_xml)
-    exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
-    return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
+    if format == 'JSON':
+        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstance" : ' + ei.serialize_with_simple_entity(format = format) + ' } }'
+        return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
+    if format == 'XML':
+        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\">" + ei.serialize_with_simple_entity(format = format) + "</Export>"
+        xmldoc = minidom.parseString(exported_xml)
+        exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
+        return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
 
-
-def api_entities(request):
+def api_entities(request, format):
     '''
         parameters:
             None
@@ -61,12 +80,14 @@ def api_entities(request):
     ei = EntityInstance.objects.get(version_released=True, pk__in=entities_id)
     e = Entity.objects.get(pk=ei.entry_point_instance_id)
     
-    return api_entity_instances(request, base64.encodestring(e.URIInstance))
+    return api_entity_instances(request, format, base64.encodestring(e.URIInstance))
 
-def api_entity_instances(request, base64URIInstance):
+def api_entity_instances(request, format, base64URIInstance):
     '''
         http://redmine.davide.galletti.name/issues/64
+
         parameter:
+        * format { 'XML' | 'JSON' }
         * base64URIInstance: URIInstance of the Entity base64 encoded
         
         Implementation:
@@ -74,17 +95,65 @@ def api_entity_instances(request, base64URIInstance):
         # of that Entity; it takes the latest version of each versionset
         # it returns the list xml encoded
     '''
+    format = format.upper()
     URIInstance = base64.decodestring(base64URIInstance)
     e = Entity.retrieve(Entity, URIInstance, False)
     
     final_ei_list = []
     # Now I need to get all the released EntityInstance of the Entity passed as a parameter
     released_entity_instances = EntityInstance.objects.filter(entity = e, version_released=True)
-    xml = ""
+    serialized = ""
+    comma = ""
     for ei in released_entity_instances:
-        xml += ei.serialize(force_external_reference=True)
+        if format == 'JSON':
+            serialized += comma
+        serialized += ei.serialize_with_simple_entity(format = format, force_external_reference=True)
+        comma = ", "
+    if format == 'XML':
+        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\"><EntityInstances>" + serialized + "</EntityInstances></Export>"
+        xmldoc = minidom.parseString(exported_xml)
+        exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
+        return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
+    if format == 'JSON':
+        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstances" : [' + serialized + '] } }'
+        return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
 
-    exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\"><EntityInstances>" + xml + "</EntityInstances></Export>"
-    xmldoc = minidom.parseString(exported_xml)
-    exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
-    return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
+def ks_explorer(request):
+    try:
+        try:
+            ks_url = request.POST['ks_complete_url']
+        except:
+            ks_url = "http://127.0.0.1:8000"
+        local_url = reverse ('api_entities', args=("JSON",))
+        response = urllib2.urlopen(ks_url + local_url)
+        #TODO: usare funzione url che genera l'url per questo KS e fare lo string replace dopo 
+        #      aver trovato il modo di avere un oggetto globale this_ks cui chiedere il 
+        #      suo ks_url
+        entities_json = response.read()
+        # fare il parse
+        decoded = json.loads(entities_json)
+        for ei in decoded['Export']['EntityInstances']:
+            print(decoded['Export']['EntityInstances'][0]['ActualInstance']['Entity']['name'])
+    except Exception as es:
+        pass
+    cont = RequestContext(request, {'form':form})
+    return render_to_response('ks_explorer_form.html', context_instance=cont)
+
+
+def ks_explorer_form(request):
+    form = myforms.ExploreOtherKSForm()
+#     else:
+#         form = myforms.ExploreOtherKSForm(request.POST)
+#         if form.is_valid():
+#             
+#             ks_url = form.cleaned_data['ks_complete_url'].strip()
+#             return HttpResponseRedirect(reverse ('ks_explorer', args=(base64.encodestring(ks_url),)))
+
+    cont = RequestContext(request, {'form':form})
+    return render_to_response('ks_explorer_form.html', context_instance=cont)
+
+
+
+
+
+

@@ -91,20 +91,7 @@ def export(request, entity_id, simple_entity_instance_id, simple_entity_id):
     actual_class = utils.load_class(se.module + ".models", se.name)
     instance = get_object_or_404(actual_class, pk=simple_entity_instance_id)
     e = Entity.objects.get(pk = entity_id)
-    exported_xml = "<Export EntityName=\"" + e.name + "\" EntityURI=\"" + e.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + instance.to_xml(e.entry_point, exported_instances = []) + "</Export>"
-    xmldoc = minidom.parseString(exported_xml)
-    exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
-    return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
-    
-def export_stub(request, entity_id):
-    #non funziona al momento; chiarire il nome stub e l'utilizzo del parametro stub in to_xml 
-    e = get_object_or_404(Entity, pk = entity_id)
-    se = e.entry_point.simple_entity
-    actual_class = utils.load_class(se.module + ".models", se.name)
-    instance = actual_class()
-    # I need a dictionary to prevent infinite loop and to control how many times I export a specific class
-    export_count_per_class = {}
-    exported_xml = "<Export EntityName=\"" + e.name + "\" EntityURI=\"" + e.URIInstance + "\">" + instance.to_xml(e.entry_point, True, export_count_per_class) + "</Export>"
+    exported_xml = "<Export EntityName=\"" + e.name + "\" EntityURI=\"" + e.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + instance.serialize(e.entry_point, exported_instances = []) + "</Export>"
     xmldoc = minidom.parseString(exported_xml)
     exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
     return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
@@ -253,37 +240,6 @@ def perform_import(request):
     instance.from_xml(child_node, et.entry_point, always_insert)
     return HttpResponse("OK")
 
-
-def entity_stub(request, entity_id):
-    entity = get_object_or_404(SimpleEntity, pk=entity_id)
-    etn = EntityNode(simple_entity=entity)
-    etn.save()
-    et = Entity(entry_point=etn)
-
-    etn_entity = SimpleEntity.objects.get(name="EntityNode")
-    export_etn = EntityNode(simple_entity=etn_entity)
-    #Django's ORM forces us to save it on the db
-    export_etn.save()
-    e_entity = SimpleEntity.objects.get(name="SimpleEntity")
-    export_etn_child = EntityNode(simple_entity=e_entity, attribute="simple_entity")
-    export_etn_child.save()
-    export_etn.child_nodes.add(export_etn_child)
-    export_etn.save()
-    ets = entity.entity_stub(etn=etn, export_etn=export_etn, class_list=[])
-
-    et_xml_str = et.to_xml(et.entry_point)
-    et_xml = minidom.parseString(et_xml_str)
-    et_xml.documentElement.appendChild(ets.documentElement)
-
-    exp_str = '<Export EntityURI="' + et.URIInstance + '"></Export>'
-    exp_xml = minidom.parseString(exp_str)
-    exp_xml.documentElement.appendChild(et_xml.documentElement)
-    #cancello gli oggetti salvati
-    etn.delete()
-    export_etn_child.delete()
-    export_etn.delete()
-    res = exp_xml.toprettyxml()
-    return HttpResponse(res, content_type="application/xhtml+xml")
 
 def home(request):
     

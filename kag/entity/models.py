@@ -48,12 +48,9 @@ class SerializableSimpleEntity(models.Model):
                     setattr(self, key.name, datetime.now())
                 
     # URI points to the a specific instance in a specific KS
-    def generate_URIInstance(self, stub = False):
+    def generate_URIInstance(self):
         try:
-            if stub:
-                return settings.BASE_URI + self.get_simple_entity().name_in_this_namespace
-            else:
-                return settings.BASE_URI + self.get_simple_entity().namespace + "/" + self.get_simple_entity().name_in_this_namespace + "/" + str(getattr(self, self.get_simple_entity().id_field))
+            return settings.BASE_URI + self.get_simple_entity().namespace + "/" + self.get_simple_entity().name_in_this_namespace + "/" + str(getattr(self, self.get_simple_entity().id_field))
         except:
             return ""
     
@@ -90,28 +87,21 @@ class SerializableSimpleEntity(models.Model):
                 attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'
         return attributes
      
-    def serialized_URI_SE(self, stub = False):
-        return ' URISimpleEntity="' + self.get_simple_entity().URIInstance + '" '
+    def serialized_URI_SE(self, format = 'XML'):
+        if format == 'XML':
+            return ' URISimpleEntity="' + self.get_simple_entity().URIInstance + '" '  
+        if format == 'JSON':
+            return ' "URISimpleEntity" : "' + self.get_simple_entity().URIInstance + '" '
+        
     
-    def serialized_attributes(self, stub = False):
+    def serialized_attributes(self, format = 'XML'):
         attributes = ""
         for key in self._meta.fields:
             if key.__class__.__name__ != "ForeignKey":
-                if stub:
-                    value = " generic_value "
-                    if key.__class__.__name__ == "str":
-                        value = "random_string"
-                    if key.__class__.__name__ == "int":
-                        value = str(randrange(100))
-                    if key.__class__.__name__ == "long":
-                        value = str(randrange(100000))
-                    if key.__class__.__name__ == "float":
-                        value = str(uniform(1, 10))
-                    if key.__class__.__name__ == "AutoField":
-                        value = "-1"
-                    attributes += ' ' + key.name + '="' + value + '"'
-                else:
-                    attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'
+                if format == 'XML':
+                    attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'  
+                if format == 'JSON':
+                    attributes += '"' + key.name + '" : "' + str(getattr(self, key.name)) + '", '
         return attributes
 
     def shallow_entity(self):
@@ -153,14 +143,20 @@ class SerializableSimpleEntity(models.Model):
             etn_fk.save()
             etn.child_nodes.add(etn_fk)
         for rm in self.related_manager_attributes():
+            #TODO: shallow_entity_node: implement self.related_manager_attributes case
             pass
         for mrm in self.many_related_manager_attributes():
+            #TODO: shallow_entity_node: implement self.many_related_manager_attributes case
             pass
         etn.save()
         return etn
 
-    def to_xml(self, etn = None, stub = False, export_count_per_class = {}, exported_instances = []):
-        str_xml = ""
+    def serialize(self, etn = None, export_count_per_class = {}, exported_instances = [], format = 'XML'):
+        '''
+        format: {'XML' | 'JSON'}
+        '''
+        format = format.upper()
+        serialized = ""
         '''
             If I have already exported this instance I don't want to duplicate all details hence I just export it's URIInstance, 
             name and SimpleEntity URI. Then I need to add an attribute so that when importing it I will recognize that its details
@@ -168,7 +164,7 @@ class SerializableSimpleEntity(models.Model):
             <EntityNode URISimpleEntity="....." URIInstance="...." attribute="...." KS_TAG_WITH_NO_DATA=""
             the TAG "KS_TAG_WITH_NO_DATA" is used to mark the fact that the details of this entity are somewhereelse in the file
         '''
-        # if there is no etn I export just this object 
+        # if there is no etn I export just this object creating a shallow Entity 
         if etn is None:
             etn = self.shallow_entity().entry_point
         if etn.is_many:
@@ -177,72 +173,69 @@ class SerializableSimpleEntity(models.Model):
         else:
             tag_name = self.__class__.__name__ if etn.attribute == "" else etn.attribute
         # already exported, I just export a short reference with the URI_Instance
-        if (not stub) and self.URIInstance and self.URIInstance in exported_instances and etn.simple_entity.name_field:
-            xml_name = " " + etn.simple_entity.name_field + "=\"" + getattr(self, etn.simple_entity.name_field) + "\""
-            return '<' + tag_name + ' KS_TAG_WITH_NO_DATA=\"\"' + self.serialized_URI_SE() + xml_name + ' URIInstance="' + self.URIInstance + '"/>'  
+        if self.URIInstance and self.URIInstance in exported_instances and etn.simple_entity.name_field:
+            if format == 'XML':
+                xml_name = " " + etn.simple_entity.name_field + "=\"" + getattr(self, etn.simple_entity.name_field) + "\""
+                return '<' + tag_name + ' KS_TAG_WITH_NO_DATA=\"\"' + self.serialized_URI_SE(format) + xml_name + ' URIInstance="' + self.URIInstance + '"/>'  
+            if format == 'JSON':
+                xml_name = ' "' + etn.simple_entity.name_field + '" : "' + getattr(self, etn.simple_entity.name_field) + '"'
+                if etn.is_many:
+                    return ' { "KS_TAG_WITH_NO_DATA" : \"\", ' + self.serialized_URI_SE(format) + ", " + xml_name + ', "URIInstance": "' + self.URIInstance + '"} '
+                else:
+                    return '"' + tag_name + '" : { "KS_TAG_WITH_NO_DATA" : \"\", ' + self.serialized_URI_SE(format) + ", " + xml_name + ', "URIInstance": "' + self.URIInstance + '"}'  
         
         exported_instances.append(self.URIInstance) 
-        if stub:
-            if not self.__class__.__name__ in  export_count_per_class.keys():
-                export_count_per_class[self.__class__.__name__] = 0
-            export_count_per_class[self.__class__.__name__] += 1
         if not etn.external_reference:
-            if stub and export_count_per_class[self.__class__.__name__] > 3:
-                return ''
             try:
                 for child_node in etn.child_nodes.all():
-                    child_class_instance_name = child_node.simple_entity.name
-                    try:
-                        child_class_name = eval("self." + child_node.attribute + ".__class__.__name__")
-                        print ("self." + child_node.attribute + ".__class__.__name__ = " + child_class_name)
-                    except:
-                        child_class_name = ""
-                    child_class_module = child_node.simple_entity.module
-#                    if child_class_name == 'RelatedManager' or child_class_name == 'ManyRelatedManager':
                     if child_node.is_many:
-                        if stub:
-                            actual_class = utils.load_class(child_class_module + ".models", child_class_instance_name)
-                            child_instance = actual_class()
-                            if child_class_name == 'ManyRelatedManager':
-                                str_xml += "<" + child_node.attribute + ">"
-                            # I can add a couple of children just to make it evident it is a list
-                            str_xml += child_instance.to_xml(child_node, True, export_count_per_class, exported_instances)
-                            str_xml += child_instance.to_xml(child_node, True, export_count_per_class, exported_instances)
-                            if child_class_name == 'ManyRelatedManager':
-                                str_xml += "</" + child_node.attribute + ">"
-                        else:
-                            child_instances = eval("self." + child_node.attribute + ".all()")
-                            str_xml += "<" + child_node.attribute + ">"
-                            for child_instance in child_instances:
-                                # let's prevent infinite loops if self relationships
-                                if (child_instance.__class__.__name__ <> self.__class__.__name__) or (self.pk <> child_node.pk):
-                                    str_xml += child_instance.to_xml(child_node, exported_instances=exported_instances)
-                            str_xml += "</" + child_node.attribute + ">"
+                        child_instances = eval("self." + child_node.attribute + ".all()")
+                        if format == 'XML':
+                            serialized += "<" + child_node.attribute + ">"
+                        if format == 'JSON':
+                            serialized += '"' + child_node.attribute + '" : ['
+                        comma = ""
+                        for child_instance in child_instances:
+                            # let's prevent infinite loops if self relationships
+                            if (child_instance.__class__.__name__ != self.__class__.__name__) or (self.pk != child_node.pk):
+                                if format == 'JSON':
+                                    serialized += comma
+                                serialized += child_instance.serialize(child_node, exported_instances=exported_instances, format=format)
+                            comma = ", "
+                        if format == 'XML':
+                            serialized += "</" + child_node.attribute + ">"
+                        if format == 'JSON':
+                            serialized += "]"
                     else:
-                        if stub:
-                            actual_class = utils.load_class(child_class_module + ".models", child_class_instance_name)
-                            child_instance = actual_class()
-                            str_xml += child_instance.to_xml (child_node, True, export_count_per_class, exported_instances)
-                        else:
-                            print "Invoking \".to_xml\" for self." + child_node.attribute
-                            child_instance = eval("self." + child_node.attribute)
-                            if not child_instance is None:
-                                str_xml += child_instance.to_xml (child_node, exported_instances=exported_instances)
+                        child_instance = eval("self." + child_node.attribute)
+                        if not child_instance is None:
+                            serialized += child_instance.serialize(child_node, format=format, exported_instances=exported_instances)
             except Exception as es:
                 print es
-            return '<' + tag_name + self.serialized_URI_SE(stub) + self.serialized_attributes(stub) + '>' + str_xml + '</' + tag_name + '>'
+            if format == 'XML':
+                return '<' + tag_name + self.serialized_URI_SE(format) + self.serialized_attributes(format) + '>' + serialized + '</' + tag_name + '>'
+            if format == 'JSON':
+                if etn.is_many:
+                    return ' { ' + self.serialized_URI_SE(format) + ', ' + self.serialized_attributes(format) + serialized + ' }'
+                else:
+                    return '"' + tag_name + '" : { ' + self.serialized_URI_SE(format) + ', ' + self.serialized_attributes(format) + serialized + ' }'
+            
         else:
             # etn.external_reference = True
             xml_name = ''
-            if etn.simple_entity.name_field <> "":
-                if stub:
-                    xml_name = " " + etn.simple_entity.name_field + "=\"Name of a sample " + etn.simple_entity.name + " instance.\""
-                else:
+            if etn.simple_entity.name_field != "":
+                if format == 'XML':
                     xml_name = " " + etn.simple_entity.name_field + "=\"" + getattr(self, etn.simple_entity.name_field) + "\""
-            if stub:
-                return '<' + tag_name + self.serialized_URI_SE(stub) + 'URIInstance="' + self.generate_URIInstance(stub) + '" ' + self._meta.pk.attname + '="-1"' + xml_name + '/>'
-            else:
+                if format == 'JSON':
+                    xml_name = " " + etn.simple_entity.name_field + ": \"" + getattr(self, etn.simple_entity.name_field) + "\""
+            if format == 'XML':
                 return '<' + tag_name + self.serialized_URI_SE() + 'URIInstance="' + self.URIInstance + '" ' + self._meta.pk.attname + '="' + str(self.pk) + '"' + xml_name + '/>'
+            if format == 'JSON':
+                if etn.is_many:
+                    return '{ ' + self.serialized_URI_SE(format) + ', "URIInstance" : "' + self.URIInstance + '", "' + self._meta.pk.attname + '" : "' + str(self.pk) + '"'  + ' }'
+                else:
+                    return '"' + tag_name + '" :  { ' + self.serialized_URI_SE(format) + ', "URIInstance" : "' + self.URIInstance + '", "' + self._meta.pk.attname + '" : "' + str(self.pk) + '"'  + ' }'
+            
 
     
     @staticmethod
@@ -446,7 +439,7 @@ class SerializableSimpleEntity(models.Model):
                         actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
                         if en_child_node.external_reference:
                             instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
-                            # # TODO: il test succesivo forse si fa meglio guardando il concrete_model - capire questo test e mettere un commento
+                            # TODO: il test succesivo forse si fa meglio guardando il concrete_model - capire questo test e mettere un commento
                             if en_child_node.attribute in self._meta.fields:
                                 setattr(instance, en_child_node.attribute, self)
                                 instance.save()
@@ -495,48 +488,6 @@ class SerializableSimpleEntity(models.Model):
                             except:
                                 instance = actual_class()
                         instance.from_xml(xml_child_node, en_child_node, insert, self)
-
-    def entity_stub(self, etn, export_etn, class_list=[]):
-        '''
-        Starting from Django ORM model we produce an Entity structure (formerly EntityTree or EntityGraph) 
-        with all the relationships we find in the Django model
-        '''
-        module_name = self.module
-        actual_class = utils.load_class(module_name + ".models", self.name)
-        stub_model = actual_class()
-        #vogliamo esportare l'entity come external
-        sutbxmlstr = etn.to_xml(export_etn, stub=False)
-        stub_xml = minidom.parseString(sutbxmlstr)
-        if not actual_class in class_list:
-            class_list.append(actual_class)
-            fk = [f.related for f in stub_model._meta.concrete_fields if f.__class__.__name__ == "ForeignKey" or f.__class__.__name__ == "OneToOneField"]
-            for rel in fk:
-                if rel.__class__.__name__ == "ManyToOneRel":
-                    actual_rel = rel.related_model()
-                else:
-                    actual_rel = rel.parent_model()
-                try:
-                    rel_entity = SimpleEntity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
-                except:
-                    rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
-                    rel_entity.save()
-                rel_etn = EntityNode(simple_entity=rel_entity)
-                rel_xml = rel_entity.entity_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
-                stub_xml.documentElement.appendChild(rel_xml.documentElement)
-
-
-            for rel in stub_model._meta.get_all_related_objects():
-                actual_rel = rel.model()
-                setattr(actual_rel, rel.field.name, stub_model)
-                try:
-                    rel_entity = SimpleEntity.objects.get(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
-                except:
-                    rel_entity = SimpleEntity(name=actual_rel.__class__.__name__, module=actual_rel.__class__.__module__.split(".")[0])
-                    rel_entity.save()
-                rel_etn = EntityNode(simple_entity=rel_entity)
-                rel_xml = rel_entity.entity_stub(etn=rel_etn, export_etn=export_etn, class_list=class_list)
-                stub_xml.documentElement.appendChild(rel_xml.documentElement)
-        return stub_xml
 
     class Meta:
         abstract = True
@@ -754,35 +705,56 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
     # we have the ID of the instance because we do not know its class so we can't have a ForeignKey to an unknown class
     entry_point_instance_id = models.IntegerField()
 
-    def serialize(self, format = 'XML', force_external_reference=False):
-        serialized_head = "<EntityInstance EntryPointInstanceId=\"" + str(self.entry_point_instance_id) + "\" EntityInstanceURI=\"" + self.URIInstance + "\" VersionMajor=\"" + str(self.version_major) + "\" VersionMinor=\"" + str(self.version_minor) + "\" VersionPatch=\"" + str(self.version_patch) + "\" VersionReleased=\"" + str(self.version_released) + "\" VersionDescription=\"" + self.version_description + "\">"
-
+    def serialize_with_simple_entity(self, format = 'XML', force_external_reference=False):
+        format = format.upper()
+        if format == 'XML':
+            serialized_head = "<EntityInstance EntryPointInstanceId=\"" + str(self.entry_point_instance_id) + "\" InstanceURI=\"" + self.URIInstance + "\" VersionMajor=\"" + str(self.version_major) + "\" VersionMinor=\"" + str(self.version_minor) + "\" VersionPatch=\"" + str(self.version_patch) + "\" VersionReleased=\"" + str(self.version_released) + "\" VersionDescription=\"" + self.version_description + "\">"
+        if format == 'JSON':
+            serialized_head = ' { "EntryPointInstanceId" : "' + str(self.entry_point_instance_id) + '", "InstanceURI" : "' + self.URIInstance + '", "VersionMajor" : "' + str(self.version_major) + '", "VersionMinor" : "' + str(self.version_minor) + '", "VersionPatch" : "' + str(self.version_patch) + '", "VersionReleased" : "' + str(self.version_released) + '", "VersionDescription" : "' + self.version_description + '" '
+        comma = ""    
+        if format == 'JSON':
+            comma = ", "
         e_simple_entity = SimpleEntity.objects.get(name="Entity")
         temp_etn = EntityNode(simple_entity=e_simple_entity, external_reference=True, is_many=False, attribute = "")
-        serialized_head += self.entity.to_xml(temp_etn)
+        if format == 'XML':
+            serialized_head += comma + self.entity.serialize(temp_etn, format = format)
+        if format == 'JSON':
+            serialized_head += comma + self.entity.serialize(temp_etn, format = format)
         
         ei_simple_entity = SimpleEntity.objects.get(name="EntityInstance")
         temp_etn = EntityNode(simple_entity=ei_simple_entity, external_reference=True, is_many=False, attribute = "root")
-        serialized_head += self.root.to_xml(temp_etn)
+        if format == 'XML':
+            serialized_head += comma + self.root.serialize(temp_etn, format = format)
+        if format == 'JSON':
+            serialized_head += comma + self.root.serialize(temp_etn, format = format)
 
         w_simple_entity = SimpleEntity.objects.get(name="Workflow")
         temp_etn = EntityNode(simple_entity=w_simple_entity, external_reference=True, is_many=False, attribute = "")
-        serialized_head += self.workflow.to_xml(temp_etn)
+        if format == 'XML':
+            serialized_head += comma + self.workflow.serialize(temp_etn, format = format)
+        if format == 'JSON':
+            serialized_head += comma + self.workflow.serialize(temp_etn, format = format)
         
         ws_simple_entity = SimpleEntity.objects.get(name="WorkflowStatus")
         temp_etn = EntityNode(simple_entity=ws_simple_entity, external_reference=True, is_many=False, attribute = "current_status")
-        serialized_head += self.current_status.to_xml(temp_etn)
+        if format == 'XML':
+            serialized_head += comma + self.current_status.serialize(temp_etn, format = format)
+        if format == 'JSON':
+            serialized_head += comma + self.current_status.serialize(temp_etn, format = format)
         
         se_simple_entity = self.entity.entry_point.simple_entity
         actual_class = utils.load_class(se_simple_entity.module + ".models", se_simple_entity.name)
         instance = actual_class.objects.get(pk=self.entry_point_instance_id)
         if force_external_reference:
             self.entity.entry_point.external_reference = True
-        serialized_head += "<ActualInstance>" + instance.to_xml(self.entity.entry_point, exported_instances = []) + "</ActualInstance>"
+
+        if format == 'XML':
+            serialized_head += "<ActualInstance>" + instance.serialize(self.entity.entry_point, exported_instances = [], format = format) + "</ActualInstance>"
+            serialized_tail = "</EntityInstance>"
+        if format == 'JSON':
+            serialized_head += ', "ActualInstance" : { ' + instance.serialize(self.entity.entry_point, exported_instances = [], format = format) + " } "
+            serialized_tail = " }"
         
-        serialized_tail = "</EntityInstance>"
-        
-#TODO: to_xml-->serialize         super(EntityInstance, self).serialize(format)
         return serialized_head + serialized_tail
 
 
