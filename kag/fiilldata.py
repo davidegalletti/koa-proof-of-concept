@@ -105,6 +105,6 @@ ei.set_version()
 ei.version_description = "Initial version"
 ei.version_released = True
 ei.save()
-ei.URIInstance = "http://thekoa.org/KS/entity/EntityInstance/1"
+ei.URIInstance = "http://rootks.thekoa.org/entity/EntityInstance/1"
 ei.save()
     

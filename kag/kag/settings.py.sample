@@ -161,4 +161,4 @@ LOGGING = {
     }
 }
 
-BASE_URI = "http://KnowledgeOrientedArchitecture.org/KS/"
+THIS_KS_URI = "http://rootks.thekoa.org/"

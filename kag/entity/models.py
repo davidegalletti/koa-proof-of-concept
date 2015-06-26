@@ -50,7 +50,7 @@ class SerializableSimpleEntity(models.Model):
     # URI points to the a specific instance in a specific KS
     def generate_URIInstance(self):
         try:
-            return settings.BASE_URI + self.get_simple_entity().namespace + "/" + self.get_simple_entity().name_in_this_namespace + "/" + str(getattr(self, self.get_simple_entity().id_field))
+            return settings.THIS_KS_URI + self.get_simple_entity().namespace + "/" + self.get_simple_entity().name_in_this_namespace + "/" + str(getattr(self, self.get_simple_entity().id_field))
         except:
             return ""
     
@@ -223,18 +223,19 @@ class SerializableSimpleEntity(models.Model):
         else:
             # etn.external_reference = True
             xml_name = ''
+            json_name = ''
             if etn.simple_entity.name_field != "":
                 if format == 'XML':
                     xml_name = " " + etn.simple_entity.name_field + "=\"" + getattr(self, etn.simple_entity.name_field) + "\""
                 if format == 'JSON':
-                    xml_name = " " + etn.simple_entity.name_field + ": \"" + getattr(self, etn.simple_entity.name_field) + "\""
+                    json_name = ', "' + etn.simple_entity.name_field + '": "' + getattr(self, etn.simple_entity.name_field) + '"'
             if format == 'XML':
                 return '<' + tag_name + self.serialized_URI_SE() + 'URIInstance="' + self.URIInstance + '" ' + self._meta.pk.attname + '="' + str(self.pk) + '"' + xml_name + '/>'
             if format == 'JSON':
                 if etn.is_many:
-                    return '{ ' + self.serialized_URI_SE(format) + ', "URIInstance" : "' + self.URIInstance + '", "' + self._meta.pk.attname + '" : "' + str(self.pk) + '"'  + ' }'
+                    return '{ ' + self.serialized_URI_SE(format) + ', "URIInstance" : "' + self.URIInstance + '", "' + self._meta.pk.attname + '" : "' + str(self.pk) + '"' + json_name + ' }'
                 else:
-                    return '"' + tag_name + '" :  { ' + self.serialized_URI_SE(format) + ', "URIInstance" : "' + self.URIInstance + '", "' + self._meta.pk.attname + '" : "' + str(self.pk) + '"'  + ' }'
+                    return '"' + tag_name + '" :  { ' + self.serialized_URI_SE(format) + ', "URIInstance" : "' + self.URIInstance + '", "' + self._meta.pk.attname + '" : "' + str(self.pk) + '"' + json_name + ' }'
             
 
     
@@ -555,11 +556,9 @@ class SimpleEntity(SerializableSimpleEntity):
     '''
     Every entity has a work-flow; the basic one is the one that allows a method to create an instance
     '''
-    # the namespace from the organization owner of this SimpleEntity 
-    namespace = models.CharField(max_length=500L, blank=True)
     name_in_this_namespace = models.CharField(max_length=500L, blank=True)
     
-    # name corresponds to the class name
+    # this name corresponds to the class name
     name = models.CharField(max_length=100L)
     # for Django it corresponds to the module which contains the class 
     module = models.CharField(max_length=100L)
@@ -699,8 +698,14 @@ class VersionableEntityInstance(models.Model):
 class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, SerializableSimpleEntity):
     '''
     A chunk of knowledge; its data structure is described by self.entity
+    The only Versionable object so far
+    Serializable like many others 
+    It has an owner KS which can be inferred by the URIInstance but it is explicitly linked 
     '''
     owner_knowledge_server = models.ForeignKey(KnowledgeServer)
+    # NOT USED YET; the namespace from the organization owner of this EntityInstance 
+    namespace = models.CharField(max_length=500L, blank=True)
+
     entity = models.ForeignKey(Entity)
     # we have the ID of the instance because we do not know its class so we can't have a ForeignKey to an unknown class
     entry_point_instance_id = models.IntegerField()

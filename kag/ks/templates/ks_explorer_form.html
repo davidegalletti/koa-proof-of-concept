@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row-fluid">
+        <form method="post" action="{% url "ks_explorer" %}" class="span9">
+            <legend>Explore another Knowledge Server</legend>{% csrf_token %}
+            {{ form }}
+            <div class="row-fluid">
+                <div class="span2"><input type="submit" class="btn btn-primary" value="Submit" /></div>
+            </div>
+        </form>
+    </div>
+
+{% endblock %}
