@@ -54,11 +54,14 @@ class SerializableSimpleEntity(models.Model):
         except:
             return ""
     
-    def get_simple_entity(self):
+    def get_simple_entity(self, class_name = ""):
         '''
         finds the instance of class SimpleEntity where the name corresponds to the name of the class of self
         '''
-        return SimpleEntity.objects.get(name=self.__class__.__name__)
+        if class_name == "":
+            return SimpleEntity.objects.get(name=self.__class__.__name__)
+        else:
+            return SimpleEntity.objects.get(name=class_name)
 
     def entities(self):
         '''
@@ -136,7 +139,12 @@ class SerializableSimpleEntity(models.Model):
         etn.child_nodes = []
         for fk in self.foreign_key_attributes():
             etn_fk = EntityNode()
-            etn_fk.simple_entity = getattr(self, fk).get_simple_entity()
+            if getattr(self, fk) is None:
+                # the attribute is not set so I can't get its __class__.__name__ and I take it from the model
+                class_name = self._meta.get_field('entity').rel.model.__name__
+                etn_fk.simple_entity = self.get_simple_entity(class_name)
+            else:
+                etn_fk.simple_entity = getattr(self, fk).get_simple_entity()
             etn_fk.external_reference=True
             etn_fk.attribute = fk
             etn_fk.is_many=False
