@@ -4,7 +4,9 @@
     <div class="row-fluid">
         <ul>
         {% for entity in entities %}
-            <li>{{ entity.name }}</li>
+            <li>
+                <a href="{% url 'browse_entity_instance' "browse" ks_url entity.URIInstance %}">{{ entity.actual_instance_name }}</a> ( <a href="{% url 'browse_entity_instance' "xml" ks_url entity.URIInstance %}">XML</a> | <a href="{% url 'browse_entity_instance' "json" ks_url entity.URIInstance %}">JSON</a> )
+            </li>
         {% endfor %}
         </ul>
     </div>

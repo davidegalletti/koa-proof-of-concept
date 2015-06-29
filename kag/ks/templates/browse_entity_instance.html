@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row-fluid">
+        <ul>
+        {% for entity in entities %}
+            <li>
+                {{ entity.actual_instance_name }} {{ entity.URIInstance }}
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+
+{% endblock %}

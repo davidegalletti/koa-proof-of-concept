@@ -171,10 +171,7 @@ def api_entity_instances(request, format, base64URIInstance):
 
 def ks_explorer(request):
     try:
-        try:
-            ks_url = request.POST['ks_complete_url']
-        except:
-            ks_url = "http://127.0.0.1:8000"
+        ks_url = request.POST['ks_complete_url']
         local_url = reverse ('api_entities', args=("JSON",))
         response = urllib2.urlopen(ks_url + local_url)
         entities_json = response.read()
@@ -183,29 +180,45 @@ def ks_explorer(request):
         entities = []
         for ei in decoded['Export']['EntityInstances']:
             entity = {}
-            entity['name'] = ei['ActualInstance']['Entity']['name']
-            print(ei['ActualInstance']['Entity']['name'])
+            entity['actual_instance_name'] = ei['ActualInstance']['Entity']['name']
+            entity['URIInstance'] = base64.encodestring(ei['ActualInstance']['Entity']['URIInstance']).rstrip('\n')
             entities.append(entity)
     except Exception as es:
         pass
-    cont = RequestContext(request, {'entities':entities})
+    cont = RequestContext(request, {'entities':entities, 'ks_url':base64.encodestring(ks_url).rstrip('\n')})
     return render_to_response('ks_explorer_entities.html', context_instance=cont)
 
 
 def ks_explorer_form(request):
     form = myforms.ExploreOtherKSForm()
-#     else:
-#         form = myforms.ExploreOtherKSForm(request.POST)
-#         if form.is_valid():
-#             
-#             ks_url = form.cleaned_data['ks_complete_url'].strip()
-#             return HttpResponseRedirect(reverse ('ks_explorer', args=(base64.encodestring(ks_url),)))
 
     cont = RequestContext(request, {'form':form})
     return render_to_response('ks_explorer_form.html', context_instance=cont)
 
-
-
-
-
-
+def browse_entity_instance(request, format, ks_url, base64URIInstance):
+    ks_url = base64.decodestring(ks_url)
+    format = format.upper()
+    #base64URIInstance = base64.decodestring(base64URIInstance)
+    if format == 'XML':
+        local_url = reverse ('api_entity_instances', args=(format,base64URIInstance))
+    if format == 'JSON' or format == 'BROWSE':
+        local_url = reverse ('api_entity_instances', args=('JSON',base64URIInstance))
+    response = urllib2.urlopen(ks_url + local_url)
+    entities = response.read()
+    if format == 'XML':
+        return render(request, 'entity/export.xml', {'xml': entities}, content_type="application/xhtml+xml")
+    if format == 'JSON':
+        return render(request, 'entity/export.json', {'json': entities}, content_type="application/json")
+    if format == 'BROWSE':
+        # fare il parse
+        decoded = json.loads(entities)
+        entities = []
+        for ei in decoded['Export']['EntityInstances']:
+            entity = {}
+            actual_instance_class = ei['ActualInstance'].keys()[0]
+            entity['actual_instance_name'] = ei['ActualInstance'][actual_instance_class]['name']
+            entity['URIInstance'] = base64.encodestring(ei['ActualInstance'][actual_instance_class]['URIInstance']).rstrip('\n')
+            entities.append(entity)
+        cont = RequestContext(request, {'entities':entities})
+        return render_to_response('browse_entity_instance.html', context_instance=cont)
+    

@@ -201,7 +201,7 @@ class SerializableSimpleEntity(models.Model):
                         if format == 'XML':
                             serialized += "<" + child_node.attribute + ">"
                         if format == 'JSON':
-                            serialized += '"' + child_node.attribute + '" : ['
+                            serialized += ', "' + child_node.attribute + '" : ['
                         comma = ""
                         for child_instance in child_instances:
                             # let's prevent infinite loops if self relationships
@@ -721,39 +721,32 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
     def serialize_with_simple_entity(self, format = 'XML', force_external_reference=False):
         format = format.upper()
         if format == 'XML':
-            serialized_head = "<EntityInstance EntryPointInstanceId=\"" + str(self.entry_point_instance_id) + "\" InstanceURI=\"" + self.URIInstance + "\" VersionMajor=\"" + str(self.version_major) + "\" VersionMinor=\"" + str(self.version_minor) + "\" VersionPatch=\"" + str(self.version_patch) + "\" VersionReleased=\"" + str(self.version_released) + "\" VersionDescription=\"" + self.version_description + "\">"
+            serialized_head = "<EntityInstance namespace=\"" + self.namespace + "\" URIInstance=\"" + self.URIInstance + "\" VersionMajor=\"" + str(self.version_major) + "\" VersionMinor=\"" + str(self.version_minor) + "\" VersionPatch=\"" + str(self.version_patch) + "\" VersionReleased=\"" + str(self.version_released) + "\" VersionDescription=\"" + self.version_description + "\">"
         if format == 'JSON':
-            serialized_head = ' { "EntryPointInstanceId" : "' + str(self.entry_point_instance_id) + '", "InstanceURI" : "' + self.URIInstance + '", "VersionMajor" : "' + str(self.version_major) + '", "VersionMinor" : "' + str(self.version_minor) + '", "VersionPatch" : "' + str(self.version_patch) + '", "VersionReleased" : "' + str(self.version_released) + '", "VersionDescription" : "' + self.version_description + '" '
+            serialized_head = ' { "namespace" : "' + self.namespace + '", "URIInstance" : "' + self.URIInstance + '", "VersionMajor" : "' + str(self.version_major) + '", "VersionMinor" : "' + str(self.version_minor) + '", "VersionPatch" : "' + str(self.version_patch) + '", "VersionReleased" : "' + str(self.version_released) + '", "VersionDescription" : "' + self.version_description + '" '
         comma = ""    
         if format == 'JSON':
             comma = ", "
+
         e_simple_entity = SimpleEntity.objects.get(name="Entity")
-        temp_etn = EntityNode(simple_entity=e_simple_entity, external_reference=True, is_many=False, attribute = "")
-        if format == 'XML':
-            serialized_head += comma + self.entity.serialize(temp_etn, format = format)
-        if format == 'JSON':
-            serialized_head += comma + self.entity.serialize(temp_etn, format = format)
+        temp_etn = EntityNode(simple_entity=e_simple_entity, external_reference=True, is_many=False, attribute = "entity")
+        serialized_head += comma + self.entity.serialize(temp_etn, format = format)
+        
+        ks_simple_entity = SimpleEntity.objects.get(name="KnowledgeServer")
+        temp_etn = EntityNode(simple_entity=ks_simple_entity, external_reference=True, is_many=False, attribute = "owner_knowledge_server")
+        serialized_head += comma + self.owner_knowledge_server.serialize(temp_etn, format = format)
         
         ei_simple_entity = SimpleEntity.objects.get(name="EntityInstance")
         temp_etn = EntityNode(simple_entity=ei_simple_entity, external_reference=True, is_many=False, attribute = "root")
-        if format == 'XML':
-            serialized_head += comma + self.root.serialize(temp_etn, format = format)
-        if format == 'JSON':
-            serialized_head += comma + self.root.serialize(temp_etn, format = format)
+        serialized_head += comma + self.root.serialize(temp_etn, format = format)
 
         w_simple_entity = SimpleEntity.objects.get(name="Workflow")
-        temp_etn = EntityNode(simple_entity=w_simple_entity, external_reference=True, is_many=False, attribute = "")
-        if format == 'XML':
-            serialized_head += comma + self.workflow.serialize(temp_etn, format = format)
-        if format == 'JSON':
-            serialized_head += comma + self.workflow.serialize(temp_etn, format = format)
+        temp_etn = EntityNode(simple_entity=w_simple_entity, external_reference=True, is_many=False, attribute = "workflow")
+        serialized_head += comma + self.workflow.serialize(temp_etn, format = format)
         
         ws_simple_entity = SimpleEntity.objects.get(name="WorkflowStatus")
         temp_etn = EntityNode(simple_entity=ws_simple_entity, external_reference=True, is_many=False, attribute = "current_status")
-        if format == 'XML':
-            serialized_head += comma + self.current_status.serialize(temp_etn, format = format)
-        if format == 'JSON':
-            serialized_head += comma + self.current_status.serialize(temp_etn, format = format)
+        serialized_head += comma + self.current_status.serialize(temp_etn, format = format)
         
         se_simple_entity = self.entity.entry_point.simple_entity
         actual_class = utils.load_class(se_simple_entity.module + ".models", se_simple_entity.name)

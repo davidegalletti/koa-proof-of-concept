@@ -13,6 +13,7 @@ urlpatterns = patterns('',
     
     url(r'^ks_explorer_form/$', views.ks_explorer_form, name='ks_explorer_form'),
     url(r'^ks_explorer/$', views.ks_explorer, name='ks_explorer'),
+    url(r'^browse_entity_instance/(?P<format>.*)/(?P<ks_url>[\w|=|%|.]+)/(?P<base64URIInstance>[\w|=|%|.]+)/$', views.browse_entity_instance, name='browse_entity_instance'),
     
                        ###################   API   ####################
     #33:
