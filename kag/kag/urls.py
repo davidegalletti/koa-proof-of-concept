@@ -15,4 +15,5 @@ urlpatterns = patterns('',
     url(r'^ks/', include('ks.urls')),
     url(r'^entity/', include('entity.urls')),
     url(r'^admin/', include(admin.site.urls)),
+    url(r'^(?P<uri_instance>.*)/$', 'ks.views.api_catch_all', name='api_catch_all'), 
 )

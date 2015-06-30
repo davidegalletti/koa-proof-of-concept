@@ -26,7 +26,6 @@ urlpatterns = patterns('',
     url(r'^api/entities/(?P<format>.*)/$', views.api_entities, name='api_entities'), 
     #   catch all; fi I receive an unrecognized url I try to see whether it is a URIInstance
     # http://stackoverflow.com/questions/6545741/django-catch-all-url-without-breaking-append-slash
-    url(r'^(?P<uri_instance>.*)/$', views.api_catch_all, name='api_catch_all'), 
                        ###################   API ^ ####################
     
 )

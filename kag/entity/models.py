@@ -141,7 +141,7 @@ class SerializableSimpleEntity(models.Model):
             etn_fk = EntityNode()
             if getattr(self, fk) is None:
                 # the attribute is not set so I can't get its __class__.__name__ and I take it from the model
-                class_name = self._meta.get_field('entity').rel.model.__name__
+                class_name = self._meta.get_field(fk).rel.model.__name__
                 etn_fk.simple_entity = self.get_simple_entity(class_name)
             else:
                 etn_fk.simple_entity = getattr(self, fk).get_simple_entity()
@@ -503,6 +503,8 @@ class SerializableSimpleEntity(models.Model):
 
 class DBConnection(models.Model):
     connection_string = models.CharField(max_length=255L)
+    name = models.CharField(max_length=100L, null = True, blank=True)
+    description = models.CharField(max_length=2000L, null = True, blank=True)
 
 class Workflow(SerializableSimpleEntity):
     '''

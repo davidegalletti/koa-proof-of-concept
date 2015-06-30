@@ -43,9 +43,10 @@ def forwards_func(apps, schema_editor):
         SimpleEntity(id=12, name="Organization",  URIInstance="http://rootks.thekoa.org/entity/SimpleEntity/12", name_in_this_namespace="Organization", module="entity", description="", table_name="", id_field="id", name_field="name", description_field="description"),
         SimpleEntity(id=13, name="EntityInstance",  URIInstance="http://rootks.thekoa.org/entity/SimpleEntity/13", name_in_this_namespace="EntityInstance", module="entity", description="", table_name="", id_field="id", name_field="", description_field=""),
         SimpleEntity(id=14, name="KnowledgeServer",  URIInstance="http://rootks.thekoa.org/entity/SimpleEntity/14", name_in_this_namespace="KnowledgeServer", module="entity", description="", table_name="", id_field="id", name_field="name", description_field="description"),
+        SimpleEntity(id=15, name="DBConnection",  URIInstance="http://rootks.thekoa.org/entity/SimpleEntity/15", name_in_this_namespace="DBConnection", module="entity", description="", table_name="", id_field="id", name_field="name", description_field="description"),
         
     ])
-    seSimpleEntity=se[0];seAttribute=se[1];seApplication=se[2];seWorkflow=se[3];seWorkflowStatus=se[4];seMethod=se[5];seAttributeType=se[6];seWidget=se[7];seEntityNode=se[8];seEntity=se[9];seAttributeInAMethod=se[10];seOrganization=se[11];seEntityInstance=se[12];seKnowledgeServer=se[13]
+    seSimpleEntity=se[0];seAttribute=se[1];seApplication=se[2];seWorkflow=se[3];seWorkflowStatus=se[4];seMethod=se[5];seAttributeType=se[6];seWidget=se[7];seEntityNode=se[8];seEntity=se[9];seAttributeInAMethod=se[10];seOrganization=se[11];seEntityInstance=se[12];seKnowledgeServer=se[13];seDBConnection=se[14]
         
     at = AttributeType.objects.using(db_alias).bulk_create([
         AttributeType(id=1, name="Text", URIInstance="http://rootks.thekoa.org/entity/AttributeType/1"),
