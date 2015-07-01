@@ -23,7 +23,7 @@ def forwards_func(apps, schema_editor):
     the_koa_org = orgs[0]
     
     KSs = KnowledgeServer.objects.using(db_alias).bulk_create([
-        KnowledgeServer(pk=1, name="theKOA.org root KS", uri="http://rootks.thekoa.org", URIInstance="http://rootks.thekoa.org/entity/KnowledgeServer/1", description="The main KS, home of main Entitys", organization=the_koa_org, this_ks=True),
+        KnowledgeServer(pk=1, name="theKOA.org root KS", scheme="http", netloc="rootks.thekoa.org", URIInstance="http://rootks.thekoa.org/entity/KnowledgeServer/1", description="The main KS, home of main Entity(s)", organization=the_koa_org, this_ks=True),
     ])
     the_koa_org_ks = KSs[0]
     

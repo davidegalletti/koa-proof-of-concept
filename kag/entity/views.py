@@ -241,6 +241,3 @@ def perform_import(request):
     return HttpResponse("OK")
 
 
-def home(request):
-    
-    return render(request, 'entity/home.html')

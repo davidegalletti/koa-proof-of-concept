@@ -3,6 +3,10 @@ from __future__ import unicode_literals
 
 from django.db import models, migrations
 
+def forwards_func(apps, schema_editor):
+    pass
+
+
 
 class Migration(migrations.Migration):
 
@@ -11,4 +15,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(
+            forwards_func,
+        ),
     ]
+

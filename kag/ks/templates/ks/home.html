@@ -1,0 +1,15 @@
+<HTML>
+  <HEAD>
+    <TITLE>Knowledge Server{{ this_ks.name }}</TITLE>
+  </HEAD>
+  <BODY>
+    <h2>Knowledge Oriented Architecture - Proof of concept</h2>
+    <h3>Welcome to {{ this_ks.name }}</h3>
+    <p>This Knowledge Server is: {{ this_ks.description }}</p>
+    <p><A href="{% url 'upload_page' %}">Import page</A></p>
+    <p>To explore a KS <a href="{% url 'ks_explorer_form' %}">open this form</a></p>
+    Authenticate with user <A href="http://127.0.0.1:8000/application/klogin/davide/davide/">Davide</A> or <A href="http://127.0.0.1:8000/application/klogin/sara/sara/">Sara</A><BR/>
+    <A href="{% url 'index' %}">List of simple entities</A><BR/>
+    <A href="{% url 'detail' 1 %}">An application</A><BR/>
+  </BODY>
+</HTML>

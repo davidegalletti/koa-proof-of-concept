@@ -14,7 +14,7 @@ from django.shortcuts import render, get_object_or_404, render_to_response
 from django.template import RequestContext
 
 from entity import models as entity_models
-from entity.models import Entity, EntityInstance, SerializableSimpleEntity
+from entity.models import Entity, EntityInstance, SerializableSimpleEntity, KnowledgeServer
 from entity import views as entity_views
 import kag.utils as utils
 import forms as myforms 
@@ -186,14 +186,14 @@ def ks_explorer(request):
     except Exception as es:
         pass
     cont = RequestContext(request, {'entities':entities, 'ks_url':base64.encodestring(ks_url).rstrip('\n')})
-    return render_to_response('ks_explorer_entities.html', context_instance=cont)
+    return render_to_response('ks/ks_explorer_entities.html', context_instance=cont)
 
 
 def ks_explorer_form(request):
     form = myforms.ExploreOtherKSForm()
 
     cont = RequestContext(request, {'form':form})
-    return render_to_response('ks_explorer_form.html', context_instance=cont)
+    return render_to_response('ks/ks_explorer_form.html', context_instance=cont)
 
 def browse_entity_instance(request, format, ks_url, base64URIInstance):
     ks_url = base64.decodestring(ks_url)
@@ -220,5 +220,9 @@ def browse_entity_instance(request, format, ks_url, base64URIInstance):
             entity['URIInstance'] = base64.encodestring(ei['ActualInstance'][actual_instance_class]['URIInstance']).rstrip('\n')
             entities.append(entity)
         cont = RequestContext(request, {'entities':entities})
-        return render_to_response('browse_entity_instance.html', context_instance=cont)
+        return render_to_response('ks/browse_entity_instance.html', context_instance=cont)
     
+def home(request):
+    this_ks = KnowledgeServer.objects.get(this_ks = True)
+    cont = RequestContext(request, {'this_ks':this_ks})
+    return render(request, 'ks/home.html', context_instance=cont)

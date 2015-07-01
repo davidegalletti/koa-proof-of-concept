@@ -10,14 +10,18 @@ def forwards_func(apps, schema_editor):
     db_alias = schema_editor.connection.alias
 
     orgs = Organization.objects.using(db_alias).bulk_create([
-        Organization(pk=1, name="Ministero degli Interni", URIInstance="http://fakeinterniitks.thekoa.org/entity/Organization/1", description=""),
+        Organization(pk=2, name="Ministero degli Interni", URIInstance="http://testinterniitks.thekoa.org/entity/Organization/1", description="Test Ministero degli Interni"),
     ])
-    fake_interni_it_org = orgs[0]
+    test_interni_it_org = orgs[0]
+
+    root_ks = KnowledgeServer.objects.get(pk=1)
+    root_ks.this_ks = False
+    root_ks.save()
     
     KSs = KnowledgeServer.objects.using(db_alias).bulk_create([
-        KnowledgeServer(pk=2, name="Fake interni.it KS", uri="http://fakeinterniitks.thekoa.org", URIInstance="http://rootks.thekoa.org/entity/KnowledgeServer/2", description="Fake interni.it KS", organization=fake_interni_it_org, this_ks=True),
+        KnowledgeServer(pk=2, name="Test interni.it KS", scheme="http", netloc="testinterniitks.thekoa.org", URIInstance="http://testinterniitks.thekoa.org/entity/KnowledgeServer/2", description="Test interni.it KS", organization=test_interni_it_org, this_ks=True),
     ])
-    fake_interni_it_org_ks = KSs[0]
+    test_interni_it_org_ks = KSs[0]
     
 
 

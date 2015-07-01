@@ -263,6 +263,10 @@ class SerializableSimpleEntity(models.Model):
             SimpleEntity URI 1: "http://finanze.it/KS/fattura"
             SimpleEntity URI 2: "http://finanze.it/KS/sanzione"
             
+            TODO: When importing an EntityInstance from another KS, its root will point to either self or to an EntityInstance
+            that is on the other KS; in the latter case I search for this root EntityInstance using the field 
+            SerializableSimpleEntity.URI_imported_instance; if I find it I set root to point to it otherwise
+            I set it to self.
             '''
             #estrarre l'url del KS
             ks_url = ""
@@ -559,7 +563,12 @@ class KnowledgeServer(SerializableSimpleEntity):
     description = models.CharField(max_length=2000L, blank=True)
     # ASSERT: only one KnowledgeServer in each KS has this_ks = True; I use it to know in which KS I am
     this_ks = models.BooleanField(default=False)
-    uri = models.CharField(max_length=500L, blank=True)
+    #urlparse terminology https://docs.python.org/2/library/urlparse.html
+#     scheme e.g. { "http" | "https" }
+    scheme = models.CharField(max_length=50L)
+#     netloc e.g. "ks.thekoa.org"
+    netloc = models.CharField(max_length=200L)
+    
     organization = models.ForeignKey(Organization)
 
 class SimpleEntity(SerializableSimpleEntity):
