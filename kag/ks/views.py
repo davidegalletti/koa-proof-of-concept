@@ -21,11 +21,11 @@ import forms as myforms
 
 
 
-def api_simple_entity_definition(request, format, base64URISimpleEntity):
+def api_simple_entity_definition(request, format, base64_SimpleEntity_URIInstance):
     '''
     '''
     format = format.upper()
-    URISimpleEntity = base64.decodestring(base64URISimpleEntity)
+    URISimpleEntity = base64.decodestring(base64_SimpleEntity_URIInstance)
     actual_class = entity_models.SimpleEntity
 
     se = entity_models.SimpleEntity.retrieve(actual_class, URISimpleEntity, False)
@@ -41,12 +41,12 @@ def api_simple_entity_definition(request, format, base64URISimpleEntity):
         exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
         return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
 
-def api_entity_instance(request, format, base64URIInstance):
+def api_entity_instance(request, format, base64_EntityInstance_URIInstance):
     '''
         It returns the EntityInstance with the URIInstance in the parameter 
         
         parameter:
-        * base64URIInstance: URIInstance of the EntityInstance base64 encoded
+        * base64_EntityInstance_URIInstance: URIInstance of the EntityInstance base64 encoded
         
         Implementation:
         # it creates the SimpleEntity class, 
@@ -54,7 +54,7 @@ def api_entity_instance(request, format, base64URIInstance):
         # it runs to_xml of the SimpleEntity using EntityInstance.entity.entry_point
     '''
     format = format.upper()
-    URIInstance = base64.decodestring(base64URIInstance)
+    URIInstance = base64.decodestring(base64_EntityInstance_URIInstance)
     ei = EntityInstance.retrieve(EntityInstance, URIInstance, False)
 
     if format == 'JSON':
@@ -105,7 +105,7 @@ def api_catch_all(request, uri_instance):
                 exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
                 return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
         else:
-            raise(Exception('The url "' + uri_instance + '" does not match the URIInstance format'))
+            raise(Exception("The url '" + uri_instance + "' does not match the URIInstance format"))
     except Exception as es:
         if format == 'JSON':
             exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "Error" : "' + str(es) + '" } }'
@@ -122,24 +122,26 @@ def api_entities(request, format):
             None
         
         Implementation:
-            Invoking api_entity_instances with parameter "Entity-EntityNode-Application"
+            Invoking api_entity_instances #64 with parameter "Entity-EntityNode-Application"
             so that I get all the Entities in a shallow export
     '''
-    # TODO: devo trovare lo URIInstance di "Entity-EntityNode-Application" cioè di un Entity con entry_point.simple_entity Entity
-    # che sia anche released
+    # Look for all Entity of type "Entity-EntityNode-Application" ...
     entities_id = Entity.objects.filter(name="Entity-EntityNode-Application").values("id")
-    ei = EntityInstance.objects.get(version_released=True, pk__in=entities_id)
+    # Look for the only EntityInstance whose Entity is *incidentally* of the above type (entity_id__in=entities_id)
+    # whose instance is ov the above type entry_point_instance_id__in=entities_id
+    # and it is released (there must be exactly one!
+    ei = EntityInstance.objects.get(version_released=True, entry_point_instance_id__in=entities_id, entity_id__in=entities_id)
     e = Entity.objects.get(pk=ei.entry_point_instance_id)
     
     return api_entity_instances(request, format, base64.encodestring(e.URIInstance))
 
-def api_entity_instances(request, format, base64URIInstance):
+def api_entity_instances(request, format, base64_Entity_URIInstance):
     '''
         http://redmine.davide.galletti.name/issues/64
 
         parameter:
         * format { 'XML' | 'JSON' }
-        * base64URIInstance: URIInstance of the Entity base64 encoded
+        * base64_Entity_URIInstance: URIInstance of the Entity base64 encoded
         
         Implementation:
         # it fetches the Entity from the DB, look for all the EntityInstance
@@ -147,7 +149,7 @@ def api_entity_instances(request, format, base64URIInstance):
         # it returns the list xml encoded
     '''
     format = format.upper()
-    URIInstance = base64.decodestring(base64URIInstance)
+    URIInstance = base64.decodestring(base64_Entity_URIInstance)
     e = Entity.retrieve(Entity, URIInstance, False)
     
     final_ei_list = []
