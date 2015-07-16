@@ -770,8 +770,8 @@ class WorkflowMethod(SerializableSimpleEntity):
     '''
     If there are no initial_statuses then this is a method which creates the entity
     '''
-    initial_statuses = models.ManyToManyField(WorkflowStatus, blank=True, related_name="+")
-    final_status = models.ForeignKey(WorkflowStatus, related_name="+")
+    initial_statuses = models.ManyToManyField("WorkflowStatus", blank=True, related_name="+")
+    final_status = models.ForeignKey("WorkflowStatus", related_name="+")
     workflow = models.ForeignKey(Workflow)
 
 
@@ -792,13 +792,6 @@ class WorkflowEntityInstance(models.Model):
         abstract = True
 
 
-class WorkflowMethod(SerializableSimpleEntity):
-    '''
-    If there are no initial_statuses then this is a method which creates the entity
-    '''
-    initial_statuses = models.ManyToManyField(WorkflowStatus, blank=True, related_name="+")
-    final_status = models.ForeignKey(WorkflowStatus, related_name="+")
-    workflow = models.ForeignKey(Workflow)
 
 class WorkflowTransition(SerializableSimpleEntity):
     instance = models.ForeignKey("EntityInstance")
@@ -1027,9 +1020,9 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
     def serialize_with_simple_entity(self, format = 'XML', force_external_reference=False):
         format = format.upper()
         if format == 'XML':
-            serialized_head = "<EntityInstance namespace=\"" + self.namespace + "\" URIInstance=\"" + self.URIInstance + "\" VersionMajor=\"" + str(self.version_major) + "\" VersionMinor=\"" + str(self.version_minor) + "\" VersionPatch=\"" + str(self.version_patch) + "\" VersionReleased=\"" + str(self.version_released) + "\" VersionDescription=\"" + self.version_description + "\">"
+            serialized_head = "<EntityInstance namespace=\"" + self.entity_structure.namespace + "\" URIInstance=\"" + self.URIInstance + "\" VersionMajor=\"" + str(self.version_major) + "\" VersionMinor=\"" + str(self.version_minor) + "\" VersionPatch=\"" + str(self.version_patch) + "\" VersionReleased=\"" + str(self.version_released) + "\" VersionDescription=\"" + self.version_description + "\">"
         if format == 'JSON':
-            serialized_head = ' { "namespace" : "' + self.namespace + '", "URIInstance" : "' + self.URIInstance + '", "VersionMajor" : "' + str(self.version_major) + '", "VersionMinor" : "' + str(self.version_minor) + '", "VersionPatch" : "' + str(self.version_patch) + '", "VersionReleased" : "' + str(self.version_released) + '", "VersionDescription" : "' + self.version_description + '" '
+            serialized_head = ' { "namespace" : "' + self.entity_structure.namespace + '", "URIInstance" : "' + self.URIInstance + '", "VersionMajor" : "' + str(self.version_major) + '", "VersionMinor" : "' + str(self.version_minor) + '", "VersionPatch" : "' + str(self.version_patch) + '", "VersionReleased" : "' + str(self.version_released) + '", "VersionDescription" : "' + self.version_description + '" '
         comma = ""    
         if format == 'JSON':
             comma = ", "
@@ -1054,7 +1047,7 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
         temp_etn = EntityStructureNode(simple_entity=ws_simple_entity, external_reference=True, is_many=False, attribute = "current_status")
         serialized_head += comma + self.current_status.serialize(temp_etn, format = format)
         
-        se_simple_entity = self.entity.entry_point.simple_entity
+        se_simple_entity = self.entity_structure.entry_point.simple_entity
         actual_class = utils.load_class(se_simple_entity.module + ".models", se_simple_entity.name)
         instance = actual_class.objects.get(pk=self.entry_point_instance_id)
         if force_external_reference:

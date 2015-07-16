@@ -29,19 +29,19 @@ def index(request):
     
     return render(request, 'entity/index.html', context)
 
-def entity_index(request, entity_id):
-    e = SimpleEntity.objects.get(pk=entity_id)
+def entity_index(request, simple_entity_id):
+    e = SimpleEntity.objects.get(pk=simple_entity_id)
     actual_class = utils.load_class(e.module + ".models", e.name)
     instance_list = actual_class.objects.all() # eval(e.name + ".objects.all()")
     context = {'instance_list': instance_list, "class_name": e.name}
     
     return render(request, 'entity/index.html', context)
 
-def detail(request, entity_id, application_id):
+def detail(request, simple_entity_id, application_id):
     if not request.user.is_authenticated():
         return redirect('/application/')
     else:
-        entity = get_object_or_404(SimpleEntity, pk=entity_id)
+        entity = get_object_or_404(SimpleEntity, pk=simple_entity_id)
         application = get_object_or_404(Application, pk=application_id)
         authenticated_user = request.user
         kuser = KUser.objects.get(login = request.user.username)
@@ -74,11 +74,11 @@ def getForm(method, name="FlyModel"):
 
     return FormAlVolo(cmod)
 
-def method(request, entity_id, application_id, method_id):
-    # entity_id is 0 when the method creates an instance of entity
+def method(request, simple_entity_id, application_id, method_id):
+    # simple_entity_id is 0 when the method creates an instance of entity
     entity = None
-    if entity_id>0:
-        entity = get_object_or_404(SimpleEntity, pk=entity_id)
+    if simple_entity_id>0:
+        entity = get_object_or_404(SimpleEntity, pk=simple_entity_id)
     application = get_object_or_404(Application, pk=application_id)
     method = get_object_or_404(Method, pk=method_id)
     authenticated_user = request.user
