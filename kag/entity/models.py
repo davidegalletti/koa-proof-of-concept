@@ -530,11 +530,12 @@ class Workflow(SerializableSimpleEntity):
 
 @receiver(post_save, sender=Workflow)
 def model_post_save(sender, **kwargs):
-    print "Saved kwargs['instance'].URIInstance: " + kwargs['instance'].URIInstance
     if kwargs['instance'].URIInstance == "":
-       kwargs['instance'].URIInstance = kwargs['instance'].generate_URIInstance()
-       print "kwargs['instance'].URIInstance: " + kwargs['instance'].URIInstance
-#        kwargs['instance'].save()
+        try:
+            kwargs['instance'].URIInstance = kwargs['instance'].generate_URIInstance()
+            kwargs['instance'].save()
+        except Exception as e:
+            print e
 # signals.post_save.connect(add_URIInstance, sender=SerializableSimpleEntity)
 
 
