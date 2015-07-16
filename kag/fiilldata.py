@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from userauthorization.models import KUser, PermissionHolder
 from application.models import Application, Method, Widget
 
-from entity.models import SimpleEntity, Attribute, WorkflowStatus, Workflow, AttributeType, Entity, EntityNode, EntityInstance
+from entity.models import SimpleEntity, Attribute, WorkflowStatus, Workflow, AttributeType, Entity, EntityNode, EntityInstance, Organization
 
 
 
@@ -95,6 +95,7 @@ davide.permission_holder.save()
 
 
 ei = EntityInstance()
+ei.owner_organization = Organization.objects.get(pk=1)
 ei.entity = Entity.objects.get(pk=1)
 ei.entry_point_instance_id = 1
 ei.workflow = w
@@ -104,6 +105,6 @@ ei.set_version()
 ei.version_description = "Initial version"
 ei.version_released = True
 ei.save()
-ei.URIInstance = "http://thekoa.org/KS/entity/EntityInstance/1"
+ei.URIInstance = "http://rootks.thekoa.org/entity/EntityInstance/1"
 ei.save()
     

@@ -8,10 +8,16 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('userauthorization', '0001_initial'),
+        ('application', '0001_initial'),
         ('entity', '0001_initial'),
     ]
 
     operations = [
+        migrations.AddField(
+            model_name='attributetype',
+            name='widgets',
+            field=models.ManyToManyField(to='application.Widget', blank=True),
+        ),
         migrations.AddField(
             model_name='workflowtransition',
             name='user',

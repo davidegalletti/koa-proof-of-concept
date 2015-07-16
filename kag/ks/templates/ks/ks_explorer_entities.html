@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row-fluid">
+        <ul>
+        {% for entity in entities %}
+            <li>
+                <a href="{% url 'browse_entity_instance' ks_url entity.URIInstance "browse" %}">{{ entity.actual_instance_name }}</a> ( <a href="{% url 'browse_entity_instance' ks_url entity.URIInstance "xml" %}">XML</a> | <a href="{% url 'browse_entity_instance' ks_url entity.URIInstance "json" %}">JSON</a> )
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+
+{% endblock %}

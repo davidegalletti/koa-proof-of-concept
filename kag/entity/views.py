@@ -9,7 +9,7 @@ from django.shortcuts import render, get_object_or_404, redirect, render_to_resp
 from django.template import RequestContext
 
 from application.models import Application, Method
-from entity.models import SimpleEntity, Entity, EntityNode, UploadedFile, SerializableEntity
+from entity.models import SimpleEntity, Entity, EntityNode, UploadedFile, SerializableSimpleEntity
 from forms import UploadFileForm, ImportChoice, ImportChoiceNothingOnDB
 from lxml import etree
 from userauthorization.models import KUser, PermissionHolder
@@ -86,25 +86,12 @@ def method(request, entity_id, application_id, method_id):
     attrib_form = getForm(method)
     return render(request, 'entity/method.html', {'entity': entity, 'application': application, 'authenticated_user': authenticated_user, 'method': method, 'form': attrib_form})
 
-def export(request, entity_id, entity_instance_id, simple_entity_id):
+def export(request, entity_id, simple_entity_instance_id, simple_entity_id):
     se = SimpleEntity.objects.get(pk = simple_entity_id)
     actual_class = utils.load_class(se.module + ".models", se.name)
-    instance = get_object_or_404(actual_class, pk=entity_instance_id)
+    instance = get_object_or_404(actual_class, pk=simple_entity_instance_id)
     e = Entity.objects.get(pk = entity_id)
-    exported_xml = "<Export EntityName=\"" + e.name + "\" EntityURI=\"" + e.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + instance.to_xml(e.entry_point, exported_instances = []) + "</Export>"
-    xmldoc = minidom.parseString(exported_xml)
-    exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
-    return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
-    
-def export_stub(request, entity_id):
-    #non funziona al momento; chiarire il nome stub e l'utilizzo del parametro stub in to_xml 
-    e = get_object_or_404(Entity, pk = entity_id)
-    se = e.entry_point.simple_entity
-    actual_class = utils.load_class(se.module + ".models", se.name)
-    instance = actual_class()
-    # I need a dictionary to prevent infinite loop and to control how many times I export a specific class
-    export_count_per_class = {}
-    exported_xml = "<Export EntityName=\"" + e.name + "\" EntityURI=\"" + e.URIInstance + "\">" + instance.to_xml(e.entry_point, True, export_count_per_class) + "</Export>"
+    exported_xml = "<Export EntityName=\"" + e.name + "\" EntityURI=\"" + e.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + instance.serialize(e.entry_point, exported_instances = []) + "</Export>"
     xmldoc = minidom.parseString(exported_xml)
     exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
     return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
@@ -161,7 +148,7 @@ def upload_page(request):
                     actual_class = utils.load_class(module_name + ".models", child_node.tagName)
                     try:
                         '''
-                        ?How does the import work wrt URIInstance? A SerializableEntity has
+                        ?How does the import work wrt URIInstance? A SerializableSimpleEntity has
                             URIInstance
                             URI_imported_instance
                         attributes; the second comes from the imported record (if any); the first is generated
@@ -169,7 +156,7 @@ def upload_page(request):
                         will tell you where the record comes from via import or fetch (fetch not implemented yet) 
                         '''
                         if not simple_entity_uri_instance is None:
-                            simple_entity_on_db = SerializableEntity.retrieve(actual_class, simple_entity_uri_instance, False)
+                            simple_entity_on_db = SerializableSimpleEntity.retrieve(actual_class, simple_entity_uri_instance, False)
                             initial_data['simple_entity_on_db'] = simple_entity_on_db
                             initial_data['simple_entity_on_db_name'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.name_field) if e.entry_point.simple_entity.name_field else ""
                             initial_data['simple_entity_on_db_description'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.description_field) if e.entry_point.simple_entity.description_field else ""
@@ -248,43 +235,9 @@ def perform_import(request):
     if always_insert or (simple_entity_uri_instance is None):
         instance = actual_class()
     else:
-        instance = SerializableEntity.retrieve(actual_class, simple_entity_uri_instance, False)
+        instance = SerializableSimpleEntity.retrieve(actual_class, simple_entity_uri_instance, False)
     #At least the first node has full export = True otherwise I would not import anything but just load something from the db 
     instance.from_xml(child_node, et.entry_point, always_insert)
     return HttpResponse("OK")
 
 
-def entity_stub(request, entity_id):
-    entity = get_object_or_404(SimpleEntity, pk=entity_id)
-    etn = EntityNode(simple_entity=entity)
-    etn.save()
-    et = Entity(entry_point=etn)
-
-    etn_entity = SimpleEntity.objects.get(name="EntityNode")
-    export_etn = EntityNode(simple_entity=etn_entity)
-    #Django's ORM forces us to save it on the db
-    export_etn.save()
-    e_entity = SimpleEntity.objects.get(name="SimpleEntity")
-    export_etn_child = EntityNode(simple_entity=e_entity, attribute="simple_entity")
-    export_etn_child.save()
-    export_etn.child_nodes.add(export_etn_child)
-    export_etn.save()
-    ets = entity.entity_stub(etn=etn, export_etn=export_etn, class_list=[])
-
-    et_xml_str = et.to_xml(et.entry_point)
-    et_xml = minidom.parseString(et_xml_str)
-    et_xml.documentElement.appendChild(ets.documentElement)
-
-    exp_str = '<Export EntityURI="' + et.URIInstance + '"></Export>'
-    exp_xml = minidom.parseString(exp_str)
-    exp_xml.documentElement.appendChild(et_xml.documentElement)
-    #cancello gli oggetti salvati
-    etn.delete()
-    export_etn_child.delete()
-    export_etn.delete()
-    res = exp_xml.toprettyxml()
-    return HttpResponse(res, content_type="application/xhtml+xml")
-
-def home(request):
-    
-    return render(request, 'entity/home.html')
