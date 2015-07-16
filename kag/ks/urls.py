@@ -21,9 +21,9 @@ urlpatterns = patterns('',
     #36:
     url(r'^api/entity_instance/(?P<base64_EntityInstance_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_entity_instance, name='api_entity_instance'),
     #64: 
-    url(r'^api/entity_instances/(?P<base64_Entity_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_entity_instances, name='api_entity_instances'),
+    url(r'^api/entity_instances/(?P<base64_EntityStructure_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_entity_instances, name='api_entity_instances'),
     #46:
-    url(r'^api/entities/(?P<format>.*)/$', views.api_entities, name='api_entities'), 
+    url(r'^api/entity_structures/(?P<format>.*)/$', views.api_entity_structures, name='api_entity_structures'), 
     #80:
     url(r'^api/ks_info/(?P<base64_KS_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_ks_info, name='ks_info'), 
                        ###################   API ^ ####################

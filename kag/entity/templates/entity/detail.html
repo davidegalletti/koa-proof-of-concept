@@ -1,11 +1,11 @@
-Entity: {{ entity.name }}<br>
+Entity Structure: {{ entity_structure.name }}<br>
 Application: {{ application.name }}<br>
 {% if authenticated_user != None %}
 {{authenticated_user.username}}
 <h3>Methods</h3>
 <ul>
 {% for method in methods %}
-    <li><a href="{% url 'method' entity.id application.id method.id %}">{{ method.id }} - {{ method.name }}<a></li>
+    <li><a href="{% url 'method' entity_structure.id application.id method.id %}">{{ method.id }} - {{ method.name }}<a></li>
 {% endfor %}
 </ul>
 {% endif %}

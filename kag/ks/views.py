@@ -14,7 +14,7 @@ from django.shortcuts import render, get_object_or_404, render_to_response
 from django.template import RequestContext
 
 from entity import models as entity_models
-from entity.models import Entity, EntityInstance, SerializableSimpleEntity, KnowledgeServer
+from entity.models import EntityStructure, EntityInstance, SerializableSimpleEntity, KnowledgeServer
 import kag.utils as utils
 import forms as myforms 
 
@@ -28,14 +28,14 @@ def api_simple_entity_definition(request, base64_SimpleEntity_URIInstance, forma
     actual_class = entity_models.SimpleEntity
 
     se = entity_models.SimpleEntity.retrieve(actual_class, URISimpleEntity, False)
-    entity_id = 1
+    
     instance = get_object_or_404(actual_class, pk=se.id)
-    e = entity_models.Entity.objects.get(pk = entity_id)
+    e = entity_models.EntityStructure.objects.get(name = entity_models.EntityStructure.simple_entity_entity_structure_name)
     if format == 'JSON':
-        exported_json = '{ "Export" : { "EntityName" : "' + e.name + '", "EntityURI" : "' + e.URIInstance + '", "ExportDateTime" : "' + str(datetime.now()) + '", ' + instance.serialize(e.entry_point, format=format, exported_instances = []) + ' } }'
+        exported_json = '{ "Export" : { "EntityStructureName" : "' + e.name + '", "EntityStructureURI" : "' + e.URIInstance + '", "ExportDateTime" : "' + str(datetime.now()) + '", ' + instance.serialize(e.entry_point, format=format, exported_instances = []) + ' } }'
         return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
     if format == 'XML':
-        exported_xml = "<Export EntityName=\"" + e.name + "\" EntityURI=\"" + e.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + instance.serialize(e.entry_point, format=format, exported_instances = []) + "</Export>"
+        exported_xml = "<Export EntityStructureName=\"" + e.name + "\" EntityStructureURI=\"" + e.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + instance.serialize(e.entry_point, format=format, exported_instances = []) + "</Export>"
         xmldoc = minidom.parseString(exported_xml)
         exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
         return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
@@ -70,6 +70,8 @@ def api_catch_all(request, uri_instance):
     '''
         parameters:
             url: http://rootks.thekoa.org/entity/Attribute/1
+            url: http://rootks.thekoa.org/entity/Attribute/1/xml
+            url: http://rootks.thekoa.org/entity/Attribute/1/json
         
         Implementation:
             I do something only if it is a URIInstance in my database; otherwise I return a not found message
@@ -116,46 +118,45 @@ def api_catch_all(request, uri_instance):
             exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
             return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
 
-def api_entities(request, format):
+def api_entity_structures(request, format):
     '''
         parameters:
             None
         
         Implementation:
-            Invoking api_entity_instances #64 with parameter "Entity-EntityNode-Application"
+            Invoking api_entity_instances #64 with parameter "EntityStructure-EntityStructureNode-Application"
             so that I get all the Entities in a shallow export
     '''
-    # Look for all Entity of type "Entity-EntityNode-Application" ...
-    entities_id = Entity.objects.filter(name=Entity.entity_structure_name).values("id")
-    # Look for the only EntityInstance whose Entity is *incidentally* of the above type (entity_id__in=entities_id)
+    # Look for all EntityStructure of type "EntityStructure-EntityStructureNode-Application" ...
+    entities_id = EntityStructure.objects.filter(name=EntityStructure.entity_structure_entity_structure_name).values("id")
+    # Look for the only EntityInstance whose EntityStructure is *incidentally* of the above type (entity_id__in=entities_id)
     # whose instance is ov the above type entry_point_instance_id__in=entities_id
     # and it is released (there must be exactly one!
-    ei = EntityInstance.objects.get(version_released=True, entry_point_instance_id__in=entities_id, entity_id__in=entities_id)
-    e = Entity.objects.get(pk=ei.entry_point_instance_id)
+    ei = EntityInstance.objects.get(version_released=True, entry_point_instance_id__in=entities_id, entity_structure_id__in=entities_id)
+    e = EntityStructure.objects.get(pk=ei.entry_point_instance_id)
     
     return api_entity_instances(request, base64.encodestring(e.URIInstance), format)
 
-def api_entity_instances(request, base64_Entity_URIInstance, format):
+def api_entity_instances(request, base64_EntityStructure_URIInstance, format):
     '''
         http://redmine.davide.galletti.name/issues/64
         all the instances of a given structure
         
         parameter:
         * format { 'XML' | 'JSON' }
-        * base64_Entity_URIInstance: URIInstance of the Entity base64 encoded
+        * base64_Entity_URIInstance: URIInstance of the EntityStructure base64 encoded
         
         Implementation:
-        # it fetches the Entity from the DB, look for all the EntityInstance
-        # of that Entity; it takes the latest version of each versionset
-        # it returns the list xml encoded
+        # it fetches the EntityStructure from the DB, look for all the EntityInstance
+        # of that EntityStructure; it takes the latest version of each versionset
+        # and returns the list
     '''
     format = format.upper()
-    URIInstance = base64.decodestring(base64_Entity_URIInstance)
-    e = Entity.retrieve(Entity, URIInstance, False)
+    URIInstance = base64.decodestring(base64_EntityStructure_URIInstance)
+    e = EntityStructure.retrieve(EntityStructure, URIInstance, False)
     
-    final_ei_list = []
-    # Now I need to get all the released EntityInstance of the Entity passed as a parameter
-    released_entity_instances = EntityInstance.objects.filter(entity = e, version_released=True)
+    # Now I need to get all the released EntityInstance of the EntityStructure passed as a parameter
+    released_entity_instances = EntityInstance.objects.filter(entity_structure = e, version_released=True)
     serialized = ""
     comma = ""
     for ei in released_entity_instances:
@@ -183,8 +184,8 @@ def ks_explorer(request):
         entities = []
         for ei in decoded['Export']['EntityInstances']:
             entity = {}
-            entity['actual_instance_name'] = ei['ActualInstance']['Entity']['name']
-            entity['URIInstance'] = base64.encodestring(ei['ActualInstance']['Entity']['URIInstance']).rstrip('\n')
+            entity['actual_instance_name'] = ei['ActualInstance']['EntityStructure']['name']
+            entity['URIInstance'] = base64.encodestring(ei['ActualInstance']['EntityStructure']['URIInstance']).rstrip('\n')
             entities.append(entity)
     except Exception as es:
         pass
@@ -236,7 +237,7 @@ def api_ks_info(request, base64_KS_URIInstance, format):
 
         parameter:
         * format { 'XML' | 'JSON' }
-        * base64_Entity_URIInstance: URIInstance of the Entity base64 encoded
+        * base64_Entity_URIInstance: URIInstance of the EntityStructure base64 encoded
         
         Implementation:
         # it fetches the KS from the DB, takes its Oragnization and exports
@@ -244,12 +245,12 @@ def api_ks_info(request, base64_KS_URIInstance, format):
     '''
     format = format.upper()
     URIInstance = base64.decodestring(base64_KS_URIInstance)
-    ks = KnowledgeServer.retrieve(Entity, URIInstance, False)
+    ks = KnowledgeServer.retrieve(EntityStructure, URIInstance, False)
     
     ks.organization
     
     final_ei_list = []
-    # Now I need to get all the released EntityInstance of the Entity passed as a parameter
+    # Now I need to get all the released EntityInstance of the EntityStructure passed as a parameter
     released_entity_instances = EntityInstance.objects.filter(entity = e, version_released=True)
     serialized = ""
     comma = ""

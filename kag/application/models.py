@@ -10,7 +10,7 @@ class AttributeInAMethod(SerializableSimpleEntity):
     # ASSERT: exactly one out of workflow and implementation_method is not null
     # workflow not null means we have a sub-workflow for the attribute; ASSERT: in this case
     # the attribute must point to an instance of a SimpleEntity of the same class of the SimpleEntity
-    # that is in the entry_point of workflow.entity
+    # that is in the entry_point of workflow.entity_structure
     workflow = models.ForeignKey(Workflow, blank=True, null=True)
     # method (inline)
     implementation_method = models.ForeignKey("Method", blank=True, null=True)

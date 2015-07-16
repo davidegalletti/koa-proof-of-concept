@@ -8,7 +8,7 @@ class TaxonomyLevel(models.Model):
     name_field = models.CharField(max_length=255L, db_column='nameField', blank=True) # Field name made lowercase.
     label = models.CharField(max_length=255L, blank=True)
     default = models.BooleanField(default=True)
-    entity = models.ForeignKey('entity.Entity', blank=True)
+    entity_structure = models.ForeignKey('entity.EntityStructure', blank=True)
 #    lower_levels = models.ManyToManyField('self')
     upper_levels = models.ManyToManyField('self', through='TaxonomyLevelGraph', symmetrical=False, related_name='lower_levels')
 

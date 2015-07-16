@@ -59,7 +59,7 @@ class SerializableSimpleEntity(models.Model):
     def generate_URIInstance(self):
         try:
             this_ks = KnowledgeServer.objects.get(this_ks = True)
-            return this_ks.uri() + self.get_simple_entity().namespace + "/" + self.get_simple_entity().name_in_this_namespace + "/" + str(getattr(self, self.get_simple_entity().id_field))
+            return this_ks.uri() + self.get_simple_entity().entity_structure.namespace + "/" + self.get_simple_entity().name + "/" + str(getattr(self, self.get_simple_entity().id_field))
         except:
             return ""
     
@@ -76,7 +76,7 @@ class SerializableSimpleEntity(models.Model):
         '''
         Lists the entities associated whose entry point is the instance of class SimpleEntity corresponding to the class of self
         '''
-        return Entity.objects.filter(entry_point__simple_entity=self.get_simple_entity())
+        return EntityStructure.objects.filter(entry_point__simple_entity=self.get_simple_entity())
 
     def foreign_key_attributes(self): 
         attributes = []
@@ -115,38 +115,38 @@ class SerializableSimpleEntity(models.Model):
                     attributes += '"' + key.name + '" : "' + str(getattr(self, key.name)) + '", '
         return attributes
 
-    def shallow_entity(self):
+    def shallow_entity_structure(self):
         '''
-        if a user wants to serialize a SerializableSimpleEntity without passing an Entity
-        I search for an Entity with shallow=True; if I can't find it I create it and save it
+        if a user wants to serialize a SerializableSimpleEntity without passing an EntityStructure
+        I search for an EntityStructure with is_shallow=True; if I can't find it I create it and save it
         for future use
         '''
         try:
-            se = Entity.objects.get(entry_point__simple_entity = self.get_simple_entity(), shallow = True)
+            se = EntityStructure.objects.get(entry_point__simple_entity = self.get_simple_entity(), is_shallow = True)
         except:
-            se = Entity()
-            se.shallow = True
+            se = EntityStructure()
+            se.is_shallow = True
             se.name = self.__class__.__name__ + " (shallow)"
             se.simple_entity = self.get_simple_entity()
-            se.entry_point = self.shallow_entity_node()
+            se.entry_point = self.shallow_entity_structure_node()
             se.save()
             se.URIInstance = se.generate_URIInstance()
             se.save()
         return se 
         
-    def shallow_entity_node(self):
+    def shallow_entity_structure_node(self):
         '''
-        it creates an EntityNode used to serialize (to_xml) self. It has the SimpleEntity 
+        it creates an EntityStructureNode used to serialize (to_xml) self. It has the SimpleEntity 
         and references to ForeignKeys and ManyToMany
         '''
-        etn = EntityNode()
+        etn = EntityStructureNode()
         etn.simple_entity = self.get_simple_entity() 
         etn.external_reference=False
         etn.is_many=False
         etn.save()
         etn.child_nodes = []
         for fk in self.foreign_key_attributes():
-            etn_fk = EntityNode()
+            etn_fk = EntityStructureNode()
             if getattr(self, fk) is None:
                 # the attribute is not set so I can't get its __class__.__name__ and I take it from the model
                 class_name = self._meta.get_field(fk).rel.model.__name__
@@ -159,10 +159,10 @@ class SerializableSimpleEntity(models.Model):
             etn_fk.save()
             etn.child_nodes.add(etn_fk)
         for rm in self.related_manager_attributes():
-            #TODO: shallow_entity_node: implement self.related_manager_attributes case
+            #TODO: shallow_entity_structure_node: implement self.related_manager_attributes case
             pass
         for mrm in self.many_related_manager_attributes():
-            #TODO: shallow_entity_node: implement self.many_related_manager_attributes case
+            #TODO: shallow_entity_structure_node: implement self.many_related_manager_attributes case
             pass
         etn.save()
         return etn
@@ -177,12 +177,12 @@ class SerializableSimpleEntity(models.Model):
             If I have already exported this instance I don't want to duplicate all details hence I just export it's URIInstance, 
             name and SimpleEntity URI. Then I need to add an attribute so that when importing it I will recognize that its details
             are somewhere else in the file
-            <EntityNode URISimpleEntity="....." URIInstance="...." attribute="...." KS_TAG_WITH_NO_DATA=""
-            the TAG "KS_TAG_WITH_NO_DATA" is used to mark the fact that the details of this entity are somewhereelse in the file
+            <EntityStructureNode URISimpleEntity="....." URIInstance="...." attribute="...." KS_TAG_WITH_NO_DATA=""
+            the TAG "KS_TAG_WITH_NO_DATA" is used to mark the fact that the details of this SimpleEntity are somewhere else in the file
         '''
-        # if there is no etn I export just this object creating a shallow Entity 
+        # if there is no etn I export just this object creating a shallow EntityStructure 
         if etn is None:
-            etn = self.shallow_entity().entry_point
+            etn = self.shallow_entity_structure().entry_point
         if etn.is_many:
             # the attribute correspond to a list of instances of the SimpleEntity 
             tag_name = etn.simple_entity.name
@@ -318,17 +318,17 @@ class SerializableSimpleEntity(models.Model):
             field_name = related_parent.field.name
         return field_name
         
-    def from_xml(self, xmldoc, entity_node, insert=True, parent=None):
+    def from_xml(self, xmldoc, entity_structure_node, insert=True, parent=None):
         '''
         from_xml gets from xmldoc the attributes of self and saves it; it searches for child nodes according
-        to what the entity_node says, creates instances of child objects and call itself recursively
+        to what the entity_structure_node says, creates instances of child objects and call itself recursively
         Every tag corresponds to a SimpleEntity, hence it
             contains a tag URISimpleEntity which points to the KS managing the SimpleEntity definition
         
         Each SerializableSimpleEntity has URIInstance and URI_imported_instance attributes. 
         
         external_reference
-            the first SimpleEntity in the XML cannot be marked as an external_reference in the entity_node
+            the first SimpleEntity in the XML cannot be marked as an external_reference in the entity_structure_node
             from_xml doesn't get called recursively for external_references which are sought in the database
             or fetched from remote KS, so I assert self it is not an external reference
         
@@ -336,7 +336,7 @@ class SerializableSimpleEntity(models.Model):
         field_name = ""
         if parent:
 #           I have a parent; let's set it
-            field_name = SerializableSimpleEntity.get_parent_field_name(parent, entity_node.attribute)
+            field_name = SerializableSimpleEntity.get_parent_field_name(parent, entity_structure_node.attribute)
             if field_name:
                 setattr(self, field_name, parent)
         '''
@@ -349,13 +349,13 @@ class SerializableSimpleEntity(models.Model):
         try:
             xmldoc.attributes["KS_TAG_WITH_NO_DATA"]
             # if the TAG is not there an exception will be raised and the method will continue and expect to find all data
-            module_name = entity_node.simple_entity.module
-            actual_class = utils.load_class(module_name + ".models", entity_node.simple_entity.name) 
+            module_name = entity_structure_node.simple_entity.module
+            actual_class = utils.load_class(module_name + ".models", entity_structure_node.simple_entity.name) 
             try:
                 instance = SerializableSimpleEntity.retrieve(actual_class, xmldoc.attributes["URIInstance"].firstChild.data, False)
                 # It's in the database; I just need to set its parent; data is either already there or it will be updated later on
                 if parent:
-                    field_name = SerializableSimpleEntity.get_parent_field_name(parent, entity_node.attribute)
+                    field_name = SerializableSimpleEntity.get_parent_field_name(parent, entity_structure_node.attribute)
                     if field_name:
                         setattr(instance, field_name, parent)
                     instance.save()
@@ -393,7 +393,7 @@ class SerializableSimpleEntity(models.Model):
             # there's no URIInstance in the XML; it doesn't matter
             pass
         # I must set foreign_key child nodes BEFORE SAVING self otherwise I get an error for ForeignKeys not being set
-        for en_child_node in entity_node.child_nodes.all():
+        for en_child_node in entity_structure_node.child_nodes.all():
             if en_child_node.attribute in self.foreign_key_attributes():
                 try:
                     # ASSERT: in the XML there is exactly one child tag
@@ -445,7 +445,7 @@ class SerializableSimpleEntity(models.Model):
             self.URIInstance = self.generate_URIInstance()
             self.save()
  
-        for en_child_node in entity_node.child_nodes.all():
+        for en_child_node in entity_structure_node.child_nodes.all():
             # I have already processed foreign keys, I skip them now
             if (not en_child_node.attribute in self.foreign_key_attributes()):
                 # ASSERT: in the XML there is exactly one child tag
@@ -525,17 +525,16 @@ class Workflow(SerializableSimpleEntity):
     '''
     name = models.CharField(max_length=100L)
     description = models.CharField(max_length=2000L, blank=True)
-    entity = models.ForeignKey('Entity', null = True, blank=True)
-#     ASSERT: I metodi di un wf devono avere impatto solo su SimpleEntity contenute nell'Entity
+    entity_structure = models.ForeignKey('EntityStructure', null = True, blank=True)
+#     ASSERT: I metodi di un wf devono avere impatto solo su SimpleEntity contenute nell'EntityStructure
 
 @receiver(post_save, sender=Workflow)
 def model_post_save(sender, **kwargs):
-    print('Saved: {}'.format(kwargs['instance'].__dict__))
-    print "kwargs['instance'].URIInstance: " + kwargs['instance'].URIInstance
-    print(kwargs.get('created', False))
-    if kwargs.get('created', False) and kwargs['instance'].URIInstance == "":
-       kwargs['instance'].generate_URIInstance()
-       kwargs['instance'].save()
+    print "Saved kwargs['instance'].URIInstance: " + kwargs['instance'].URIInstance
+    if kwargs['instance'].URIInstance == "":
+       kwargs['instance'].URIInstance = kwargs['instance'].generate_URIInstance()
+       print "kwargs['instance'].URIInstance: " + kwargs['instance'].URIInstance
+#        kwargs['instance'].save()
 # signals.post_save.connect(add_URIInstance, sender=SerializableSimpleEntity)
 
 
@@ -598,10 +597,8 @@ class KnowledgeServer(SerializableSimpleEntity):
     
 class SimpleEntity(SerializableSimpleEntity):
     '''
-    Every entity has a work-flow; the basic one is the one that allows a method to create an instance
+    A SimpleEntity roughly corresponds to a table in a database or a class if we have an ORM
     '''
-    name_in_this_namespace = models.CharField(max_length=500L, blank=True)
-    
     # this name corresponds to the class name
     name = models.CharField(max_length=100L)
     # for Django it corresponds to the module which contains the class 
@@ -612,6 +609,11 @@ class SimpleEntity(SerializableSimpleEntity):
     name_field = models.CharField(max_length=255L, db_column='nameField', blank=True)
     description_field = models.CharField(max_length=255L, db_column='descriptionField', blank=True)
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
+    '''
+    entity_structure attribute is not in NORMAL FORM! When not null it tells in which structure is this SimpleEntity
+    a SimpleEntity must be in only one structure!
+    '''
+    entity_structure = models.ForeignKey("EntityStructure", null=True, blank=True)
 
 class AttributeType(SerializableSimpleEntity):
     name = models.CharField(max_length=255L, blank=True)
@@ -624,61 +626,91 @@ class Attribute(SerializableSimpleEntity):
     def __str__(self):
         return self.simple_entity.name + "." + self.name
 
-class EntityNode(SerializableSimpleEntity):
+class EntityStructureNode(SerializableSimpleEntity):
     simple_entity = models.ForeignKey('SimpleEntity')
     # attribute is blank for the entry point
     attribute = models.CharField(max_length=255L, blank=True)
-    # related_name "parent_entity_node" is not used now
-    child_nodes = models.ManyToManyField('self', blank=True, symmetrical=False, related_name="parent_entity_node")
+    # related_name "parent_entity_structure_node" is not used now
+    child_nodes = models.ManyToManyField('self', blank=True, symmetrical=False, related_name="parent_entity_structure_node")
     # if not external_reference all attributes are exported, otherwise only the id
     external_reference = models.BooleanField(default=False, db_column='externalReference')
     # is_many is true if the attribute correspond to a list of instances of the SimpleEntity
     is_many = models.BooleanField(default=False, db_column='isMany')
 
-class Entity(SerializableSimpleEntity):
-    entity_structure_name = "Entity-EntityNode-Application"
-    simple_entity_structure_name = "SimpleEntity-attributes"
-    workflow_structure_name = "Workflow-statuses"
-    organization_structure_name = "Organization-KS"
+class EntityStructure(SerializableSimpleEntity):
+    entity_structure_entity_structure_name = "EntityStructure-EntityStructureNode-Application"
+    simple_entity_entity_structure_name = "SimpleEntity-attributes"
+    workflow_entity_structure_name = "Workflow-statuses"
+    organization_entity_structure_name = "Organization-KS"
     '''
-    Main idea behind the model: an entity is not represented by a single class or a single 
+    Main idea behind the model: an EntityStructure is not represented by a single class or a single 
     table in a database but it is usually represented using a collection of them: more than 
     one class and more than one table in the database. An Issue in a tracking system is an 
-    entity; it has a list of notes that can be appended to it, it has a user who has created
-    it, and many other attributes. The user does not belong just to this entity, hence it
+    EntityStructure; it has a list of notes that can be appended to it, it has a user who has created
+    it, and many other attributes. The user does not belong just to this EntityStructure, hence it
     is a reference; the notes do belong to the issue. The idea is to map the set of tables
     in a (relational) database into entities so that our operations can handle this more
-    generic entity that we are defining, composed with more than one simple entity (in 
+    generic EntityStructure that we are defining, composed with more than one SimpleEntity (in 
     more direct correspondence with a database table, SimpleEntity in our model). A simple
-    entity can be in more than one entity; because, for instance, we might like to render/...
+    entity can be in more than one EntityStructure; because, for instance, we might like to render/...
     .../export/... a subset of the simple entities of a complex entity.
     When we get to EntityInstance (which inherits from VersionableEntityInstance and 
     WorkflowEntityInstance) we must add a constraint because we want a unique way
     to know the version and the status of a simple instance: take the set of entities
-    in the entity attribute of all instances of EntityInstance. In the graph of each
-    entity, consider only the simple entities that are not references; the constraint
-    is that each simple entity must not be in the graph of more than one entity; otherwise
+    in the EntityStructure attribute of all instances of EntityInstance. In the graph of each
+    EntityStructure, consider only the simple entities that are not references; the constraint
+    is that each SimpleEntity must not be in the graph of more than one EntityStructure; otherwise
     it would be impossible to determine its version and status. In other words the entities
     used by EntityInstance must partition the E/R diagram of our database in graphs without
     any intersection. 
      
     
-    An Entity is a graph that defines a set of simple entities on which we can perform a task; 
-    it has an entry point which is a Node e.g. an entity; from an instance of an entity we can use
-    the "attribute" attribute from the corresponding EntityNode to get the instances of
-    the entities related to each of the child_nodes. An Entity could, for example, tell
+    An EntityStructure is a graph that defines a set of simple entities on which we can perform a task; 
+    it has an entry point which is a Node e.g. an EntityStructure; from an instance of an EntityStructure we can use
+    the "attribute" attribute from the corresponding EntityStructureNode to get the instances of
+    the entities related to each of the child_nodes. An EntityStructure could, for example, tell
     us what to export to xml/json, ???????????????? what to consider as a "VersionableMultiEntity" (e.g. an
-    instance of VersionableEntityInstance + an Entity where the entry_point points to that instance)
+    instance of VersionableEntityInstance + an EntityStructure where the entry_point points to that instance)
     The name should describe its use ?????????????????
+    
+    Types of EntityStructure
+    standard ones: used to define the structure of an EntityInstance
+                   if a SimpleEntity is in one of them it cannot be in another one of them
+    shallow      : created automatically to export a SimpleEntity
+    view         : used for example to export a structure different from one of the above
     '''
     name = models.CharField(max_length=200L)
     description = models.CharField(max_length=2000L)
     '''
-    an Entity is shallow when it is automatically created to export a SimpleEntity; 
-    shallow means that all foreignKeys and related attributes are external references
+    an EntityStructure is shallow when it is automatically created to export a SimpleEntity; 
+    is_shallow = True means that all foreignKeys and related attributes are external references
     '''
-    shallow = models.BooleanField(default=False)
-    entry_point = models.ForeignKey('EntityNode')
+    is_shallow = models.BooleanField(default=False)
+    '''
+    an EntityStructure is a view if it is not used to determine the structure of an EntityInstance
+    hence it is used for example to export some data
+    '''
+    is_a_view = models.BooleanField(default=False)
+    # the entry point of the structure; the class EntityStructureNode has then child_nodes of the same class 
+    # hence it defines the structure
+    entry_point = models.ForeignKey('EntityStructureNode')
+    
+    '''
+    TODO: the namespace is defined in the organization owner of this EntityStructure
+    within that organization (or maybe within the KS in that Organization)
+    names of SimpleEntity are unique. When importing a SimpleEntity from
+    an external KS we need to create a namespace (and a corresponding module
+    where the class of the model must live) with a unique name. It can
+    be done combining the netloc of the URI of the KS with the namespace;
+    so when I import a WorkFlow from the namespace "entity" of rootks.thekoa.org 
+    in my local KS it will live in the namespace/module:
+        something like: rootks.thekoa.org_entity
+    Within that namespace the KS it originated from ensures the SimpleEntity name
+    is unique; locally in my KS I make sure there is no other namespace of that form
+    (maybe not allowing "_"?)
+    '''
+    namespace = models.CharField(max_length=500L, blank=True)
+
 
 class VersionableEntityInstance(models.Model):
     '''
@@ -745,16 +777,14 @@ class VersionableEntityInstance(models.Model):
     
 class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, SerializableSimpleEntity):
     '''
-    A chunk of knowledge; its data structure is described by self.entity
+    A chunk of knowledge; its data structure is described by self.entity_structure
     The only Versionable object so far
     Serializable like many others 
     It has an owner KS which can be inferred by the URIInstance but it is explicitly linked 
     '''
     owner_knowledge_server = models.ForeignKey(KnowledgeServer)
-    # NOT USED YET; the namespace from the organization owner of this EntityInstance 
-    namespace = models.CharField(max_length=500L, blank=True)
 
-    entity = models.ForeignKey(Entity)
+    entity_structure = models.ForeignKey(EntityStructure)
     # we have the ID of the instance because we do not know its class so we can't have a ForeignKey to an unknown class
     entry_point_instance_id = models.IntegerField()
 
@@ -768,37 +798,37 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
         if format == 'JSON':
             comma = ", "
 
-        e_simple_entity = SimpleEntity.objects.get(name="Entity")
-        temp_etn = EntityNode(simple_entity=e_simple_entity, external_reference=True, is_many=False, attribute = "entity")
-        serialized_head += comma + self.entity.serialize(temp_etn, format = format)
+        e_simple_entity = SimpleEntity.objects.get(name="EntityStructure")
+        temp_etn = EntityStructureNode(simple_entity=e_simple_entity, external_reference=True, is_many=False, attribute = "entity_structure")
+        serialized_head += comma + self.entity_structure.serialize(temp_etn, format = format)
         
         ks_simple_entity = SimpleEntity.objects.get(name="KnowledgeServer")
-        temp_etn = EntityNode(simple_entity=ks_simple_entity, external_reference=True, is_many=False, attribute = "owner_knowledge_server")
+        temp_etn = EntityStructureNode(simple_entity=ks_simple_entity, external_reference=True, is_many=False, attribute = "owner_knowledge_server")
         serialized_head += comma + self.owner_knowledge_server.serialize(temp_etn, format = format)
         
         ei_simple_entity = SimpleEntity.objects.get(name="EntityInstance")
-        temp_etn = EntityNode(simple_entity=ei_simple_entity, external_reference=True, is_many=False, attribute = "root")
+        temp_etn = EntityStructureNode(simple_entity=ei_simple_entity, external_reference=True, is_many=False, attribute = "root")
         serialized_head += comma + self.root.serialize(temp_etn, format = format)
 
         w_simple_entity = SimpleEntity.objects.get(name="Workflow")
-        temp_etn = EntityNode(simple_entity=w_simple_entity, external_reference=True, is_many=False, attribute = "workflow")
+        temp_etn = EntityStructureNode(simple_entity=w_simple_entity, external_reference=True, is_many=False, attribute = "workflow")
         serialized_head += comma + self.workflow.serialize(temp_etn, format = format)
         
         ws_simple_entity = SimpleEntity.objects.get(name="WorkflowStatus")
-        temp_etn = EntityNode(simple_entity=ws_simple_entity, external_reference=True, is_many=False, attribute = "current_status")
+        temp_etn = EntityStructureNode(simple_entity=ws_simple_entity, external_reference=True, is_many=False, attribute = "current_status")
         serialized_head += comma + self.current_status.serialize(temp_etn, format = format)
         
         se_simple_entity = self.entity.entry_point.simple_entity
         actual_class = utils.load_class(se_simple_entity.module + ".models", se_simple_entity.name)
         instance = actual_class.objects.get(pk=self.entry_point_instance_id)
         if force_external_reference:
-            self.entity.entry_point.external_reference = True
+            self.entity_structure.entry_point.external_reference = True
 
         if format == 'XML':
-            serialized_head += "<ActualInstance>" + instance.serialize(self.entity.entry_point, exported_instances = [], format = format) + "</ActualInstance>"
+            serialized_head += "<ActualInstance>" + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + "</ActualInstance>"
             serialized_tail = "</EntityInstance>"
         if format == 'JSON':
-            serialized_head += ', "ActualInstance" : { ' + instance.serialize(self.entity.entry_point, exported_instances = [], format = format) + " } "
+            serialized_head += ', "ActualInstance" : { ' + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + " } "
             serialized_tail = " }"
         
         return serialized_head + serialized_tail
@@ -808,7 +838,7 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
 #         '''
 #         ???It was a __init__ not 100% clear apart from initializing a version and a entry_point_instance_id???
 #         '''
-#         actual_class = utils.load_class(self.entity.entry_point.simple_entity.module + ".models", self.entity.entry_point.simple_entity.name)
+#         actual_class = utils.load_class(self.entity_structure.entry_point.simple_entity.module + ".models", self.entity_structure.entry_point.simple_entity.name)
 #         entry_point_instance = actual_class()
 #         entry_point_instance.SetNotNullFields()
 #         entry_point_instance.save()

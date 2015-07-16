@@ -14,8 +14,8 @@
     {% for application in application_list %}
         <li>
             <a href="/application/{{ application.id }}/">{{ application.name }}</a>
-            {% for entity in entities %}
-                <a href="/entity/export/{{ entity.id }}/{{ application.id }}/">Export {{ entity.name }}</a>
+            {% for entity_structure in entities %}
+                <a href="/entity/export/{{ entity_structure.id }}/{{ application.id }}/">Export {{ entity_structure.name }}</a>
             {% endfor %}
         </li>
     {% endfor %}
