@@ -512,6 +512,234 @@ class SerializableSimpleEntity(models.Model):
         abstract = True
 
 
+    @staticmethod
+    def retrieve(actual_class, URIInstance, retrieve_externally):
+        '''
+        It returns an instance of a SerializableSimpleEntity stored in this KS
+        It searches first on the URIInstance field (e.g. is it already an instance of this KS? ) 
+        It searches then on the URI_imported_instance field (e.g. has is been imported in this KS from the same source? )
+        It fetches the instance from the source as it is not in this KS yet 
+        '''
+        actual_instance = None
+        try:
+            actual_instance = actual_class.objects.get(URIInstance=URIInstance)
+        except:
+            try:
+                actual_instance = actual_class.objects.get(URI_imported_instance=URIInstance)
+            except:
+                if retrieve_externally:
+                    #TODO: It fetches the instance from the source as it is not in this KS yet
+                    raise Exception("To be implemented: It fetches the instance from the source as it is not in this KS yet")
+                else:
+                    raise Exception("Can't find instance with URI: " + URIInstance)
+        return actual_instance
+
+    @staticmethod
+    def get_parent_field_name(parent, attribute):
+        '''
+        TODO: describe *ObjectsDescriptor or link to docs
+              make sure it is complete (e.g. we are not missing any other *ObjectsDescriptor)
+        '''
+        field_name = ""
+        related_parent = getattr(parent._meta.concrete_model, attribute)
+        if related_parent.__class__.__name__ == "ForeignRelatedObjectsDescriptor":
+            field_name = related_parent.related.field.name
+        if related_parent.__class__.__name__ == "ReverseSingleRelatedObjectDescriptor":
+            field_name = related_parent.field.name
+        return field_name
+        
+    def from_xml(self, xmldoc, entity_node, insert=True, parent=None):
+        '''
+        from_xml gets from xmldoc the attributes of self and saves it; it searches for child nodes according
+        to what the entity_node says, creates instances of child objects and call itself recursively
+        Every tag corresponds to a SimpleEntity, hence it
+            contains a tag URISimpleEntity which points to the KS managing the SimpleEntity definition
+        
+        Each SerializableSimpleEntity has URIInstance and URI_imported_instance attributes. 
+        
+        external_reference
+            the first SimpleEntity in the XML cannot be marked as an external_reference in the entity_node
+            from_xml doesn't get called recursively for external_references which are sought in the database
+            or fetched from remote KS, so I assert self it is not an external reference
+        
+        '''
+        field_name = ""
+        if parent:
+#           I have a parent; let's set it
+            field_name = SerializableSimpleEntity.get_parent_field_name(parent, entity_node.attribute)
+            if field_name:
+                setattr(self, field_name, parent)
+        '''
+        Some TAGS have no data (attribute KS_TAG_WITH_NO_DATA is present) because the instance they describe
+        is present more than once in the XML file and the export doesn't replicate data; hence either
+           I have it already in the database so I can load it
+        or
+           I have to save this instance but I will find its attribute later in the imported file
+        '''
+        try:
+            xmldoc.attributes["KS_TAG_WITH_NO_DATA"]
+            # if the TAG is not there an exception will be raised and the method will continue and expect to find all data
+            module_name = entity_node.simple_entity.module
+            actual_class = utils.load_class(module_name + ".models", entity_node.simple_entity.name) 
+            try:
+                instance = SerializableSimpleEntity.retrieve(actual_class, xmldoc.attributes["URIInstance"].firstChild.data, False)
+                # It's in the database; I just need to set its parent; data is either already there or it will be updated later on
+                if parent:
+                    field_name = SerializableSimpleEntity.get_parent_field_name(parent, entity_node.attribute)
+                    if field_name:
+                        setattr(instance, field_name, parent)
+                    instance.save()
+            except:
+                # I haven't found it in the database; I need to do something only if I have to set the parent
+                if parent: 
+                    try:
+                        setattr(self, "URIInstance", xmldoc.attributes["URIInstance"].firstChild.data)
+                        self.SetNotNullFields()
+                        self.save()
+                    except:
+                        print("Error in KS_TAG_WITH_NO_DATA TAG setting attribute URIInstance for instance of class " + self.__class__.__name__)
+            #let's exit, nothing else to do, it's a KS_TAG_WITH_NO_DATA
+            return
+             
+        except:
+            #nothing to do, there is no KS_TAG_WITH_NO_DATA attribute
+            pass
+        for key in self._meta.fields:
+#              let's setattr the other attributes
+#                that are not ForeignKey as those are treated separately
+#                and is not the field_name pointing at the parent as it has been already set
+            if key.__class__.__name__ != "ForeignKey" and (not parent or key.name != field_name):
+                try:
+                    if key.__class__.__name__ == "BooleanField":
+                        setattr(self, key.name, xmldoc.attributes[key.name].firstChild.data.lower() == "true") 
+                    else:
+                        setattr(self, key.name, xmldoc.attributes[key.name].firstChild.data)
+                except:
+                    print("Error extracting from xml \"" + key.name + "\" for object of class \"" + self.__class__.__name__ + "\" with ID " + str(self.id))
+        try:
+            # URI_imported_instance stores the URIInstance from the XML
+            self.URI_imported_instance = xmldoc.attributes["URIInstance"].firstChild.data
+        except:
+            # there's no URIInstance in the XML; it doesn't matter
+            pass
+        # I must set foreign_key child nodes BEFORE SAVING self otherwise I get an error for ForeignKeys not being set
+        for en_child_node in entity_node.child_nodes.all():
+            if en_child_node.attribute in self.foreign_key_attributes():
+                try:
+                    # ASSERT: in the XML there is exactly one child tag
+                    xml_child_node = xmldoc.getElementsByTagName(en_child_node.attribute)[0] 
+                    # I search for the corresponding SimpleEntity
+                     
+                    se = SerializableSimpleEntity.simple_entity_from_xml_tag(xml_child_node)
+                    # TODO: I'd like the module name to be function of the organization and namespace
+                    assert (en_child_node.simple_entity.name == se.name), "en_child_node.simple_entity.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
+                    module_name = en_child_node.simple_entity.module
+                    actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
+                    if en_child_node.external_reference:
+                        '''
+                        If it is an external reference I must search for it in the database first;  
+                        if it is not there I fetch it using it's URI and then create it in the database
+                        '''
+                        try:
+                            # let's search it in the database
+                            instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
+                        except ObjectDoesNotExist:
+                            # TODO: if it is not there I fetch it using it's URI and then create it in the database
+                            pass
+                        except:
+                            raise Exception("\"" + module_name + ".models " + se.name + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data)
+                    else:
+                        if insert:
+                            # the user asked to "always create", let's create the instance
+                            instance = actual_class()
+                        else:
+                            try:
+                                instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, False)
+                            except:
+                                # didn't find it; I create the instance anyway
+                                instance = actual_class()
+                        # from_xml takes care of saving instance with a self.save() at the end
+                        instance.from_xml(xml_child_node, en_child_node, insert) #the fourth parameter, "parent" shouldn't be necessary in this case as this is a ForeignKeys
+                    setattr(self, en_child_node.attribute, instance)
+                except Exception as ex:
+                    print (ex.message)
+                    pass
+                    #raise Exception("### add relevant message: from_xml")
+                 
+        # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
+        self.save()
+        # from_xml can be invoked on an instance retrieved from the database (where URIInstance is set)
+        # or created on the fly (and URIInstance is not set); in the latter case, only now I can generate URIInstance
+        # as I have just saved it and I have a local ID
+        if not self.URIInstance:
+            self.URIInstance = self.generate_URIInstance()
+            self.save()
+ 
+        for en_child_node in entity_node.child_nodes.all():
+            # I have already processed foreign keys, I skip them now
+            if (not en_child_node.attribute in self.foreign_key_attributes()):
+                # ASSERT: in the XML there is exactly one child tag
+                xml_attribute_node = xmldoc.getElementsByTagName(en_child_node.attribute)[0]
+                if en_child_node.is_many:
+                    for xml_child_node in xml_attribute_node.childNodes:
+                        se = SerializableSimpleEntity.simple_entity_from_xml_tag(xml_child_node)
+                        module_name = en_child_node.simple_entity.module
+                        assert (en_child_node.simple_entity.name == se.name), "en_child_node.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
+                        actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
+                        if en_child_node.external_reference:
+                            instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
+                            # TODO: il test succesivo forse si fa meglio guardando il concrete_model - capire questo test e mettere un commento
+                            if en_child_node.attribute in self._meta.fields:
+                                setattr(instance, en_child_node.attribute, self)
+                                instance.save()
+                            else:  
+                                setattr(self, en_child_node.attribute, instance)
+                                self.save()
+                        else:
+                            if insert:
+                                instance = actual_class()
+                            else:
+                                try:
+                                    instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, False)
+                                except:
+                                    instance = actual_class()
+                            # is_many = True, I need to add this instance to self
+                            instance.from_xml(xml_child_node, en_child_node, insert, self)
+                            related_parent = getattr(self._meta.concrete_model, en_child_node.attribute)
+                            related_list = getattr(self, en_child_node.attribute)
+                            # if it is not there yet ...
+                            if long(instance.id) not in [long(i.id) for i in related_list.all()]:
+                                # I add it
+                                related_list.add(instance)
+                                self.save()
+                else:
+                    # is_many == False
+                    xml_child_node = xml_attribute_node
+                    se = SerializableSimpleEntity.simple_entity_from_xml_tag(xml_child_node)
+                    module_name = en_child_node.simple_entity.module
+                    assert (en_child_node.simple_entity.name == se.name), "en_child_node.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
+                    actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
+                    if en_child_node.external_reference:
+                        instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
+                        # TODO: il test succesivo forse si fa meglio guardando il concrete_model - capire questo test e mettere un commento
+                        if en_child_node.attribute in self._meta.fields:
+                            setattr(instance, en_child_node.attribute, self)
+                            instance.save()
+                        else:  
+                            setattr(self, en_child_node.attribute, instance)
+                            self.save()
+                    else:
+                        if insert:
+                            instance = actual_class()
+                        else:
+                            try:
+                                instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, False)
+                            except:
+                                instance = actual_class()
+                        instance.from_xml(xml_child_node, en_child_node, insert, self)
+
+    class Meta:
+        abstract = True
 
 class DBConnection(models.Model):
     connection_string = models.CharField(max_length=255L)
@@ -538,6 +766,13 @@ def model_post_save(sender, **kwargs):
             print e
 # signals.post_save.connect(add_URIInstance, sender=SerializableSimpleEntity)
 
+class WorkflowMethod(SerializableSimpleEntity):
+    '''
+    If there are no initial_statuses then this is a method which creates the entity
+    '''
+    initial_statuses = models.ManyToManyField(WorkflowStatus, blank=True, related_name="+")
+    final_status = models.ForeignKey(WorkflowStatus, related_name="+")
+    workflow = models.ForeignKey(Workflow)
 
 
 class WorkflowStatus(SerializableSimpleEntity):
