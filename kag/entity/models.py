@@ -147,6 +147,7 @@ class SerializableSimpleEntity(models.Model):
 
     def shallow_entity_structure(self):
         '''
+        It creates an EntityStructure, saves it on the database and returns it.
         if a user wants to serialize a SerializableSimpleEntity without passing an EntityStructure
         I search for an EntityStructure with is_shallow=True; if I can't find it I create it and save it
         for future use

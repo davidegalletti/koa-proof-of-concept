@@ -126,8 +126,19 @@ def forwards_func(apps, schema_editor):
     wgeneric = Workflow();wgeneric.name="Generic default workflow";wgeneric.description="";wgeneric.save()
     ws = WorkflowStatus();ws.name="Generic";ws.workflow=wgeneric;ws.description="";ws.save()
     
+    
+    
     ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seSimpleEntity.id,                                version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
+    # EntityInstance has no EntityStructure, I create the shallow one so that I can set EntityStructure.namespace 
+    # and hence generate the URIInstance for each instance of EntityInstance
+    es = ei.shallow_entity_structure()
+    es.namespace = "entity"
+    es.save()
+    seEntityInstance.entity_structure = es
+    seEntityInstance.save()
+    ei.save()
+    
     ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seAttribute.id,                                   version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
     ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seApplication.id,                                 version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
