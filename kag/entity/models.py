@@ -15,13 +15,38 @@ import kag.utils as utils
 
 from xml.dom import minidom
 
-def add_URIInstance(sender, instance, created, raw, using, update_fields, **kwargs):
-    print "POST SAVE EMITED FOR"
-    if created and instance.URIInstance == "":
-        instance.generate_URIInstance()
-        instance.save()
 
-    
+class CustomModelManager(models.Manager):
+    '''
+    Created to be used by SerializableSimpleEntity so that all classes that inherit 
+    will get the post_save signal bound to model_post_save. The following decorator
+
+    @receiver(post_save, sender=SerializableSimpleEntity)
+    def model_post_save(sender, **kwargs):
+
+    wouldn't work at all while it would work specifying the class name that inherits e.g. Workflow
+
+    @receiver(post_save, sender=Workflow)
+    def model_post_save(sender, **kwargs):
+
+    '''
+    def contribute_to_class(self, model, name):
+        super(CustomModelManager, self).contribute_to_class(model, name)
+        self._bind_post_save_signal(model)
+
+    def _bind_post_save_signal(self, model):
+        models.signals.post_save.connect(model_post_save, model)
+
+# @receiver(post_save, sender=SerializableSimpleEntity)
+def model_post_save(sender, **kwargs):
+    if kwargs['instance'].URIInstance == "":
+        try:
+            kwargs['instance'].URIInstance = kwargs['instance'].generate_URIInstance()
+            if kwargs['instance'].URIInstance != "":
+                kwargs['instance'].save()
+        except Exception as e:
+            print (e.message)
+
 class SerializableSimpleEntity(models.Model):
     '''
     URIInstance is the unique identifier of this SerializableSimpleEntity in this KS
@@ -35,7 +60,7 @@ class SerializableSimpleEntity(models.Model):
     from XML and still have a proper local URIInstance
     '''
     URI_imported_instance = models.CharField(max_length=2000L)
-    
+    objects = CustomModelManager()
     def SetNotNullFields(self):
         '''
         I need to make sure that every SerializableSimpleEntity can be saved on the database right after being created (*)
@@ -59,8 +84,13 @@ class SerializableSimpleEntity(models.Model):
     def generate_URIInstance(self):
         try:
             this_ks = KnowledgeServer.objects.get(this_ks = True)
-            return this_ks.uri() + self.get_simple_entity().entity_structure.namespace + "/" + self.get_simple_entity().name + "/" + str(getattr(self, self.get_simple_entity().id_field))
-        except:
+            se = self.get_simple_entity()
+            if se.entity_structure != None:
+                return this_ks.uri() + se.entity_structure.namespace + "/" + se.name + "/" + str(getattr(self, se.id_field))
+            else:
+                return ""
+        except Exception as es:
+            print ("generate_URIInstance " + self.__class__.__name__ + "." + str(self.pk) + ":" + es.message)
             return ""
     
     def get_simple_entity(self, class_name = ""):
@@ -227,7 +257,7 @@ class SerializableSimpleEntity(models.Model):
                         if not child_instance is None:
                             serialized += child_instance.serialize(child_node, format=format, exported_instances=exported_instances)
             except Exception as es:
-                print es
+                print(str(es))
             if format == 'XML':
                 return '<' + tag_name + self.serialized_URI_SE(format) + self.serialized_attributes(format) + '>' + serialized + '</' + tag_name + '>'
             if format == 'JSON':
@@ -756,15 +786,6 @@ class Workflow(SerializableSimpleEntity):
     entity_structure = models.ForeignKey('EntityStructure', null = True, blank=True)
 #     ASSERT: I metodi di un wf devono avere impatto solo su SimpleEntity contenute nell'EntityStructure
 
-@receiver(post_save, sender=Workflow)
-def model_post_save(sender, **kwargs):
-    if kwargs['instance'].URIInstance == "":
-        try:
-            kwargs['instance'].URIInstance = kwargs['instance'].generate_URIInstance()
-            kwargs['instance'].save()
-        except Exception as e:
-            print e
-# signals.post_save.connect(add_URIInstance, sender=SerializableSimpleEntity)
 
 class WorkflowMethod(SerializableSimpleEntity):
     '''
@@ -832,11 +853,11 @@ class SimpleEntity(SerializableSimpleEntity):
     name = models.CharField(max_length=100L)
     # for Django it corresponds to the module which contains the class 
     module = models.CharField(max_length=100L)
-    description = models.CharField(max_length=2000L, blank=True)
-    table_name = models.CharField(max_length=255L, db_column='tableName', blank=True)
-    id_field = models.CharField(max_length=255L, db_column='idField', blank=True)
-    name_field = models.CharField(max_length=255L, db_column='nameField', blank=True)
-    description_field = models.CharField(max_length=255L, db_column='descriptionField', blank=True)
+    description = models.CharField(max_length=2000L, default = "")
+    table_name = models.CharField(max_length=255L, db_column='tableName', default = "")
+    id_field = models.CharField(max_length=255L, db_column='idField', default = "id")
+    name_field = models.CharField(max_length=255L, db_column='nameField', default = "name")
+    description_field = models.CharField(max_length=255L, db_column='descriptionField', default = "description")
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
     '''
     entity_structure attribute is not in NORMAL FORM! When not null it tells in which structure is this SimpleEntity
