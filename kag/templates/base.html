@@ -1,27 +1,49 @@
 {% load staticfiles %}
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta content="text/html; charset=UTF-8" http-equiv="content-type">
-        <title>Knowledge Server - Proof of Concept</title>
-    </head>
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<title>{{ title }}Knowledge Server - Proof of Concept</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="Description" lang="en" content="ADD SITE DESCRIPTION">
+		<meta name="author" content="Davide Galletti - davide@c4k.it">
+		<meta name="robots" content="index, follow">
 
-    <body>
-        <header>
-            <h2>Knowledge Server - Proof of Concept</h2>
-            {% block application_header %}{% endblock %}
-        </header>
-        <section id="page-body" class="">
-            <div id="content_base">
-                <h3>Left menu</h3>
-                {% block left_menu %}{% endblock %}
-                <h3>Content</h3>
-                {% block content %}{% endblock %}
-                {% block message %}{% endblock %}
-            </div>
-        </section>
-        <footer >
-        </footer>
-    </body>
+		<!-- icons -->
+		<link rel="apple-touch-icon" href="{% static "img/apple-touch-icon.png" %}">
+		<link rel="shortcut icon" href="favicon.ico">
+
+		<link rel="stylesheet" href="{% static "css/styles.css" %}">
+	</head>
+	<body>
+		<div class="header">
+			<div class="container">
+				<h1 class="header-heading">Knowledge Server - Proof of Concept</h1>
+			</div>
+		</div>
+		<div class="nav-bar">
+			<div class="container">
+				<ul class="nav">
+					<li><a href="{% url 'ks_explorer_form' %}">Explore</a></li>
+					<li><a href="{% url 'upload_page' %}">Import</a></li>
+					<li><a href="{% url 'index' %}">List</a></li>
+				</ul>
+			</div>
+		</div>
+		<div class="content">
+			<div class="container">
+				<div class="main">
+	                {% block content %}{% endblock %}
+	                {% block message %}{% endblock %}
+				</div>
+			</div>
+		</div>
+		<div class="footer">
+			<div class="container">
+				&copy; Copyright 2015 <a href="http://www.c4k.it" target="_blank">C4K.it</a>
+			</div>
+		</div>
+	</body>
 </html>
-
+                

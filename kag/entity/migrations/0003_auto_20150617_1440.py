@@ -126,8 +126,7 @@ def forwards_func(apps, schema_editor):
     wgeneric = Workflow();wgeneric.name="Generic default workflow";wgeneric.description="";wgeneric.save()
     ws = WorkflowStatus();ws.name="Generic";ws.workflow=wgeneric;ws.description="";ws.save()
     
-    
-    
+    # EntityInstance
     ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seSimpleEntity.id,                                version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
     # EntityInstance has no EntityStructure, I create the shallow one so that I can set EntityStructure.namespace 

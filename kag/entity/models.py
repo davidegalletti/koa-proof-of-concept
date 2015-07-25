@@ -861,8 +861,8 @@ class SimpleEntity(SerializableSimpleEntity):
     description_field = models.CharField(max_length=255L, db_column='descriptionField', default = "description")
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
     '''
-    entity_structure attribute is not in NORMAL FORM! When not null it tells in which structure is this SimpleEntity
-    a SimpleEntity must be in only one structure!
+    entity_structure attribute is not in NORMAL FORM! When not null it tells in which EntityStructure is this 
+    SimpleEntity; a SimpleEntity must be in only one EntityStructure!
     '''
     entity_structure = models.ForeignKey("EntityStructure", null=True, blank=True)
 
