@@ -10,7 +10,7 @@ def forwards_func(apps, schema_editor):
     db_alias = schema_editor.connection.alias
 
     orgs = Organization.objects.using(db_alias).bulk_create([
-        Organization(pk=2, name="United Nations", URIInstance="http://testonuks.thekoa.org/entity/Organization/1", description="Test United Nations"),
+       Organization(name="United Nations", description="Test United Nations", website='http://testonuks.theKOA.org'),
     ])
     test_onu_org = orgs[0]
 
@@ -19,7 +19,7 @@ def forwards_func(apps, schema_editor):
     root_ks.save()
     
     KSs = KnowledgeServer.objects.using(db_alias).bulk_create([
-        KnowledgeServer(pk=2, name="Test ONU KS", scheme="http", netloc="testonuks.thekoa.org", URIInstance="http://testonuks.thekoa.org/entity/KnowledgeServer/2", description="Test ONU KS", organization=test_onu_org, this_ks=True),
+        KnowledgeServer(name="Test ONU KS", scheme="http", netloc="testonuks.thekoa.org", description="Test ONU KS", organization=test_onu_org, this_ks=True),
     ])
     test_onu_org_ks = KSs[0]
     

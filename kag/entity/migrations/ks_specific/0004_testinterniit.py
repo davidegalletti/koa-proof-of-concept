@@ -9,9 +9,8 @@ def forwards_func(apps, schema_editor):
     
     db_alias = schema_editor.connection.alias
 
-#         Organization(pk=2, name="Ministero degli Interni", URIInstance="http://testinterniitks.thekoa.org/entity/Organization/2", description="Test Ministero degli Interni"),
     orgs = Organization.objects.using(db_alias).bulk_create([
-        Organization(name="Ministero degli Interni", description="Test Ministero degli Interni"),
+        Organization(name="Ministero degli Interni", description="Test Ministero degli Interni",website='http://testinterniitks.theKOA.org'),
     ])
     test_interni_it_org = orgs[0]
 
