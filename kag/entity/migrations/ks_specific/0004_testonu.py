@@ -2,26 +2,17 @@
 from __future__ import unicode_literals
 
 from django.db import models, migrations
+from entity.models import Organization, KnowledgeServer
 
 def forwards_func(apps, schema_editor):
-    Organization = apps.get_model("entity", "Organization")
-    KnowledgeServer = apps.get_model("entity", "KnowledgeServer")
+    test_onu_org = Organization();test_onu_org.name="United Nations";test_onu_org.website='http://www.un.org';test_onu_org.description="Test United Nations";test_onu_org.save()
     
-    db_alias = schema_editor.connection.alias
-
-    orgs = Organization.objects.using(db_alias).bulk_create([
-       Organization(name="United Nations", description="Test United Nations", website='http://testonuks.theKOA.org'),
-    ])
-    test_onu_org = orgs[0]
-
     root_ks = KnowledgeServer.objects.get(pk=1)
     root_ks.this_ks = False
     root_ks.save()
-    
-    KSs = KnowledgeServer.objects.using(db_alias).bulk_create([
-        KnowledgeServer(name="Test ONU KS", scheme="http", netloc="testonuks.thekoa.org", description="Test ONU KS", organization=test_onu_org, this_ks=True),
-    ])
-    test_onu_org_ks = KSs[0]
+
+    test_onu_org_ks = KnowledgeServer(name="Test ONU Knowledge Server", scheme="http", netloc="testonuks.thekoa.org", description="Test ONU Knowledge Server", organization=test_onu_org, this_ks=True)
+    test_onu_org_ks.save()
     
 
 
