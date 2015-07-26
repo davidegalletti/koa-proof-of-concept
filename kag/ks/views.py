@@ -175,11 +175,26 @@ def api_entity_instances(request, base64_EntityStructure_URIInstance, format):
 
 def ks_explorer(request):
     try:
+        ks_url = base64.decodestring(request.GET['ks_complete_url'])
+    except:
         ks_url = request.POST['ks_complete_url']
-        local_url = reverse ('api_entities', args=("JSON",))
+    try:
+        # info on the remote ks
+        local_url = reverse ('api_ks_info', args=("JSON",))
+        response = urllib2.urlopen(ks_url + local_url)
+        ks_info_json_stream = response.read()
+        # parsing json
+        ks_info_json = json.loads(ks_info_json_stream)
+        organization = ks_info_json['Export']['Organization']
+        for ks in ks_info_json['Export']['Organization']['knowledgeserver_set']:
+            if ks['this_ks'] == 'True':
+                external_ks = ks
+            
+        # info about structures on the remote ks
+        local_url = reverse ('api_entity_structures', args=("JSON",))
         response = urllib2.urlopen(ks_url + local_url)
         entities_json = response.read()
-        # fare il parse
+        # parsing json
         decoded = json.loads(entities_json)
         entities = []
         for ei in decoded['Export']['EntityInstances']:
@@ -188,8 +203,8 @@ def ks_explorer(request):
             entity['URIInstance'] = base64.encodestring(ei['ActualInstance']['EntityStructure']['URIInstance']).rstrip('\n')
             entities.append(entity)
     except Exception as es:
-        pass
-    cont = RequestContext(request, {'entities':entities, 'ks_url':base64.encodestring(ks_url).rstrip('\n')})
+        pass #TODO: view.ks_explorer manage exception 
+    cont = RequestContext(request, {'entities':entities, 'organization': organization, 'external_ks': external_ks, 'ks_url':base64.encodestring(ks_url).rstrip('\n')})
     return render_to_response('ks/ks_explorer_entities.html', context_instance=cont)
 
 
@@ -202,7 +217,20 @@ def ks_explorer_form(request):
 def browse_entity_instance(request, ks_url, base64URIInstance, format):
     ks_url = base64.decodestring(ks_url)
     format = format.upper()
-    #base64URIInstance = base64.decodestring(base64URIInstance)
+
+    # info on the remote ks{{  }}
+    local_url = reverse ('api_ks_info', args=("JSON",))
+    response = urllib2.urlopen(ks_url + local_url)
+    ks_info_json_stream = response.read()
+    # parsing json
+    ks_info_json = json.loads(ks_info_json_stream)
+    organization = ks_info_json['Export']['Organization']
+    for ks in ks_info_json['Export']['Organization']['knowledgeserver_set']:
+        if ks['this_ks'] == 'True':
+            external_ks = ks
+
+    #info on the EntityStructure
+    
     if format == 'XML':
         local_url = reverse ('api_entity_instances', args=(base64URIInstance,format))
     if format == 'JSON' or format == 'BROWSE':
@@ -223,47 +251,37 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
             entity['actual_instance_name'] = ei['ActualInstance'][actual_instance_class]['name']
             entity['URIInstance'] = base64.encodestring(ei['ActualInstance'][actual_instance_class]['URIInstance']).rstrip('\n')
             entities.append(entity)
-        cont = RequestContext(request, {'entities':entities})
+        cont = RequestContext(request, {'entities':entities, 'organization': organization, 'external_ks': external_ks})
         return render_to_response('ks/browse_entity_instance.html', context_instance=cont)
     
 def home(request):
     this_ks = KnowledgeServer.objects.get(this_ks = True)
-    cont = RequestContext(request, {'this_ks':this_ks})
+    cont = RequestContext(request, {'this_ks':this_ks, 'this_ks_base64_url':this_ks.uri(True)})
     return render(request, 'ks/home.html', context_instance=cont)
 
-def api_ks_info(request, base64_KS_URIInstance, format):
+def api_ks_info(request, format):
     '''
         http://redmine.davide.galletti.name/issues/80
 
         parameter:
         * format { 'XML' | 'JSON' }
-        * base64_Entity_URIInstance: URIInstance of the EntityStructure base64 encoded
         
         Implementation:
-        # it fetches the KS from the DB, takes its Oragnization and exports
-        # it with the structure "Organization-KS" 
+          it fetches this KS from the DB, takes its Organization and exports
+          it with the structure "Organization-KS" 
     '''
     format = format.upper()
-    URIInstance = base64.decodestring(base64_KS_URIInstance)
-    ks = KnowledgeServer.retrieve(EntityStructure, URIInstance, False)
+    this_ks = KnowledgeServer.objects.get(this_ks = True)    
+    es = entity_models.EntityStructure.objects.get(name = entity_models.EntityStructure.organization_entity_structure_name)
     
-    ks.organization
-    
-    final_ei_list = []
-    # Now I need to get all the released EntityInstance of the EntityStructure passed as a parameter
-    released_entity_instances = EntityInstance.objects.filter(entity = e, version_released=True)
-    serialized = ""
-    comma = ""
-    for ei in released_entity_instances:
-        if format == 'JSON':
-            serialized += comma
-        serialized += ei.serialize_with_simple_entity(format = format, force_external_reference=True)
-        comma = ", "
     if format == 'XML':
-        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\"><EntityInstances>" + serialized + "</EntityInstances></Export>"
+        exported_xml = "<Export EntityStructureName=\"" + es.name + "\" EntityStructureURI=\"" + es.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + this_ks.organization.serialize(es.entry_point, exported_instances = []) + "</Export>"
         xmldoc = minidom.parseString(exported_xml)
         exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
         return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
     if format == 'JSON':
-        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstances" : [' + serialized + '] } }'
+        exported_json = '{ "Export" : { "EntityStructureName" : "' + es.name + '", "EntityStructureURI" : "' + es.URIInstance + '", "ExportDateTime" : "' + str(datetime.now()) + '", ' + this_ks.organization.serialize(es.entry_point, format=format, exported_instances = []) + ' } }'
         return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
+
+
+

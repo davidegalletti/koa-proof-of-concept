@@ -14,7 +14,8 @@ from userauthorization.models import KUser
 import kag.utils as utils
 
 from xml.dom import minidom
-
+from email.encoders import encode_base64
+import base64
 
 class CustomModelManager(models.Manager):
     '''
@@ -37,7 +38,7 @@ class CustomModelManager(models.Manager):
     def _bind_post_save_signal(self, model):
         models.signals.post_save.connect(model_post_save, model)
 
-# @receiver(post_save, sender=SerializableSimpleEntity)
+
 def model_post_save(sender, **kwargs):
     if kwargs['instance'].URIInstance == "":
         try:
@@ -137,12 +138,14 @@ class SerializableSimpleEntity(models.Model):
         
     def serialized_attributes(self, format = 'XML'):
         attributes = ""
+        comma = ""
         for key in self._meta.fields:
             if key.__class__.__name__ != "ForeignKey":
                 if format == 'XML':
                     attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'  
                 if format == 'JSON':
-                    attributes += '"' + key.name + '" : "' + str(getattr(self, key.name)) + '", '
+                    attributes += comma + '"' + key.name + '" : "' + str(getattr(self, key.name)) + '"'
+                    comma = ", "
         return attributes
 
     def shallow_entity_structure(self):
@@ -201,16 +204,15 @@ class SerializableSimpleEntity(models.Model):
     def serialize(self, etn = None, export_count_per_class = {}, exported_instances = [], format = 'XML'):
         '''
         format: {'XML' | 'JSON'}
-        '''
-        format = format.upper()
-        serialized = ""
-        '''
+
             If I have already exported this instance I don't want to duplicate all details hence I just export it's URIInstance, 
             name and SimpleEntity URI. Then I need to add an attribute so that when importing it I will recognize that its details
             are somewhere else in the file
             <EntityStructureNode URISimpleEntity="....." URIInstance="...." attribute="...." KS_TAG_WITH_NO_DATA=""
             the TAG "KS_TAG_WITH_NO_DATA" is used to mark the fact that the details of this SimpleEntity are somewhere else in the file
         '''
+        format = format.upper()
+        serialized = ""
         # if there is no etn I export just this object creating a shallow EntityStructure 
         if etn is None:
             etn = self.shallow_entity_structure().entry_point
@@ -234,21 +236,22 @@ class SerializableSimpleEntity(models.Model):
         exported_instances.append(self.URIInstance) 
         if not etn.external_reference:
             try:
+                outer_comma = ""
                 for child_node in etn.child_nodes.all():
                     if child_node.is_many:
                         child_instances = eval("self." + child_node.attribute + ".all()")
                         if format == 'XML':
                             serialized += "<" + child_node.attribute + ">"
                         if format == 'JSON':
-                            serialized += ', "' + child_node.attribute + '" : ['
-                        comma = ""
+                            serialized += outer_comma + ' "' + child_node.attribute + '" : ['
+                        innner_comma = outer_comma
                         for child_instance in child_instances:
                             # let's prevent infinite loops if self relationships
                             if (child_instance.__class__.__name__ != self.__class__.__name__) or (self.pk != child_node.pk):
                                 if format == 'JSON':
-                                    serialized += comma
+                                    serialized += innner_comma
                                 serialized += child_instance.serialize(child_node, exported_instances=exported_instances, format=format)
-                            comma = ", "
+                            innner_comma = ", "
                         if format == 'XML':
                             serialized += "</" + child_node.attribute + ">"
                         if format == 'JSON':
@@ -257,15 +260,16 @@ class SerializableSimpleEntity(models.Model):
                         child_instance = eval("self." + child_node.attribute)
                         if not child_instance is None:
                             serialized += child_instance.serialize(child_node, format=format, exported_instances=exported_instances)
+                    outer_comma = ", "
             except Exception as es:
                 print(str(es))
             if format == 'XML':
                 return '<' + tag_name + self.serialized_URI_SE(format) + self.serialized_attributes(format) + '>' + serialized + '</' + tag_name + '>'
             if format == 'JSON':
                 if etn.is_many:
-                    return ' { ' + self.serialized_URI_SE(format) + ', ' + self.serialized_attributes(format) + serialized + ' }'
+                    return ' { ' + self.serialized_URI_SE(format) + ', ' + self.serialized_attributes(format) + outer_comma + serialized + ' }'
                 else:
-                    return '"' + tag_name + '" : { ' + self.serialized_URI_SE(format) + ', ' + self.serialized_attributes(format) + serialized + ' }'
+                    return '"' + tag_name + '" : { ' + self.serialized_URI_SE(format) + ', ' + self.serialized_attributes(format) + outer_comma + serialized + ' }'
             
         else:
             # etn.external_reference = True
@@ -842,9 +846,12 @@ class KnowledgeServer(SerializableSimpleEntity):
     netloc = models.CharField(max_length=200L)
     
     organization = models.ForeignKey(Organization)
-    def uri(self):
+    def uri(self, encode_base64 = False):
         # "http://rootks.thekoa.org/"
-        return self.scheme + "://" + self.netloc + "/"
+        uri = self.scheme + "://" + self.netloc + "/"
+        if encode_base64:
+            uri = base64.encodestring(uri)
+        return uri
     
 class SimpleEntity(SerializableSimpleEntity):
     '''

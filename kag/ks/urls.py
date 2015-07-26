@@ -25,7 +25,7 @@ urlpatterns = patterns('',
     #46:
     url(r'^api/entity_structures/(?P<format>.*)/$', views.api_entity_structures, name='api_entity_structures'), 
     #80:
-    url(r'^api/ks_info/(?P<base64_KS_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_ks_info, name='ks_info'), 
+    url(r'^api/ks_info/(?P<format>.*)/$', views.api_ks_info, name='api_ks_info'), 
                        ###################   API ^ ####################
     
 )

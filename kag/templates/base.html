@@ -4,9 +4,9 @@
 	<head>
 		<meta charset="utf-8">
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
-		<title>{{ title }}Knowledge Server - Proof of Concept</title>
+		<title>{{ this_ks.name }}</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<meta name="Description" lang="en" content="ADD SITE DESCRIPTION">
+		<meta name="Description" lang="en" content="Knowledge Oriented Architecture - Proof of concept">
 		<meta name="author" content="Davide Galletti - davide@c4k.it">
 		<meta name="robots" content="index, follow">
 
@@ -19,15 +19,15 @@
 	<body>
 		<div class="header">
 			<div class="container">
-				<h1 class="header-heading">Knowledge Server - Proof of Concept</h1>
+				<h1 class="header-heading"><a href="{% url 'home' %}">{{ this_ks.name }}</a></h1>
 			</div>
 		</div>
 		<div class="nav-bar">
 			<div class="container">
 				<ul class="nav">
-					<li><a href="{% url 'ks_explorer_form' %}">Explore</a></li>
-					<li><a href="{% url 'upload_page' %}">Import</a></li>
-					<li><a href="{% url 'index' %}">List</a></li>
+					<li><a href="{% url 'ks_explorer' %}?ks_complete_url={{ this_ks_base64_url }}">This KS</a></li>
+					<li><a href="{% url 'ks_explorer_form' %}">Another KS</a></li>
+					<li><a href="{% url 'upload_page' %}">Import XML</a></li>
 				</ul>
 			</div>
 		</div>

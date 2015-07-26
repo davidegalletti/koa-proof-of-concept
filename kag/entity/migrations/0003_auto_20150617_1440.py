@@ -7,7 +7,7 @@ from entity.models import Organization, KnowledgeServer, SimpleEntity, Attribute
 def forwards_func(apps, schema_editor):
     the_koa_org = Organization();the_koa_org.id=1;the_koa_org.name="the Knowledge Oriented Architecture";the_koa_org.URIInstance="http://rootks.thekoa.org/entity/Organization/1";the_koa_org.website='http://www.theKOA.org';the_koa_org.description="the Knowledge Oriented Architecture organization .....";the_koa_org.save()
     
-    the_koa_org_ks = KnowledgeServer(pk=1, name="theKOA.org root Knowledge Server", scheme="http", netloc="rootks.thekoa.org", URIInstance="http://rootks.thekoa.org/entity/KnowledgeServer/1", description="The main Knowledge Server, defining the main Entities used by any other Knowledge Server", organization=the_koa_org, this_ks=True)
+    the_koa_org_ks = KnowledgeServer(pk=1, name="theKOA.org root Knowledge Server", scheme="http", netloc="rootks.thekoa.org", URIInstance="http://rootks.thekoa.org/entity/KnowledgeServer/1", description="The main Knowledge Server, defining the main structures and entities used by any other Knowledge Server.", organization=the_koa_org, this_ks=True)
     the_koa_org_ks.save()
     
     #SimpleEntity
@@ -75,19 +75,19 @@ def forwards_func(apps, schema_editor):
     en18=EntityStructureNode();en18.simple_entity=seOrganization;en18.save()
     en19=EntityStructureNode();en19.simple_entity=seKnowledgeServer;en19.attribute="knowledgeserver_set";en19.is_many=True;en19.save()
     
-    # eSimpleEntityAttributes
+    # esSimpleEntityAttributes
     en1.child_nodes.add(en2); en1.save()
     en2.child_nodes.add(en3); en2.save()
-    eSimpleEntityAttributes=EntityStructure();eSimpleEntityAttributes.entry_point=en1;eSimpleEntityAttributes.name="SimpleEntity-attributes";eSimpleEntityAttributes.namespace="entity";eSimpleEntityAttributes.save()
-    seSimpleEntity.entity_structure = eSimpleEntityAttributes; seSimpleEntity.save()
+    esSimpleEntityAttributes=EntityStructure();esSimpleEntityAttributes.entry_point=en1;esSimpleEntityAttributes.name="SimpleEntity-attributes";esSimpleEntityAttributes.description="Metadata describing an entity, i.e. something closely related to what is stored in a database table, and its attributes.";esSimpleEntityAttributes.namespace="entity";esSimpleEntityAttributes.save()
+    seSimpleEntity.entity_structure = esSimpleEntityAttributes; seSimpleEntity.save()
     
-    seAttribute.entity_structure = eSimpleEntityAttributes; seAttribute.save()
+    seAttribute.entity_structure = esSimpleEntityAttributes; seAttribute.save()
     aname.save();aURIInstance.save();amodule.save();atable_name.save();aid_field.save();aname_field.save();adescription_field.save();adescription.save()
     
-    seAttributeType.entity_structure = eSimpleEntityAttributes; seAttributeType.save()
+    seAttributeType.entity_structure = esSimpleEntityAttributes; seAttributeType.save()
     atText.save();atDate.save();atForeignKey.save(); #saving again to create URIInstance via the post_save signal
     
-    # eEntityStructureEntityStructureNodeApplication
+    # esEntityStructureEntityStructureNodeApplication
     en4.child_nodes.add(en5); en4.save()
     en5.child_nodes.add(en6); en5.child_nodes.add(en7); en5.save()
     en6.child_nodes.add(en8); en6.save()
@@ -96,29 +96,29 @@ def forwards_func(apps, schema_editor):
     en10.child_nodes.add(en11); en10.save()
     en11.child_nodes.add(en12); en11.child_nodes.add(en13); en11.save()
     en13.child_nodes.add(en15); en13.save()
-    eEntityStructureEntityStructureNodeApplication=EntityStructure(id=2,entry_point=en4,name="EntityStructure-EntityStructureNode-Application",namespace="entity",description="",URIInstance="http://rootks.thekoa.org/entity/EntityStructure/2")
-    eEntityStructureEntityStructureNodeApplication.save()
-    seEntityStructure.entity_structure = eEntityStructureEntityStructureNodeApplication; seEntityStructure.save()
-    eSimpleEntityAttributes.save();eEntityStructureEntityStructureNodeApplication.save(); #saving again to create URIInstance via the post_save signal
+    esEntityStructureEntityStructureNodeApplication=EntityStructure(id=2,entry_point=en4,name="EntityStructure-EntityStructureNode-Application",description="A graph of simple entities that have relationships with one another and whose instances share the same version, status, ...",namespace="entity",URIInstance="http://rootks.thekoa.org/entity/EntityStructure/2")
+    esEntityStructureEntityStructureNodeApplication.save()
+    seEntityStructure.entity_structure = esEntityStructureEntityStructureNodeApplication; seEntityStructure.save()
+    esSimpleEntityAttributes.save();esEntityStructureEntityStructureNodeApplication.save(); #saving again to create URIInstance via the post_save signal
     
-    seEntityStructureNode.entity_structure = eEntityStructureEntityStructureNodeApplication; seEntityStructureNode.save()
+    seEntityStructureNode.entity_structure = esEntityStructureEntityStructureNodeApplication; seEntityStructureNode.save()
     en1.save();en2.save();en3.save();en4.save();en5.save();en6.save();en7.save();en8.save();en9.save();en10.save();en11.save();en12.save();en13.save();en15.save();en16.save();en17.save();en18.save();en19.save()
     
-    seAttributeInAMethod.entity_structure = eEntityStructureEntityStructureNodeApplication; seAttributeInAMethod.save()
-    seMethod.entity_structure = eEntityStructureEntityStructureNodeApplication; seMethod.save()
-    seApplication.entity_structure = eEntityStructureEntityStructureNodeApplication; seApplication.save()
+    seAttributeInAMethod.entity_structure = esEntityStructureEntityStructureNodeApplication; seAttributeInAMethod.save()
+    seMethod.entity_structure = esEntityStructureEntityStructureNodeApplication; seMethod.save()
+    seApplication.entity_structure = esEntityStructureEntityStructureNodeApplication; seApplication.save()
 
 
-    # eWorkflowStatuses
+    # esWorkflowStatuses
     en16.child_nodes.add(en17); en16.save()
-    eWorkflowStatuses=EntityStructure(id=3,entry_point=en16,name="Workflow-statuses",namespace="entity",description="",URIInstance="http://rootks.thekoa.org/entity/EntityStructure/3")
-    eWorkflowStatuses.save()
-    seWorkflow.entity_structure = eWorkflowStatuses; seWorkflow.save()
-    seWorkflowStatus.entity_structure = eWorkflowStatuses; seWorkflowStatus.save()
+    esWorkflowStatuses=EntityStructure(id=3,entry_point=en16,name="Workflow-statuses",namespace="entity",description="A workflow and its statuses",URIInstance="http://rootks.thekoa.org/entity/EntityStructure/3")
+    esWorkflowStatuses.save()
+    seWorkflow.entity_structure = esWorkflowStatuses; seWorkflow.save()
+    seWorkflowStatus.entity_structure = esWorkflowStatuses; seWorkflowStatus.save()
     
     # eOrganizationKS
     en18.child_nodes.add(en19); en18.save()
-    eOrganizationKS=EntityStructure(id=4,entry_point=en18,name="Organization-KS",namespace="entity",description="",URIInstance="http://rootks.thekoa.org/entity/EntityStructure/4")
+    eOrganizationKS=EntityStructure(id=4,entry_point=en18,name="Organization-KS",namespace="entity",description="An Organization and its Knowledge Servers",URIInstance="http://rootks.thekoa.org/entity/EntityStructure/4")
     eOrganizationKS.save()
     seOrganization.entity_structure = eOrganizationKS; seOrganization.save()
     seKnowledgeServer.entity_structure = eOrganizationKS; seKnowledgeServer.save()
@@ -127,7 +127,7 @@ def forwards_func(apps, schema_editor):
     ws = WorkflowStatus();ws.name="Generic";ws.workflow=wgeneric;ws.description="";ws.save()
     
     # EntityInstance
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seSimpleEntity.id,                                version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seSimpleEntity.id,                                version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
     # EntityInstance has no EntityStructure, I create the shallow one so that I can set EntityStructure.namespace 
     # and hence generate the URIInstance for each instance of EntityInstance
@@ -138,39 +138,39 @@ def forwards_func(apps, schema_editor):
     seEntityInstance.save()
     ei.save()
     
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seAttribute.id,                                   version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seAttribute.id,                                   version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seApplication.id,                                 version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seApplication.id,                                 version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seWorkflow.id,                                    version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seWorkflow.id,                                    version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seWorkflowStatus.id,                              version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seWorkflowStatus.id,                              version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seMethod.id,                                      version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seMethod.id,                                      version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seAttributeType.id,                               version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seAttributeType.id,                               version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seWidget.id,                                      version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seWidget.id,                                      version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seEntityStructureNode.id,                         version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seEntityStructureNode.id,                         version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seEntityStructure.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seEntityStructure.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seAttributeInAMethod.id,                          version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seAttributeInAMethod.id,                          version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seOrganization.id,                                version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seOrganization.id,                                version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seEntityInstance.id,                              version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seEntityInstance.id,                              version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seKnowledgeServer.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        workflow=wgeneric,current_status=ws,entry_point_instance_id=seKnowledgeServer.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eEntityStructureEntityStructureNodeApplication, workflow=wgeneric,current_status=ws,entry_point_instance_id=eSimpleEntityAttributes.id,                       version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, workflow=wgeneric,current_status=ws,entry_point_instance_id=esSimpleEntityAttributes.id,                       version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eEntityStructureEntityStructureNodeApplication, workflow=wgeneric,current_status=ws,entry_point_instance_id=eEntityStructureEntityStructureNodeApplication.id,version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, workflow=wgeneric,current_status=ws,entry_point_instance_id=esEntityStructureEntityStructureNodeApplication.id,version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eEntityStructureEntityStructureNodeApplication, workflow=wgeneric,current_status=ws,entry_point_instance_id=eWorkflowStatuses.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, workflow=wgeneric,current_status=ws,entry_point_instance_id=esWorkflowStatuses.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
-    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eEntityStructureEntityStructureNodeApplication, workflow=wgeneric,current_status=ws,entry_point_instance_id=eOrganizationKS.id,                               version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, workflow=wgeneric,current_status=ws,entry_point_instance_id=eOrganizationKS.id,                               version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()
     ei = EntityInstance(root_id=1,owner_knowledge_server=the_koa_org_ks,entity_structure=eOrganizationKS,                                workflow=wgeneric,current_status=ws,entry_point_instance_id=the_koa_org.id,                                   version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save();ei.root_id=ei.id;ei.save()

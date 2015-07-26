@@ -64,7 +64,7 @@ th, td
 }
 
 a:link { color: royalblue; }
-a:visited { color: purple; }
+a:visited { color: green; }
 a:focus { color: black; }
 a:hover { color: green; }
 a:active { color: red; }
