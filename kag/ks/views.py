@@ -137,6 +137,51 @@ def api_entity_structures(request, format):
     
     return api_entity_instances(request, base64.encodestring(e.URIInstance), format)
 
+
+def api_entity_instance_info(request, base64_EntityInstance_URIInstance, format):
+    '''
+        #52 
+        
+        Parameters:
+        * format { 'XML' | 'JSON' | 'HTML' = 'BROWSE' }
+        * base64_EntityInstance_URIInstance: URIInstance of the EntityInstance base64 encoded
+        
+        Implementation:
+        it fetches the EntityInstance, then the list of all that share the same root
+        it returns EntityInstance.serialize_with_simple_entity(format) and for each on the above list:
+            the URIInstance of the ErtityInstance
+            the version status {working | released | obsolete}
+            the version number (e.g. 0.1.0)
+            the version date
+            the version description
+            other version metadata
+
+    '''
+    format = format.upper()
+    URIInstance = base64.decodestring(base64_EntityInstance_URIInstance)
+    entity_instance = EntityInstance.retrieve(EntityInstance, URIInstance, False)
+    all_versions = EntityInstance.objects.filter(root = entity_instance.root)
+    all_versions_serialized = ""
+    comma = ""
+    if format != 'HTML' and format != 'BROWSE':
+        for v in all_versions:
+            if format == 'JSON':
+                all_versions_serialized += comma
+            all_versions_serialized += v.serialize_with_simple_entity(format = format, force_external_reference=True)
+            comma = ", "
+    if format == 'XML':
+        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\"><EntityInstance>" + entity_instance.serialize_with_simple_entity(format = format, force_external_reference=True) + "</EntityInstance><Versions>" + all_versions_serialized + "</Versions></Export>"
+        xmldoc = minidom.parseString(exported_xml)
+        exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
+        return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
+    if format == 'JSON':
+        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstance" : ' + entity_instance.serialize_with_simple_entity(format = format, force_external_reference=True) + ', "Versions" : [' + all_versions_serialized + '] } }'
+        return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
+    if format == 'HTML' or format == 'BROWSE':
+        instance = entity_instance.get_instance()
+        cont = RequestContext(request, {'entity_instance': entity_instance, 'all_versions': all_versions, 'ks': entity_instance.owner_knowledge_server, 'instance': instance})
+        return render_to_response('ks/api_entity_instance_info.html', context_instance=cont)
+    
 def api_entity_instances(request, base64_EntityStructure_URIInstance, format):
     '''
         http://redmine.davide.galletti.name/issues/64
@@ -230,6 +275,11 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
             external_ks = ks
 
     #info on the EntityStructure
+    response = urllib2.urlopen(base64.decodestring(base64URIInstance) + "/json")
+    es_info_json_stream = response.read()
+    # parsing json
+    es_info_json = json.loads(es_info_json_stream)
+    
     
     if format == 'XML':
         local_url = reverse ('api_entity_instances', args=(base64URIInstance,format))
@@ -249,9 +299,10 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
             entity = {}
             actual_instance_class = ei['ActualInstance'].keys()[0]
             entity['actual_instance_name'] = ei['ActualInstance'][actual_instance_class]['name']
-            entity['URIInstance'] = base64.encodestring(ei['ActualInstance'][actual_instance_class]['URIInstance']).rstrip('\n')
+            entity['base64URIInstance'] = base64.encodestring(ei['URIInstance']).rstrip('\n')
+            entity['URIInstance'] = ei['URIInstance']
             entities.append(entity)
-        cont = RequestContext(request, {'entities':entities, 'organization': organization, 'external_ks': external_ks})
+        cont = RequestContext(request, {'entities':entities, 'organization': organization, 'external_ks': external_ks, 'es_info_json': es_info_json})
         return render_to_response('ks/browse_entity_instance.html', context_instance=cont)
     
 def home(request):

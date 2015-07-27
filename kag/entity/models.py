@@ -1046,7 +1046,19 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
     # we have the ID of the instance because we do not know its class so we can't have a ForeignKey to an unknown class
     entry_point_instance_id = models.IntegerField()
 
+    def get_instance(self):
+        '''
+        it returns the main instance of the structure i.e. the one with pk = self.entry_point_instance_id
+        '''
+        se_simple_entity = self.entity_structure.entry_point.simple_entity
+        actual_class = utils.load_class(se_simple_entity.module + ".models", se_simple_entity.name)
+        return actual_class.objects.get(pk=self.entry_point_instance_id)
+    
     def serialize_with_simple_entity(self, format = 'XML', force_external_reference=False):
+        '''
+        parameters:
+        TODO: force_external_reference if True ...
+        '''
         format = format.upper()
         if format == 'XML':
             serialized_head = "<EntityInstance namespace=\"" + self.entity_structure.namespace + "\" URIInstance=\"" + self.URIInstance + "\" VersionMajor=\"" + str(self.version_major) + "\" VersionMinor=\"" + str(self.version_minor) + "\" VersionPatch=\"" + str(self.version_patch) + "\" VersionReleased=\"" + str(self.version_released) + "\" VersionDescription=\"" + self.version_description + "\">"
@@ -1076,9 +1088,7 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
         temp_etn = EntityStructureNode(simple_entity=ws_simple_entity, external_reference=True, is_many=False, attribute = "current_status")
         serialized_head += comma + self.current_status.serialize(temp_etn, format = format)
         
-        se_simple_entity = self.entity_structure.entry_point.simple_entity
-        actual_class = utils.load_class(se_simple_entity.module + ".models", se_simple_entity.name)
-        instance = actual_class.objects.get(pk=self.entry_point_instance_id)
+        instance = self.get_instance()
         if force_external_reference:
             self.entity_structure.entry_point.external_reference = True
 
@@ -1091,16 +1101,6 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
         
         return serialized_head + serialized_tail
 
-
-#     def initialize(self, version_major=0, version_minor=1, version_patch=0):
-#         '''
-#         ???It was a __init__ not 100% clear apart from initializing a version and a entry_point_instance_id???
-#         '''
-#         actual_class = utils.load_class(self.entity_structure.entry_point.simple_entity.module + ".models", self.entity_structure.entry_point.simple_entity.name)
-#         entry_point_instance = actual_class()
-#         entry_point_instance.SetNotNullFields()
-#         entry_point_instance.save()
-#         self.entry_point_instance_id = entry_point_instance.id
 
 #     def get_version_released(self, released = False, latest = False, version_major=None, version_minor=None, version_patch=None):
 #         '''

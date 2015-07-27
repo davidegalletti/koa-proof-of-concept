@@ -118,7 +118,7 @@ def forwards_func(apps, schema_editor):
     
     # eOrganizationKS
     en18.child_nodes.add(en19); en18.save()
-    eOrganizationKS=EntityStructure(id=4,entry_point=en18,name="Organization-KS",namespace="entity",description="An Organization and its Knowledge Servers",URIInstance="http://rootks.thekoa.org/entity/EntityStructure/4")
+    eOrganizationKS=EntityStructure(id=4,entry_point=en18,name="Organization-KnowledgeServer",namespace="entity",description="An Organization and its Knowledge Servers",URIInstance="http://rootks.thekoa.org/entity/EntityStructure/4")
     eOrganizationKS.save()
     seOrganization.entity_structure = eOrganizationKS; seOrganization.save()
     seKnowledgeServer.entity_structure = eOrganizationKS; seKnowledgeServer.save()

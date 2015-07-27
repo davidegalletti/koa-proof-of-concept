@@ -5,11 +5,14 @@
     	<h3>Browsing an external Knowledge Server: </h3>
     	<p>Name: <a href="{{ external_ks.scheme }}://{{ external_ks.netloc }}/" target="_blank">{{ external_ks.name }}</a><br>
     	Organization: <a href="{{ organization.website }}" target="_blank">{{ organization.name }}</a></p>
-        <h4>The data structure {{  }} has the following instances: </h4>
+        <h4>The data structure</h4>
+         <p><strong>{{ es_info_json.Export.EntityStructure.name }}</strong> <br>
+         <i>{{ es_info_json.Export.EntityStructure.description }}</i></p>
+        <h4>has the following instances:</h4> 
         <ul>
         {% for entity in entities %}
             <li>
-                {{ entity.actual_instance_name }} {{ entity.URIInstance }}
+                <a href="{% url 'api_entity_instance_info' entity.base64URIInstance "html" %}">{{ entity.actual_instance_name }}</a>
             </li>
         {% endfor %}
         </ul>

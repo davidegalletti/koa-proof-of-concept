@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+				
+
+{% block content %}
+    <div class="row-fluid">
+    	<h2>This instance ...</h2>
+    	<h3>... is:</h3>
+    	"{{ instance.name }}" (get the data in XML or JSON)
+    	<h3>... is owned by:</h3>
+    	{% ks_info ks %}
+        <h3>... has this structure:</h3>
+         <p><strong>{{ entity_instance.entity_structure.name }}</strong> <br>
+         <i>{{ entity_instance.entity_structure.description }}</i></p>
+        <h4>... has the following versions:</h4> 
+        <ul>
+        {% for entity_instance in all_versions %}
+            <li>
+		         <p><strong><a href="{{ entity_instance.URIInstance }}">{{ entity_instance.name }}</a></strong> <br>
+		         <i>{{ entity_instance.description }}</i></p>
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+
+{% endblock %}
