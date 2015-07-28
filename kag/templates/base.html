@@ -19,12 +19,13 @@
 	<body>
 		<div class="header">
 			<div class="container">
-				<h1 class="header-heading"><a href="{% url 'home' %}">{{ this_ks.name }}</a></h1>
+				<h1 class="header-heading">{{ this_ks.name }}</h1>
 			</div>
 		</div>
 		<div class="nav-bar">
 			<div class="container">
 				<ul class="nav">
+				    <li><a href="{% url 'home' %}">Home</a></li>
 					<li><a href="{% url 'ks_explorer' %}?ks_complete_url={{ this_ks_base64_url }}">This KS</a></li>
 					<li><a href="{% url 'ks_explorer_form' %}">Another KS</a></li>
 					<li><a href="{% url 'upload_page' %}">Import XML</a></li>

@@ -179,7 +179,13 @@ def api_entity_instance_info(request, base64_EntityInstance_URIInstance, format)
         return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
     if format == 'HTML' or format == 'BROWSE':
         instance = entity_instance.get_instance()
-        cont = RequestContext(request, {'entity_instance': entity_instance, 'all_versions': all_versions, 'ks': entity_instance.owner_knowledge_server, 'instance': instance})
+        all_versions_with_instances = []
+        for v in all_versions:
+            version_with_instance = {}
+            version_with_instance['entity_instance'] = v
+            version_with_instance['simple_entity'] = v.get_instance()
+            all_versions_with_instances.append(version_with_instance)
+        cont = RequestContext(request, {'entity_instance': entity_instance, 'all_versions_with_instances': all_versions_with_instances, 'ks': entity_instance.owner_knowledge_server, 'instance': instance})
         return render_to_response('ks/api_entity_instance_info.html', context_instance=cont)
     
 def api_entity_instances(request, base64_EntityStructure_URIInstance, format):

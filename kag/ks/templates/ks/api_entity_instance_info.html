@@ -3,23 +3,30 @@
 				
 
 {% block content %}
-    <div class="row-fluid">
-    	<h2>This instance ...</h2>
+	<div class="row-fluid">
+		<h2>The data set with URI<br>{{ entity_instance.URIInstance }} </h2>
     	<h3>... is:</h3>
-    	"{{ instance.name }}" (get the data in XML or JSON)
-    	<h3>... is owned by:</h3>
+    	<p>"{{ instance.name }}" (get the data in XML or JSON)<br>
+    	Version {{ entity_instance.version_major }}.{{ entity_instance.version_minor }}.{{ entity_instance.version_patch }}</p>
+    	<h3>The owner is:</h3>
     	{% ks_info ks %}
-        <h3>... has this structure:</h3>
+        <h3>The structure (more info - XML - JSON) is:</h3>
          <p><strong>{{ entity_instance.entity_structure.name }}</strong> <br>
          <i>{{ entity_instance.entity_structure.description }}</i></p>
-        <h4>... has the following versions:</h4> 
-        <ul>
-        {% for entity_instance in all_versions %}
-            <li>
-		         <p><strong><a href="{{ entity_instance.URIInstance }}">{{ entity_instance.name }}</a></strong> <br>
-		         <i>{{ entity_instance.description }}</i></p>
-            </li>
-        {% endfor %}
+         <h4>The structure is owned by:</h4>
+         <p>reperire il ks owner di una SerializableSimpleEntity</p>
+         {% if all_versions_with_instances|length > 1 %}
+			<h3>... has the following versions:</h3> 
+			<ul>
+			{% for version_with_instance in all_versions_with_instances %}
+			    <li>
+			        <p><strong><a href="{{ version_with_instance.entity_instance.URIInstance }}">{{ version_with_instance.simple_entity.name }}</a></strong> <br>
+			        <i>{{ version_with_instance.simple_entity.description }}</i></p>
+			    </li>
+			{% endfor %}
+         {% else %}
+         	<h3>There are no versions other than this.</h3> 
+         {% endif %}
         </ul>
     </div>
 
