@@ -373,3 +373,21 @@ def api_export_instance(request, base64_EntityInstance_URIInstance, format):
             cont = RequestContext(request, {'etn': entity_instance.entity_structure.entry_point, 'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'entity_instance': entity_instance, 'exported_json': exported_json, 'simple_entity': simple_entity})
             return render_to_response('ks/api_export_instance.html', context_instance=cont)
     
+def api_subscribe(request, base64_URIInstance, base64_URL):
+    '''
+        #35 
+        parameters:
+        base64_URIInstance the base64 encoded URIInstance to which I want to subscribe
+        base64_URL the URL this KS has to invoke to notify
+    '''
+    
+    
+def api_notify(request, base64_URIInstance):
+    '''
+        #35 
+        parameters:
+        base64_URIInstance the base64 encoded URIInstance to which I want to subscribe
+        base64_URL the URL this KS has to invoke to notify
+    '''
+    
+    

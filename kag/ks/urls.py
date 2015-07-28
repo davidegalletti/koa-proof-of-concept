@@ -30,6 +30,10 @@ urlpatterns = patterns('',
     url(r'^api/ks_info/(?P<format>.*)/$', views.api_ks_info, name='api_ks_info'), 
     #110
     url(r'^api/export_instance/(?P<base64_EntityInstance_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_export_instance, name='api_export_instance'),
+    #35 
+    url(r'^api/subscribe/(?P<base64_URIInstance>[\w|=|%|.]+)/(?P<base64_URL>[\w|=|%|.]+)/$', views.subscribe, name='api_subscribe'),
+    #37 
+    url(r'^api/notify/(?P<base64_URIInstance>[\w|=|%|.]+)/$', views.notify, name='api_notify'),
                        ###################   API ^ ####################
     
 )
