@@ -125,7 +125,7 @@ def api_entity_structures(request, format):
         
         Implementation:
             Invoking api_entity_instances #64 with parameter "EntityStructure-EntityStructureNode-Application"
-            so that I get all the Entities in a shallow export
+            so that I get all the EntitieStructures in this_ks in a shallow export
     '''
     # Look for all EntityStructure of type "EntityStructure-EntityStructureNode-Application" ...
     entities_id = EntityStructure.objects.filter(name=EntityStructure.entity_structure_entity_structure_name).values("id")

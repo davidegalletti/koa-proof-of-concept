@@ -12,7 +12,7 @@
         <ul>
         {% for entity in entities %}
             <li>
-                <a href="{% url 'api_entity_instance_info' entity.base64URIInstance "html" %}">{{ entity.actual_instance_name }}</a>
+                <a href="{{ external_ks.scheme }}://{{ external_ks.netloc }}{% url 'api_entity_instance_info' entity.base64URIInstance "html" %}">{{ entity.actual_instance_name }}</a>
             </li>
         {% endfor %}
         </ul>
