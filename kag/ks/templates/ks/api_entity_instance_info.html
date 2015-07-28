@@ -6,7 +6,7 @@
 	<div class="row-fluid">
 		<h2>The data set with URI<br>{{ entity_instance.URIInstance }} </h2>
     	<h3>... is:</h3>
-    	<p>"{{ instance.name }}" (get the data in XML or JSON)<br>
+    	<p>"{{ instance.name }}" (<a href="{% url 'api_export_instance' base64_EntityInstance_URIInstance "html" %}">browse</a> the data or get it in <a href="{% url 'api_export_instance' base64_EntityInstance_URIInstance "XML" %}">XML</a> or <a href="{% url 'api_export_instance' base64_EntityInstance_URIInstance "JSON" %}">JSON</a>)<br>
     	Version {{ entity_instance.version_major }}.{{ entity_instance.version_minor }}.{{ entity_instance.version_patch }}</p>
     	<h3>The owner is:</h3>
     	{% ks_info ks %}

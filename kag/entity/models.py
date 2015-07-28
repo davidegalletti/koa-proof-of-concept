@@ -244,7 +244,7 @@ class SerializableSimpleEntity(models.Model):
                             serialized += "<" + child_node.attribute + ">"
                         if format == 'JSON':
                             serialized += outer_comma + ' "' + child_node.attribute + '" : ['
-                        innner_comma = outer_comma
+                        innner_comma = ''
                         for child_instance in child_instances:
                             # let's prevent infinite loops if self relationships
                             if (child_instance.__class__.__name__ != self.__class__.__name__) or (self.pk != child_node.pk):

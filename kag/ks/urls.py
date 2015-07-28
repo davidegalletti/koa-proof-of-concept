@@ -28,6 +28,8 @@ urlpatterns = patterns('',
     url(r'^api/entity_instance_info/(?P<base64_EntityInstance_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_entity_instance_info, name='api_entity_instance_info'),
     #80:
     url(r'^api/ks_info/(?P<format>.*)/$', views.api_ks_info, name='api_ks_info'), 
+    #110
+    url(r'^api/export_instance/(?P<base64_EntityInstance_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_export_instance, name='api_export_instance'),
                        ###################   API ^ ####################
     
 )

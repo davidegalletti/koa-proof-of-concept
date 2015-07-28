@@ -185,7 +185,7 @@ def api_entity_instance_info(request, base64_EntityInstance_URIInstance, format)
             version_with_instance['entity_instance'] = v
             version_with_instance['simple_entity'] = v.get_instance()
             all_versions_with_instances.append(version_with_instance)
-        cont = RequestContext(request, {'entity_instance': entity_instance, 'all_versions_with_instances': all_versions_with_instances, 'ks': entity_instance.owner_knowledge_server, 'instance': instance})
+        cont = RequestContext(request, {'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'entity_instance': entity_instance, 'all_versions_with_instances': all_versions_with_instances, 'ks': entity_instance.owner_knowledge_server, 'instance': instance})
         return render_to_response('ks/api_entity_instance_info.html', context_instance=cont)
     
 def api_entity_instances(request, base64_EntityStructure_URIInstance, format):
@@ -342,3 +342,34 @@ def api_ks_info(request, format):
 
 
 
+def api_export_instance(request, base64_EntityInstance_URIInstance, format):
+    '''
+        #110 
+        
+        Parameters:
+        * format { 'XML' | 'JSON' | 'HTML' = 'BROWSE' }
+        * base64_EntityInstance_URIInstance: URIInstance of the EntityInstance base64 encoded
+        
+        Implementation:
+        it fetches the EntityInstance, then the SimpleEntity
+        it returns SimpleEntity.serialize according to the EntityStructure and the format
+
+    '''
+    format = format.upper()
+    URIInstance = base64.decodestring(base64_EntityInstance_URIInstance)
+    entity_instance = EntityInstance.retrieve(EntityInstance, URIInstance, False)
+    simple_entity = entity_instance.get_instance()
+
+    if format == 'XML':
+        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\">" + simple_entity.serialize(etn = entity_instance.entity_structure.entry_point, export_count_per_class = {}, exported_instances = [], format = format) + "</Export>"
+        xmldoc = minidom.parseString(exported_xml)
+        exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
+        return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
+    if format == 'JSON' or format == 'HTML' or format == 'BROWSE':
+        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", ' + simple_entity.serialize(etn = entity_instance.entity_structure.entry_point, export_count_per_class = {}, exported_instances = [], format = "JSON") + ' } }'
+        if format == 'JSON':
+            return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
+        else:
+            cont = RequestContext(request, {'etn': entity_instance.entity_structure.entry_point, 'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'entity_instance': entity_instance, 'exported_json': exported_json, 'simple_entity': simple_entity})
+            return render_to_response('ks/api_export_instance.html', context_instance=cont)
+    
