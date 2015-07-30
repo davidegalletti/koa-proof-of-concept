@@ -69,6 +69,7 @@ class Migration(migrations.Migration):
                 ('version_minor', models.IntegerField(blank=True)),
                 ('version_patch', models.IntegerField(blank=True)),
                 ('version_description', models.CharField(max_length=2000L, default=b'')),
+                ('version_date', models.DateTimeField(auto_now_add=True)),
                 ('version_released', models.BooleanField(default=False)),
                 ('entry_point_instance_id', models.IntegerField()),
             ],

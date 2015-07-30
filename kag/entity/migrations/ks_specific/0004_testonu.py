@@ -7,7 +7,7 @@ from entity.models import Organization, KnowledgeServer
 def forwards_func(apps, schema_editor):
     test_onu_org = Organization();test_onu_org.name="United Nations";test_onu_org.website='http://www.un.org';test_onu_org.description="Test United Nations";test_onu_org.save()
     
-    root_ks = KnowledgeServer.objects.get(pk=1)
+    root_ks = KnowledgeServer.this_knowledge_server()
     root_ks.this_ks = False
     root_ks.save()
 

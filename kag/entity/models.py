@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-
 from random import randrange, uniform
+
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Max
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from django.conf import settings
 from userauthorization.models import KUser
 import kag.utils as utils
 
 from xml.dom import minidom
 from email.encoders import encode_base64
 import base64
+# from gmpy import root
+# from meld.matchers import self_dir
 
 class CustomModelManager(models.Manager):
     '''
@@ -84,7 +86,7 @@ class SerializableSimpleEntity(models.Model):
     # URI points to the a specific instance in a specific KS
     def generate_URIInstance(self):
         try:
-            this_ks = KnowledgeServer.objects.get(this_ks = True)
+            this_ks = KnowledgeServer.this_knowledge_server()
             se = self.get_simple_entity()
             if se.entity_structure != None:
                 return this_ks.uri() + se.entity_structure.namespace + "/" + se.name + "/" + str(getattr(self, se.id_field))
@@ -201,7 +203,7 @@ class SerializableSimpleEntity(models.Model):
         etn.save()
         return etn
 
-    def serialize(self, etn = None, export_count_per_class = {}, exported_instances = [], format = 'XML'):
+    def serialize(self, etn = None, exported_instances = [], format = 'XML'):
         '''
         format: {'XML' | 'JSON'}
 
@@ -287,6 +289,71 @@ class SerializableSimpleEntity(models.Model):
                     return '{ ' + self.serialized_URI_SE(format) + ', "URIInstance" : "' + self.URIInstance + '", "' + self._meta.pk.attname + '" : "' + str(self.pk) + '"' + json_name + ' }'
                 else:
                     return '"' + tag_name + '" :  { ' + self.serialized_URI_SE(format) + ', "URIInstance" : "' + self.URIInstance + '", "' + self._meta.pk.attname + '" : "' + str(self.pk) + '"' + json_name + ' }'
+            
+            
+    def new_version(self, etn, processed_instances, parent = None):
+        '''
+        invoked by EntityInstance.new_version that wraps it in a transaction
+        it recursively invokes itself to create a new version of the full structure
+        
+        processed_instances is a dictionary where the key is the old URIInstance and 
+        the data is the new one
+        '''
+
+        if etn.external_reference:
+            # if it is an external reference I do not need to create a new instance
+            return self
+
+        if self.URIInstance and str(self.URIInstance) in processed_instances.keys():
+            # already created, I return that one
+            return self.__class__.objects.get(URIInstance = self.URIInstance)
+        
+        new_instance = self.__class__()
+        if parent:
+#           I have a parent; let's set it
+            field_name = SerializableSimpleEntity.get_parent_field_name(parent, etn.attribute)
+            if field_name:
+                setattr(new_instance, field_name, parent)
+                
+        for en_child_node in etn.child_nodes.all():
+            if en_child_node.attribute in self.foreign_key_attributes():
+                #not is_many
+                child_instance = eval("self." + en_child_node.attribute)
+                new_child_instance = child_instance.new_version(en_child_node, processed_instances)
+                setattr(new_instance, en_child_node.attribute, new_child_instance) #the parameter "parent" shouldn't be necessary in this case as this is a ForeignKey
+                
+        # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
+        new_instance.save()
+                
+        for en_child_node in etn.child_nodes.all():
+            if en_child_node.is_many:
+                child_instances = eval("self." + en_child_node.attribute + ".all()")
+                for child_instance in child_instances:
+                    # let's prevent infinite loops if self relationships
+                    if (child_instance.__class__.__name__ == self.__class__.__name__) and (self.pk == en_child_node.pk):
+                        eval("new_instance." + en_child_node.attribute + ".add(child_instance)")
+                    else:
+                        new_child_instance = child_instance.new_version(en_child_node, processed_instances, new_instance)
+                        eval("new_instance." + en_child_node.attribute + ".add(new_child_instance)")
+            else:
+                #not is_many
+                child_instance = eval("self." + en_child_node.attribute)
+                new_child_instance = child_instance.new_version(en_child_node, processed_instances, self)
+                setattr(new_instance, en_child_node.attribute, new_child_instance)
+        
+        for key in self._meta.fields:
+            if key.__class__.__name__ != "ForeignKey":
+                setattr(new_instance, key.name, eval("self." + key.name))
+        
+        new_instance.id = None
+        new_instance.URIInstance = ""
+        new_instance.save()
+        # after saving
+        processed_instances[str(self.URIInstance)] = new_instance.URIInstance
+        return new_instance
+        
+            
+
             
     @staticmethod
     def simple_entity_from_xml_tag(xml_child_node):
@@ -464,11 +531,10 @@ class SerializableSimpleEntity(models.Model):
                                 # didn't find it; I create the instance anyway
                                 instance = actual_class()
                         # from_xml takes care of saving instance with a self.save() at the end
-                        instance.from_xml(xml_child_node, en_child_node, insert) #the fourth parameter, "parent" shouldn't be necessary in this case as this is a ForeignKeys
+                        instance.from_xml(xml_child_node, en_child_node, insert) #the fourth parameter, "parent" shouldn't be necessary in this case as this is a ForeignKey
                     setattr(self, en_child_node.attribute, instance)
                 except Exception as ex:
                     print (ex.message)
-                    pass
                     #raise Exception("### add relevant message: from_xml")
                  
         # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
@@ -476,6 +542,8 @@ class SerializableSimpleEntity(models.Model):
         # from_xml can be invoked on an instance retrieved from the database (where URIInstance is set)
         # or created on the fly (and URIInstance is not set); in the latter case, only now I can generate URIInstance
         # as I have just saved it and I have a local ID
+        
+        # TODO: now the generate_URIInstance should be invoked by the post_save
         if not self.URIInstance:
             self.URIInstance = self.generate_URIInstance()
             self.save()
@@ -640,9 +708,11 @@ class SerializableSimpleEntity(models.Model):
             #nothing to do, there is no KS_TAG_WITH_NO_DATA attribute
             pass
         for key in self._meta.fields:
-#              let's setattr the other attributes
-#                that are not ForeignKey as those are treated separately
-#                and is not the field_name pointing at the parent as it has been already set
+            '''
+              let's setattr the other attributes
+              that are not ForeignKey as those are treated separately
+              and is not the field_name pointing at the parent as it has been already set
+            '''
             if key.__class__.__name__ != "ForeignKey" and (not parent or key.name != field_name):
                 try:
                     if key.__class__.__name__ == "BooleanField":
@@ -853,6 +923,11 @@ class KnowledgeServer(SerializableSimpleEntity):
             uri = base64.encodestring(uri)
         return uri
     
+    @staticmethod
+    def this_knowledge_server():
+        #TODO: it should be done getting the only one with this_ks = True belonging to a released instance
+        return KnowledgeServer.objects.filter(this_ks = True)[0]
+    
 class SimpleEntity(SerializableSimpleEntity):
     '''
     A SimpleEntity roughly corresponds to a table in a database or a class if we have an ORM
@@ -970,16 +1045,29 @@ class EntityStructure(SerializableSimpleEntity):
     namespace = models.CharField(max_length=500L, blank=True)
 
 
-class VersionableEntityInstance(models.Model):
+    
+
+class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
     '''
-    Versionable
+    A data set / chunk of knowledge; its data structure is described by self.entity_structure
+    The only Versionable object so far
+    Serializable like many others 
+    It has an owner KS which can be inferred by the URIInstance but it is explicitly linked 
+
+    An EntityInstance is Versionable
     an Instance belongs to a set of instances which are basically the same but with a different version
     
     Methods:
         new version: create new instances starting from entry point, following the nodes but those with external_reference=True
         release: it sets version_released True and it sets it to False for all the other instances of the same set
     '''
-    
+    owner_knowledge_server = models.ForeignKey(KnowledgeServer)
+
+    entity_structure = models.ForeignKey(EntityStructure)
+    # we have the ID of the instance because we do not know its class so we can't have a ForeignKey to an unknown class
+    entry_point_instance_id = models.IntegerField()
+
+    #following attributes used to be in a separate class VersionableEntityInstance
     '''
     an Instance belongs to a set of instances which are basically the same but with a different version
     root is the first instance of this set; root has root=self so that if I filter for root=smthng
@@ -992,60 +1080,12 @@ class VersionableEntityInstance(models.Model):
     version_minor = models.IntegerField(blank=True)
     version_patch = models.IntegerField(blank=True)
     version_description = models.CharField(max_length=2000L, default = "")
+    version_date = models.DateTimeField(auto_now_add=True)
     '''
     Assert: At most one instance with the same root_version_id has version_released = True
     '''
     version_released = models.BooleanField(default=False)
-
-    def get_state(self):
-        '''
-        Three implicit states: working, released, obsolete  
-         -  working: the latest version where version_released = False
-         -  released: the one with version_released = True
-         -  obsolete: all the others
-        '''
-        if self.version_released:
-            return "released"
-        version_major__max = self.__class__.objects.all().aggregate(Max('version_major'))['version_major__max']
-        if self.version_major == version_major__max:
-            version_minor__max = self.__class__.objects.filter(version_major=version_major__max).aggregate(Max('version_minor'))['version_minor__max']
-            if self.version_minor == version_minor__max:
-                version_patch__max = self.__class__.objects.filter(version_major=version_major__max, version_minor=version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
-                if self.version_patch == version_patch__max:
-                    return "working"
-        return "obsolete"
-        
-    def set_version(self, version_major=0, version_minor=1, version_patch=0):
-        self.version_major = version_major
-        self.version_minor = version_minor
-        self.version_patch = version_patch
     
-    @staticmethod
-    def get_latest(any_from_the_set):
-        '''
-        gets the latest version starting from any EntityInstance in the version set 
-        '''
-        version_major__max = EntityInstance.objects.filter(root = any_from_the_set.root).aggregate(Max('version_major'))['version_major__max']
-        version_minor__max = EntityInstance.objects.filter(root = any_from_the_set.root, version_major = version_major__max).aggregate(Max('version_minor'))['version_minor__max']
-        version_patch__max = EntityInstance.objects.filter(root = any_from_the_set.root, version_major = version_major__max, version_minor = version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
-        return EntityInstance.objects.get(root = any_from_the_set, version_major = version_major__max, version_minor = version_minor__max, version_patch = version_patch__max)
-    
-    class Meta:
-        abstract = True
-    
-class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, SerializableSimpleEntity):
-    '''
-    A chunk of knowledge; its data structure is described by self.entity_structure
-    The only Versionable object so far
-    Serializable like many others 
-    It has an owner KS which can be inferred by the URIInstance but it is explicitly linked 
-    '''
-    owner_knowledge_server = models.ForeignKey(KnowledgeServer)
-
-    entity_structure = models.ForeignKey(EntityStructure)
-    # we have the ID of the instance because we do not know its class so we can't have a ForeignKey to an unknown class
-    entry_point_instance_id = models.IntegerField()
-
     def get_instance(self):
         '''
         it returns the main instance of the structure i.e. the one with pk = self.entry_point_instance_id
@@ -1114,6 +1154,99 @@ class EntityInstance(WorkflowEntityInstance, VersionableEntityInstance, Serializ
 #         version-aware proxy to objects.filter 
 #         '''
 #         pass
+    
+    #following methods used to be in a separate class VersionableEntityInstance
+
+    def new_version(self, version_major=None, version_minor=None, version_patch=None, version_description = "", version_date = None):
+        '''
+        It creates new records for each record in the whole structure excluding extenal references
+        version_released is set to False
+        It creates a new EntityInstance and returns it
+        
+        '''
+        if version_major == None or version_minor == None or version_patch == None:
+            # if the version is not fully specified the least increase is chosen
+            version_major = self.version_major
+            version_minor = self.version_minor
+            version_patch = self.version_patch + 1
+        else:
+            # it needs to be a greater version number
+            message = "Trying to create a new version with an older version number."
+            if version_major < self.version_major:
+                raise Exception(message)
+            else:
+                if version_major == self.version_major and version_minor < self.version_minor:
+                    raise Exception(message)
+                else:
+                    if version_major == self.version_major and version_minor == self.version_minor and version_patch < self.version_patch:
+                        raise Exception(message)
+        try:
+            with transaction.atomic():
+                instance = self.get_instance().new_version(self.entity_structure.entry_point, processed_instances = {})
+                new_ei = EntityInstance()
+                new_ei.version_major = version_major
+                new_ei.version_minor = version_minor
+                new_ei.version_patch = version_patch
+                new_ei.owner_knowledge_server = KnowledgeServer.this_knowledge_server()
+                new_ei.entity_structure = self.entity_structure
+                new_ei.root = self.root
+                new_ei.entry_point_instance_id = instance.id
+                new_ei.version_description = version_description
+                new_ei.workflow = self.workflow
+                new_ei.current_status = self.current_status
+                if version_date:
+                    new_ei.version_date = version_date
+                new_ei.save()
+        except Exception as e:
+            print (str(e))
+   
+    def get_state(self):
+        '''
+        Three implicit states: working, released, obsolete  
+         -  working: the latest version where version_released = False
+         -  released: the one with version_released = True
+         -  obsolete: all the others
+        '''
+        if self.version_released:
+            return "released"
+        version_major__max = self.__class__.objects.all().aggregate(Max('version_major'))['version_major__max']
+        if self.version_major == version_major__max:
+            version_minor__max = self.__class__.objects.filter(version_major=version_major__max).aggregate(Max('version_minor'))['version_minor__max']
+            if self.version_minor == version_minor__max:
+                version_patch__max = self.__class__.objects.filter(version_major=version_major__max, version_minor=version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
+                if self.version_patch == version_patch__max:
+                    return "working"
+        return "obsolete"
+        
+    def set_version(self, version_major=0, version_minor=1, version_patch=0):
+        self.version_major = version_major
+        self.version_minor = version_minor
+        self.version_patch = version_patch
+                    
+    def set_released(self):
+        '''
+        Sets this version as the only released one 
+        '''
+        try:
+            with transaction.atomic():
+                pass
+                #TODO:  
+              
+        except Exception as e:
+            print (str(e))
+      
+    @staticmethod
+    def get_latest(any_from_the_set):
+        '''
+        gets the latest version starting from any EntityInstance in the version set 
+        '''
+        version_major__max = EntityInstance.objects.filter(root = any_from_the_set.root).aggregate(Max('version_major'))['version_major__max']
+        version_minor__max = EntityInstance.objects.filter(root = any_from_the_set.root, version_major = version_major__max).aggregate(Max('version_minor'))['version_minor__max']
+        version_patch__max = EntityInstance.objects.filter(root = any_from_the_set.root, version_major = version_major__max, version_minor = version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
+        return EntityInstance.objects.get(root = any_from_the_set, version_major = version_major__max, version_minor = version_minor__max, version_patch = version_patch__max)
+   
+   
+   
    
 class UploadedFile(models.Model):
     '''

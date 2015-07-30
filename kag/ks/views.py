@@ -96,7 +96,7 @@ def api_catch_all(request, uri_instance):
             module_name = split_path[0]
             simple_entity_name = split_path[1]
             actual_class = utils.load_class(module_name + ".models", simple_entity_name)
-            this_ks = KnowledgeServer.objects.get(this_ks = True)
+            this_ks = KnowledgeServer.this_knowledge_server()
             instance = SerializableSimpleEntity.retrieve(actual_class, this_ks.uri() + uri_instance, False)
             if format == 'JSON':
                 exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", ' + instance.serialize(format='JSON', exported_instances = []) + ' } }'
@@ -312,7 +312,7 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
         return render_to_response('ks/browse_entity_instance.html', context_instance=cont)
     
 def home(request):
-    this_ks = KnowledgeServer.objects.get(this_ks = True)
+    this_ks = KnowledgeServer.this_knowledge_server()
     cont = RequestContext(request, {'this_ks':this_ks, 'this_ks_base64_url':this_ks.uri(True)})
     return render(request, 'ks/home.html', context_instance=cont)
 
@@ -328,7 +328,7 @@ def api_ks_info(request, format):
           it with the structure "Organization-KS" 
     '''
     format = format.upper()
-    this_ks = KnowledgeServer.objects.get(this_ks = True)    
+    this_ks = KnowledgeServer.this_knowledge_server()    
     es = entity_models.EntityStructure.objects.get(name = entity_models.EntityStructure.organization_entity_structure_name)
     
     if format == 'XML':
@@ -361,12 +361,12 @@ def api_export_instance(request, base64_EntityInstance_URIInstance, format):
     simple_entity = entity_instance.get_instance()
 
     if format == 'XML':
-        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\">" + simple_entity.serialize(etn = entity_instance.entity_structure.entry_point, export_count_per_class = {}, exported_instances = [], format = format) + "</Export>"
+        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\">" + simple_entity.serialize(etn = entity_instance.entity_structure.entry_point, exported_instances = [], format = format) + "</Export>"
         xmldoc = minidom.parseString(exported_xml)
         exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
         return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
     if format == 'JSON' or format == 'HTML' or format == 'BROWSE':
-        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", ' + simple_entity.serialize(etn = entity_instance.entity_structure.entry_point, export_count_per_class = {}, exported_instances = [], format = "JSON") + ' } }'
+        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", ' + simple_entity.serialize(etn = entity_instance.entity_structure.entry_point, exported_instances = [], format = "JSON") + ' } }'
         if format == 'JSON':
             return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
         else:

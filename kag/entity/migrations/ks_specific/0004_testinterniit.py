@@ -7,7 +7,7 @@ from entity.models import Organization, KnowledgeServer
 def forwards_func(apps, schema_editor):
     test_interni_it_org = Organization();test_interni_it_org.name="Ministero degli Interni";test_interni_it_org.website='http://www.interno.gov.it';test_interni_it_org.description="Test Ministero degli Interni";test_interni_it_org.save()
     
-    root_ks = KnowledgeServer.objects.get(pk=1)
+    root_ks = KnowledgeServer.this_knowledge_server()
     root_ks.this_ks = False
     root_ks.save()
 
