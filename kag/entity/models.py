@@ -311,8 +311,8 @@ class SerializableSimpleEntity(models.Model):
             return self
 
         if self.URIInstance and str(self.URIInstance) in processed_instances.keys():
-            # already created, I return that one
-            return self.__class__.objects.get(URIInstance = self.URIInstance)
+            # already created, I return that one 
+            return self.__class__.objects.get(URIInstance = processed_instances[str(self.URIInstance)])
         
         new_instance = self.__class__()
         if parent:
@@ -348,18 +348,50 @@ class SerializableSimpleEntity(models.Model):
                 setattr(new_instance, en_child_node.attribute, new_child_instance)
         
         for key in self._meta.fields:
-            if key.__class__.__name__ != "ForeignKey":
+            if key.__class__.__name__ != "ForeignKey" and self._meta.pk != key:
                 setattr(new_instance, key.name, eval("self." + key.name))
         
-        new_instance.id = None
         new_instance.URIInstance = ""
         new_instance.save()
         # after saving
         processed_instances[str(self.URIInstance)] = new_instance.URIInstance
         return new_instance
         
-            
+    def delete_children(self, etn, parent = None):
+        '''
+        invoked by EntityInstance.delete_entire_dataset that wraps it in a transaction
+        it recursively invokes itself to delete children's children
+        '''
+# FORSE SERVE METTERLO A NONE
+#         if parent:
+# #           I have a parent; let's unset it
+#             field_name = SerializableSimpleEntity.get_parent_field_name(parent, etn.attribute)
+#             if field_name:
+#                 setattr(self, field_name, None)
+                
+        for en_child_node in etn.child_nodes.all():
+            if en_child_node.attribute in self.foreign_key_attributes():
+                #not is_many
+                if not en_child_node.external_reference:
+                    child_instance = eval("self." + en_child_node.attribute)
+                    child_instance.delete_children(en_child_node, self)
+                    child_instance.delete()
+                
 
+        for en_child_node in etn.child_nodes.all():
+            if not en_child_node.external_reference:
+                if en_child_node.is_many:
+                    child_instances = eval("self." + en_child_node.attribute + ".all()")
+                    for child_instance in child_instances:
+                        # let's prevent deleting self; self will be deleted by who has involed this method 
+                        if (child_instance.__class__.__name__ != self.__class__.__name__) or (self.pk != en_child_node.pk):
+                            child_instance.delete_children(en_child_node, self)
+                            child_instance.delete()
+                else:
+                    #not is_many
+                    child_instance = eval("self." + en_child_node.attribute)
+                    child_instance.delete_children(en_child_node, self)
+                    child_instance.delete()
             
     @staticmethod
     def simple_entity_from_xml_tag(xml_child_node):
@@ -1048,9 +1080,10 @@ class EntityStructure(SerializableSimpleEntity):
     entry_point = models.ForeignKey('EntityStructureNode')
     '''
     when multiple_releases is true more than one instance get materialized
-    otherwise just one
+    otherwise just one; it defaults to False just not to make it nullable;
+    a default is indicated as shallow structures are created without specifying it
     '''
-    multiple_releases = models.BooleanField()
+    multiple_releases = models.BooleanField(default=False)
     
     '''
     TODO: the namespace is defined in the organization owner of this EntityStructure
@@ -1166,19 +1199,7 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
         return serialized_head + serialized_tail
 
 
-#     def get_version_released(self, released = False, latest = False, version_major=None, version_minor=None, version_patch=None):
-#         '''
-#         version-aware proxy to objects.get 
-#         '''
-#         if released:
-#             pass
-#     
-#     def filter_version_released(self):
-#         '''
-#         version-aware proxy to objects.filter 
-#         '''
-#         pass
-    
+
     #following methods used to be in a separate class VersionableEntityInstance
 
     def new_version(self, version_major=None, version_minor=None, version_patch=None, version_description = "", version_date = None):
@@ -1225,7 +1246,8 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
                 new_ei.save()
         except Exception as e:
             print (str(e))
-   
+        return new_ei
+    
     def get_state(self):
         '''
         Three implicit states: working, released, obsolete  
@@ -1255,24 +1277,39 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
         '''
         try:
             with transaction.atomic():
-                pass
-                #TODO:  
-              
+                if not self.entity_structure.multiple_releases:
+                    currently_released = self.root.versions.filter(version_released=True)
+                    if len(currently_released) > 0:
+                        for currently_released_one in currently_released:
+                            # There should be just one; but let's take into account that multiple_releases has changed
+                            currently_released_one.version_released = False
+                            currently_released_one.save()
+                self.version_released = True
+                self.save()
+                # MATERIALIZATION
+                if not self.entity_structure.multiple_releases:
+                    # We must delete those previously released
+                    for currently_released_one in currently_released:
+                        materialized_currently_released_one = EntityInstance.objects.using('ksm').get(URIInstance=currently_released_one.URIInstance)
+                        materialized_currently_released_one.delete_entire_dataset()
+                # TODO: Now we must copy newly released self to the materialized database
+                
+            
+                #end of transaction
         except Exception as e:
             print (str(e))
-      
-    def materialize(self):
+    
+    def delete_entire_dataset(self):
         '''
-        Sets this version as the only released one 
+        Navigating the structure deletes each record in the entire dataset obviously excluding external references
+        Then it deletes self
         '''
-        try:
-            with transaction.atomic():
-                pass
-                #TODO:  
-              
-        except Exception as e:
-            print (str(e))
-
+        # TODO: add transaction
+        instance = self.get_instance()
+        instance.delete_children(self.entity_structure.entry_point)
+        instance.delete()
+        self.delete()
+        
     @staticmethod
     def get_latest(any_from_the_set):
         '''

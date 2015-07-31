@@ -54,6 +54,7 @@ class Migration(migrations.Migration):
                 ('description', models.CharField(max_length=2000L)),
                 ('is_shallow', models.BooleanField(default=False)),
                 ('is_a_view', models.BooleanField(default=False)),
+                ('multiple_releases', models.BooleanField(default=False)),
             ],
             options={
                 'abstract': False,
