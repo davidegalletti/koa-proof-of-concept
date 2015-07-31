@@ -168,5 +168,3 @@ LOGGING = {
         },
     }
 }
-
-THIS_KS_URI = "http://rootks.thekoa.org/"

@@ -243,7 +243,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='entityinstance',
             name='root',
-            field=models.ForeignKey(related_name='versions', to='entity.EntityInstance'),
+            field=models.ForeignKey(related_name='versions', blank=True, to='entity.EntityInstance', null=True),
         ),
         migrations.AddField(
             model_name='entityinstance',

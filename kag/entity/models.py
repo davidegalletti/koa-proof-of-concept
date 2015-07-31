@@ -85,25 +85,31 @@ class SerializableSimpleEntity(models.Model):
                 
     # URI points to the a specific instance in a specific KS
     def generate_URIInstance(self):
+        '''
+        *** method that works on the same database of self ***
+        '''
         try:
+            # http://stackoverflow.com/questions/10375019/get-database-django-model-object-was-queried-from
+            db_alias = self._state.db
             this_ks = KnowledgeServer.this_knowledge_server()
-            se = self.get_simple_entity()
+            se = self.get_simple_entity(db_alias=db_alias)
             if se.entity_structure != None:
                 return this_ks.uri() + se.entity_structure.namespace + "/" + se.name + "/" + str(getattr(self, se.id_field))
             else:
                 return ""
         except Exception as es:
-            print ("generate_URIInstance " + self.__class__.__name__ + "." + str(self.pk) + ":" + es.message)
+            print ("Error in 'generate_URIInstance' " + self.__class__.__name__ + "." + str(self.pk) + ":" + es.message)
             return ""
     
-    def get_simple_entity(self, class_name = ""):
+    def get_simple_entity(self, class_name = "", db_alias = 'ksm'):
         '''
+        *** method that works BY DEFAULT on the materialized database ***
         finds the instance of class SimpleEntity where the name corresponds to the name of the class of self
         '''
         if class_name == "":
-            return SimpleEntity.objects.get(name=self.__class__.__name__)
+            return SimpleEntity.objects.using(db_alias).get(name=self.__class__.__name__)
         else:
-            return SimpleEntity.objects.get(name=class_name)
+            return SimpleEntity.objects.using(db_alias).get(name=class_name)
 
     def entities(self):
         '''
@@ -150,7 +156,7 @@ class SerializableSimpleEntity(models.Model):
                     comma = ", "
         return attributes
 
-    def shallow_entity_structure(self):
+    def shallow_entity_structure(self, db_alias = 'default'):
         '''
         It creates an EntityStructure, saves it on the database and returns it.
         if a user wants to serialize a SerializableSimpleEntity without passing an EntityStructure
@@ -158,19 +164,19 @@ class SerializableSimpleEntity(models.Model):
         for future use
         '''
         try:
-            se = EntityStructure.objects.get(entry_point__simple_entity = self.get_simple_entity(), is_shallow = True)
+            se = EntityStructure.objects.using(db_alias).get(entry_point__simple_entity = self.get_simple_entity(), is_shallow = True)
         except:
             se = EntityStructure()
             se.is_shallow = True
             se.name = self.__class__.__name__ + " (shallow)"
             se.simple_entity = self.get_simple_entity()
-            se.entry_point = self.shallow_entity_structure_node()
+            se.entry_point = self.shallow_entity_structure_node(db_alias)
             se.save()
             se.URIInstance = se.generate_URIInstance()
-            se.save()
+            se.save(using=db_alias)
         return se 
         
-    def shallow_entity_structure_node(self):
+    def shallow_entity_structure_node(self, db_alias = 'default'):
         '''
         it creates an EntityStructureNode used to serialize (to_xml) self. It has the SimpleEntity 
         and references to ForeignKeys and ManyToMany
@@ -179,7 +185,7 @@ class SerializableSimpleEntity(models.Model):
         etn.simple_entity = self.get_simple_entity() 
         etn.external_reference=False
         etn.is_many=False
-        etn.save()
+        etn.save(using=db_alias)
         etn.child_nodes = []
         for fk in self.foreign_key_attributes():
             etn_fk = EntityStructureNode()
@@ -192,7 +198,7 @@ class SerializableSimpleEntity(models.Model):
             etn_fk.external_reference=True
             etn_fk.attribute = fk
             etn_fk.is_many=False
-            etn_fk.save()
+            etn_fk.save(using=db_alias)
             etn.child_nodes.add(etn_fk)
         for rm in self.related_manager_attributes():
             #TODO: shallow_entity_structure_node: implement self.related_manager_attributes case
@@ -200,7 +206,7 @@ class SerializableSimpleEntity(models.Model):
         for mrm in self.many_related_manager_attributes():
             #TODO: shallow_entity_structure_node: implement self.many_related_manager_attributes case
             pass
-        etn.save()
+        etn.save(using=db_alias)
         return etn
 
     def serialize(self, etn = None, exported_instances = [], format = 'XML'):
@@ -924,9 +930,20 @@ class KnowledgeServer(SerializableSimpleEntity):
         return uri
     
     @staticmethod
-    def this_knowledge_server():
-        #TODO: it should be done getting the only one with this_ks = True belonging to a released instance
-        return KnowledgeServer.objects.filter(this_ks = True)[0]
+    def this_knowledge_server(db_alias = 'ksm'):
+        '''
+        *** method that works BY DEFAULT on the materialized database ***
+        *** the reason being that only there "get(this_ks = True)" is ***
+        *** guaranteed to return exactly one record                   ***
+        when working on the default database we must first fetch it on the
+        materialized; then, using the URIInstance we search it on the default
+        because the URIInstance will be unique there
+        '''
+        materialized_ks = KnowledgeServer.objects.using('ksm').get(this_ks = True)
+        if db_alias == 'default':
+            return KnowledgeServer.objects.using('default').get(URIInstance = materialized_ks.URIInstance)
+        else:
+            return materialized_ks
     
 class SimpleEntity(SerializableSimpleEntity):
     '''
@@ -1024,9 +1041,16 @@ class EntityStructure(SerializableSimpleEntity):
     hence it is used for example to export some data
     '''
     is_a_view = models.BooleanField(default=False)
-    # the entry point of the structure; the class EntityStructureNode has then child_nodes of the same class 
-    # hence it defines the structure
+    '''
+    the entry point of the structure; the class EntityStructureNode has then child_nodes of the same class 
+    hence it defines the structure
+    '''
     entry_point = models.ForeignKey('EntityStructureNode')
+    '''
+    when multiple_releases is true more than one instance get materialized
+    otherwise just one
+    '''
+    multiple_releases = models.BooleanField()
     
     '''
     TODO: the namespace is defined in the organization owner of this EntityStructure
@@ -1074,7 +1098,7 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
     I get all of them including the root
     WE REFER TO SUCH SET AS THE "version set"
     '''
-    root = models.ForeignKey('self', related_name='versions')
+    root = models.ForeignKey('self', related_name='versions', null=True, blank=True)
     # http://semver.org/
     version_major = models.IntegerField(blank=True)
     version_minor = models.IntegerField(blank=True)
@@ -1159,6 +1183,8 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
 
     def new_version(self, version_major=None, version_minor=None, version_patch=None, version_description = "", version_date = None):
         '''
+        DATABASE: it is invoked only on default database as record go to the materialized one only
+                  via the set_released method
         It creates new records for each record in the whole structure excluding extenal references
         version_released is set to False
         It creates a new EntityInstance and returns it
@@ -1187,7 +1213,7 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
                 new_ei.version_major = version_major
                 new_ei.version_minor = version_minor
                 new_ei.version_patch = version_patch
-                new_ei.owner_knowledge_server = KnowledgeServer.this_knowledge_server()
+                new_ei.owner_knowledge_server = KnowledgeServer.this_knowledge_server('default')
                 new_ei.entity_structure = self.entity_structure
                 new_ei.root = self.root
                 new_ei.entry_point_instance_id = instance.id
@@ -1235,6 +1261,18 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
         except Exception as e:
             print (str(e))
       
+    def materialize(self):
+        '''
+        Sets this version as the only released one 
+        '''
+        try:
+            with transaction.atomic():
+                pass
+                #TODO:  
+              
+        except Exception as e:
+            print (str(e))
+
     @staticmethod
     def get_latest(any_from_the_set):
         '''

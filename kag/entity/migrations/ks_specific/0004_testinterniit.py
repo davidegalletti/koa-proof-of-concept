@@ -5,14 +5,16 @@ from django.db import models, migrations
 from entity.models import Organization, KnowledgeServer
 
 def forwards_func(apps, schema_editor):
-    test_interni_it_org = Organization();test_interni_it_org.name="Ministero degli Interni";test_interni_it_org.website='http://www.interno.gov.it';test_interni_it_org.description="Test Ministero degli Interni";test_interni_it_org.save()
+    db_alias = schema_editor.connection.alias
+    
+    test_interni_it_org = Organization();test_interni_it_org.name="Ministero degli Interni";test_interni_it_org.website='http://www.interno.gov.it';test_interni_it_org.description="Test Ministero degli Interni";test_interni_it_org.save(using=db_alias)
     
     root_ks = KnowledgeServer.this_knowledge_server()
     root_ks.this_ks = False
-    root_ks.save()
+    root_ks.save(using=db_alias)
 
     test_interni_it_org_ks = KnowledgeServer(name="Test interno.gov.it Knowledge Server", scheme="http", netloc="testinterniitks.thekoa.org", description="Test interno.gov.it Knowledge Server", organization=test_interni_it_org, this_ks=True)
-    test_interni_it_org_ks.save()
+    test_interni_it_org_ks.save(using=db_alias)
 
 
 
