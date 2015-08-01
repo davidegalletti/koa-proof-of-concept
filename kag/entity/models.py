@@ -63,6 +63,12 @@ class SerializableSimpleEntity(models.Model):
     from XML and still have a proper local URIInstance
     '''
     URI_imported_instance = models.CharField(max_length=2000L)
+    '''
+    URI_previous_version is the URIInstance of the previous version if 
+    this record has been created with the new_version method.
+    It is used when materializing to update the relationships from old to new records
+    '''
+    URI_previous_version = models.CharField(max_length=2000L, null = True, blank=True)
     objects = CustomModelManager()
     def SetNotNullFields(self):
         '''
@@ -296,7 +302,6 @@ class SerializableSimpleEntity(models.Model):
                 else:
                     return '"' + tag_name + '" :  { ' + self.serialized_URI_SE(format) + ', "URIInstance" : "' + self.URIInstance + '", "' + self._meta.pk.attname + '" : "' + str(self.pk) + '"' + json_name + ' }'
             
-            
     def new_version(self, etn, processed_instances, parent = None):
         '''
         invoked by EntityInstance.new_version that wraps it in a transaction
@@ -304,6 +309,8 @@ class SerializableSimpleEntity(models.Model):
         
         processed_instances is a dictionary where the key is the old URIInstance and 
         the data is the new one
+        
+        returns the newly created instance
         '''
 
         if etn.external_reference:
@@ -337,10 +344,9 @@ class SerializableSimpleEntity(models.Model):
                 for child_instance in child_instances:
                     # let's prevent infinite loops if self relationships
                     if (child_instance.__class__.__name__ == self.__class__.__name__) and (self.pk == en_child_node.pk):
-                        eval("new_instance." + en_child_node.attribute + ".add(child_instance)")
+                        eval("new_instance." + en_child_node.attribute + ".add(new_instance)")
                     else:
                         new_child_instance = child_instance.new_version(en_child_node, processed_instances, new_instance)
-                        eval("new_instance." + en_child_node.attribute + ".add(new_child_instance)")
             else:
                 #not is_many
                 child_instance = eval("self." + en_child_node.attribute)
@@ -350,40 +356,94 @@ class SerializableSimpleEntity(models.Model):
         for key in self._meta.fields:
             if key.__class__.__name__ != "ForeignKey" and self._meta.pk != key:
                 setattr(new_instance, key.name, eval("self." + key.name))
-        
+        new_instance.URI_previous_version = new_instance.URIInstance
         new_instance.URIInstance = ""
         new_instance.save()
         # after saving
         processed_instances[str(self.URIInstance)] = new_instance.URIInstance
         return new_instance
         
-    def delete_children(self, etn, parent = None):
+    def materialize(self, etn, processed_instances, parent = None):
         '''
-        invoked by EntityInstance.delete_entire_dataset that wraps it in a transaction
-        it recursively invokes itself to delete children's children
+        invoked by EntityInstance.set_released that wraps it in a transaction
+        it recursively invokes itself to copy the full structure to the materialized DB
+        
+        ASSERTION: URIInstance remains the same on the materialized database
+        
+        processed_instances is a list of processed URIInstance 
         '''
-# FORSE SERVE METTERLO A NONE
-#         if parent:
-# #           I have a parent; let's unset it
-#             field_name = SerializableSimpleEntity.get_parent_field_name(parent, etn.attribute)
-#             if field_name:
-#                 setattr(self, field_name, None)
+
+        if etn.external_reference:
+            # if it is an external reference I do not have to materialize it
+            # I expect it to be already materialized so I try to return that instance
+            try:
+                return self.__class__.objects.using("ksm").get(URIInstance=self.URIInstance)
+            except Exception as ex:
+                raise ex
+
+        if self.URIInstance and str(self.URIInstance) in processed_instances:
+            # already materialized it, I return that one 
+            return self.__class__.objects.using('ksm').get(URIInstance = self.URIInstance)
+        
+        new_instance = self.__class__()
+        if parent:
+#           I have a parent; let's set it
+            field_name = SerializableSimpleEntity.get_parent_field_name(parent, etn.attribute)
+            if field_name:
+                setattr(new_instance, field_name, parent)
                 
         for en_child_node in etn.child_nodes.all():
             if en_child_node.attribute in self.foreign_key_attributes():
                 #not is_many
-                if not en_child_node.external_reference:
-                    child_instance = eval("self." + en_child_node.attribute)
-                    child_instance.delete_children(en_child_node, self)
-                    child_instance.delete()
+                child_instance = eval("self." + en_child_node.attribute)
+                new_child_instance = child_instance.materialize(en_child_node, processed_instances)
+                setattr(new_instance, en_child_node.attribute, new_child_instance) #the parameter "parent" shouldn't be necessary in this case as this is a ForeignKey
                 
+        for key in self._meta.fields:
+            if key.__class__.__name__ != "ForeignKey" and self._meta.pk != key:
+                setattr(new_instance, key.name, eval("self." + key.name))
+        
+        # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
+        new_instance.save(using='ksm')
+                
+        for en_child_node in etn.child_nodes.all():
+            if not (en_child_node.attribute in self.foreign_key_attributes()):
+                if en_child_node.is_many:
+                    child_instances = eval("self." + en_child_node.attribute + ".all()")
+                    for child_instance in child_instances:
+                        # let's prevent infinite loops if self relationships
+                        if (child_instance.__class__.__name__ == self.__class__.__name__) and (self.pk == en_child_node.pk):
+                            eval("new_instance." + en_child_node.attribute + ".add(new_instance)")
+                        else:
+                            new_child_instance = child_instance.materialize(en_child_node, processed_instances, new_instance)
+                else:
+                    #not is_many
+                    child_instance = eval("self." + en_child_node.attribute)
+                    new_child_instance = child_instance.materialize(en_child_node, processed_instances, self)
+                    setattr(new_instance, en_child_node.attribute, new_child_instance)
+        
+        new_instance.save(using='ksm')
+        # after saving
+        processed_instances.append(new_instance.URIInstance)
+        return new_instance
+        
+    def delete_children(self, etn, parent = None):
+        '''
+        invoked by EntityInstance.delete_entire_dataset that wraps it in a transaction
+        it recursively invokes itself to delete children's children
+        
+        It is invoked only if EntityInstance.entity_structure.multiple_releases = False
+        Then I also have to remap foreign keys pointing to it (at least in the materialized DB,
+        also in default ???????????????????????????????????????????????????????????????????????)
+        '''
 
+        # I delete the children; must do it before remapping foreignkeys otherwise some will escape deletion
         for en_child_node in etn.child_nodes.all():
             if not en_child_node.external_reference:
                 if en_child_node.is_many:
                     child_instances = eval("self." + en_child_node.attribute + ".all()")
                     for child_instance in child_instances:
-                        # let's prevent deleting self; self will be deleted by who has involed this method 
+                        # let's prevent deleting self; self will be deleted by who has invoked this method 
                         if (child_instance.__class__.__name__ != self.__class__.__name__) or (self.pk != en_child_node.pk):
                             child_instance.delete_children(en_child_node, self)
                             child_instance.delete()
@@ -392,6 +452,25 @@ class SerializableSimpleEntity(models.Model):
                     child_instance = eval("self." + en_child_node.attribute)
                     child_instance.delete_children(en_child_node, self)
                     child_instance.delete()
+        
+        try:
+            # before deleting self I must remap foreignkeys pointing at it to the new instances
+            # let's get the instance it should point to
+            new_instance = self.__class__.objects.using('ksm').get(URI_previous_version=self.URIInstance)
+            
+            #I NEED TO LIST TODO:ALL THE RELATIONSHIPS POINTING AT THIS MODEL
+            for rel_key in self._meta.fields_map.keys():
+                rel = self._meta.fields_map[rel_key]
+                if rel.__class__.__name__ == 'ManyToOneRel':
+                    related_name =rel.related_name
+                    if related_name is None:
+                        related_name = rel_key + "_set"
+                    related_instances_manager = getattr(self, related_name)
+                    # running      related_instances_manager.update(rel.field.name=new_instance)
+                    # raises       SyntaxError: keyword can't be an expression
+                    eval('related_instances_manager.update(' + rel.field.name + '=new_instance)')
+        except Exception as e:
+            print(e.message)
             
     @staticmethod
     def simple_entity_from_xml_tag(xml_child_node):
@@ -457,7 +536,7 @@ class SerializableSimpleEntity(models.Model):
         if related_parent.__class__.__name__ == "ReverseSingleRelatedObjectDescriptor":
             field_name = related_parent.field.name
         return field_name
-        
+
     def from_xml(self, xmldoc, entity_structure_node, insert=True, parent=None):
         '''
         from_xml gets from xmldoc the attributes of self and saves it; it searches for child nodes according
@@ -515,9 +594,11 @@ class SerializableSimpleEntity(models.Model):
             #nothing to do, there is no KS_TAG_WITH_NO_DATA attribute
             pass
         for key in self._meta.fields:
-#              let's setattr the other attributes
-#                that are not ForeignKey as those are treated separately
-#                and is not the field_name pointing at the parent as it has been already set
+            '''
+              let's setattr the other attributes
+              that are not ForeignKey as those are treated separately
+              and is not the field_name pointing at the parent as it has been already set
+            '''
             if key.__class__.__name__ != "ForeignKey" and (not parent or key.name != field_name):
                 try:
                     if key.__class__.__name__ == "BooleanField":
@@ -648,239 +729,7 @@ class SerializableSimpleEntity(models.Model):
                             except:
                                 instance = actual_class()
                         instance.from_xml(xml_child_node, en_child_node, insert, self)
-
-    class Meta:
-        abstract = True
-
-
-    @staticmethod
-    def retrieve(actual_class, URIInstance, retrieve_externally):
-        '''
-        It returns an instance of a SerializableSimpleEntity stored in this KS
-        It searches first on the URIInstance field (e.g. is it already an instance of this KS? ) 
-        It searches then on the URI_imported_instance field (e.g. has is been imported in this KS from the same source? )
-        It fetches the instance from the source as it is not in this KS yet 
-        '''
-        actual_instance = None
-        try:
-            actual_instance = actual_class.objects.get(URIInstance=URIInstance)
-        except:
-            try:
-                actual_instance = actual_class.objects.get(URI_imported_instance=URIInstance)
-            except:
-                if retrieve_externally:
-                    #TODO: It fetches the instance from the source as it is not in this KS yet
-                    raise Exception("To be implemented: It fetches the instance from the source as it is not in this KS yet")
-                else:
-                    raise Exception("Can't find instance with URI: " + URIInstance)
-        return actual_instance
-
-    @staticmethod
-    def get_parent_field_name(parent, attribute):
-        '''
-        TODO: describe *ObjectsDescriptor or link to docs
-              make sure it is complete (e.g. we are not missing any other *ObjectsDescriptor)
-        '''
-        field_name = ""
-        related_parent = getattr(parent._meta.concrete_model, attribute)
-        if related_parent.__class__.__name__ == "ForeignRelatedObjectsDescriptor":
-            field_name = related_parent.related.field.name
-        if related_parent.__class__.__name__ == "ReverseSingleRelatedObjectDescriptor":
-            field_name = related_parent.field.name
-        return field_name
         
-    def from_xml(self, xmldoc, entity_node, insert=True, parent=None):
-        '''
-        from_xml gets from xmldoc the attributes of self and saves it; it searches for child nodes according
-        to what the entity_node says, creates instances of child objects and call itself recursively
-        Every tag corresponds to a SimpleEntity, hence it
-            contains a tag URISimpleEntity which points to the KS managing the SimpleEntity definition
-        
-        Each SerializableSimpleEntity has URIInstance and URI_imported_instance attributes. 
-        
-        external_reference
-            the first SimpleEntity in the XML cannot be marked as an external_reference in the entity_node
-            from_xml doesn't get called recursively for external_references which are sought in the database
-            or fetched from remote KS, so I assert self it is not an external reference
-        
-        '''
-        field_name = ""
-        if parent:
-#           I have a parent; let's set it
-            field_name = SerializableSimpleEntity.get_parent_field_name(parent, entity_node.attribute)
-            if field_name:
-                setattr(self, field_name, parent)
-        '''
-        Some TAGS have no data (attribute KS_TAG_WITH_NO_DATA is present) because the instance they describe
-        is present more than once in the XML file and the export doesn't replicate data; hence either
-           I have it already in the database so I can load it
-        or
-           I have to save this instance but I will find its attribute later in the imported file
-        '''
-        try:
-            xmldoc.attributes["KS_TAG_WITH_NO_DATA"]
-            # if the TAG is not there an exception will be raised and the method will continue and expect to find all data
-            module_name = entity_node.simple_entity.module
-            actual_class = utils.load_class(module_name + ".models", entity_node.simple_entity.name) 
-            try:
-                instance = SerializableSimpleEntity.retrieve(actual_class, xmldoc.attributes["URIInstance"].firstChild.data, False)
-                # It's in the database; I just need to set its parent; data is either already there or it will be updated later on
-                if parent:
-                    field_name = SerializableSimpleEntity.get_parent_field_name(parent, entity_node.attribute)
-                    if field_name:
-                        setattr(instance, field_name, parent)
-                    instance.save()
-            except:
-                # I haven't found it in the database; I need to do something only if I have to set the parent
-                if parent: 
-                    try:
-                        setattr(self, "URIInstance", xmldoc.attributes["URIInstance"].firstChild.data)
-                        self.SetNotNullFields()
-                        self.save()
-                    except:
-                        print("Error in KS_TAG_WITH_NO_DATA TAG setting attribute URIInstance for instance of class " + self.__class__.__name__)
-            #let's exit, nothing else to do, it's a KS_TAG_WITH_NO_DATA
-            return
-             
-        except:
-            #nothing to do, there is no KS_TAG_WITH_NO_DATA attribute
-            pass
-        for key in self._meta.fields:
-            '''
-              let's setattr the other attributes
-              that are not ForeignKey as those are treated separately
-              and is not the field_name pointing at the parent as it has been already set
-            '''
-            if key.__class__.__name__ != "ForeignKey" and (not parent or key.name != field_name):
-                try:
-                    if key.__class__.__name__ == "BooleanField":
-                        setattr(self, key.name, xmldoc.attributes[key.name].firstChild.data.lower() == "true") 
-                    else:
-                        setattr(self, key.name, xmldoc.attributes[key.name].firstChild.data)
-                except:
-                    print("Error extracting from xml \"" + key.name + "\" for object of class \"" + self.__class__.__name__ + "\" with ID " + str(self.id))
-        try:
-            # URI_imported_instance stores the URIInstance from the XML
-            self.URI_imported_instance = xmldoc.attributes["URIInstance"].firstChild.data
-        except:
-            # there's no URIInstance in the XML; it doesn't matter
-            pass
-        # I must set foreign_key child nodes BEFORE SAVING self otherwise I get an error for ForeignKeys not being set
-        for en_child_node in entity_node.child_nodes.all():
-            if en_child_node.attribute in self.foreign_key_attributes():
-                try:
-                    # ASSERT: in the XML there is exactly one child tag
-                    xml_child_node = xmldoc.getElementsByTagName(en_child_node.attribute)[0] 
-                    # I search for the corresponding SimpleEntity
-                     
-                    se = SerializableSimpleEntity.simple_entity_from_xml_tag(xml_child_node)
-                    # TODO: I'd like the module name to be function of the organization and namespace
-                    assert (en_child_node.simple_entity.name == se.name), "en_child_node.simple_entity.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
-                    module_name = en_child_node.simple_entity.module
-                    actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
-                    if en_child_node.external_reference:
-                        '''
-                        If it is an external reference I must search for it in the database first;  
-                        if it is not there I fetch it using it's URI and then create it in the database
-                        '''
-                        try:
-                            # let's search it in the database
-                            instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
-                        except ObjectDoesNotExist:
-                            # TODO: if it is not there I fetch it using it's URI and then create it in the database
-                            pass
-                        except:
-                            raise Exception("\"" + module_name + ".models " + se.name + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data)
-                    else:
-                        if insert:
-                            # the user asked to "always create", let's create the instance
-                            instance = actual_class()
-                        else:
-                            try:
-                                instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, False)
-                            except:
-                                # didn't find it; I create the instance anyway
-                                instance = actual_class()
-                        # from_xml takes care of saving instance with a self.save() at the end
-                        instance.from_xml(xml_child_node, en_child_node, insert) #the fourth parameter, "parent" shouldn't be necessary in this case as this is a ForeignKeys
-                    setattr(self, en_child_node.attribute, instance)
-                except Exception as ex:
-                    print (ex.message)
-                    pass
-                    #raise Exception("### add relevant message: from_xml")
-                 
-        # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
-        self.save()
-        # from_xml can be invoked on an instance retrieved from the database (where URIInstance is set)
-        # or created on the fly (and URIInstance is not set); in the latter case, only now I can generate URIInstance
-        # as I have just saved it and I have a local ID
-        if not self.URIInstance:
-            self.URIInstance = self.generate_URIInstance()
-            self.save()
- 
-        for en_child_node in entity_node.child_nodes.all():
-            # I have already processed foreign keys, I skip them now
-            if (not en_child_node.attribute in self.foreign_key_attributes()):
-                # ASSERT: in the XML there is exactly one child tag
-                xml_attribute_node = xmldoc.getElementsByTagName(en_child_node.attribute)[0]
-                if en_child_node.is_many:
-                    for xml_child_node in xml_attribute_node.childNodes:
-                        se = SerializableSimpleEntity.simple_entity_from_xml_tag(xml_child_node)
-                        module_name = en_child_node.simple_entity.module
-                        assert (en_child_node.simple_entity.name == se.name), "en_child_node.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
-                        actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
-                        if en_child_node.external_reference:
-                            instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
-                            # TODO: il test succesivo forse si fa meglio guardando il concrete_model - capire questo test e mettere un commento
-                            if en_child_node.attribute in self._meta.fields:
-                                setattr(instance, en_child_node.attribute, self)
-                                instance.save()
-                            else:  
-                                setattr(self, en_child_node.attribute, instance)
-                                self.save()
-                        else:
-                            if insert:
-                                instance = actual_class()
-                            else:
-                                try:
-                                    instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, False)
-                                except:
-                                    instance = actual_class()
-                            # is_many = True, I need to add this instance to self
-                            instance.from_xml(xml_child_node, en_child_node, insert, self)
-                            related_parent = getattr(self._meta.concrete_model, en_child_node.attribute)
-                            related_list = getattr(self, en_child_node.attribute)
-                            # if it is not there yet ...
-                            if long(instance.id) not in [long(i.id) for i in related_list.all()]:
-                                # I add it
-                                related_list.add(instance)
-                                self.save()
-                else:
-                    # is_many == False
-                    xml_child_node = xml_attribute_node
-                    se = SerializableSimpleEntity.simple_entity_from_xml_tag(xml_child_node)
-                    module_name = en_child_node.simple_entity.module
-                    assert (en_child_node.simple_entity.name == se.name), "en_child_node.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
-                    actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
-                    if en_child_node.external_reference:
-                        instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
-                        # TODO: il test succesivo forse si fa meglio guardando il concrete_model - capire questo test e mettere un commento
-                        if en_child_node.attribute in self._meta.fields:
-                            setattr(instance, en_child_node.attribute, self)
-                            instance.save()
-                        else:  
-                            setattr(self, en_child_node.attribute, instance)
-                            self.save()
-                    else:
-                        if insert:
-                            instance = actual_class()
-                        else:
-                            try:
-                                instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, False)
-                            except:
-                                instance = actual_class()
-                        instance.from_xml(xml_child_node, en_child_node, insert, self)
-
     class Meta:
         abstract = True
 
@@ -1143,13 +992,13 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
     '''
     version_released = models.BooleanField(default=False)
     
-    def get_instance(self):
+    def get_instance(self, db_alias='default'):
         '''
         it returns the main instance of the structure i.e. the one with pk = self.entry_point_instance_id
         '''
         se_simple_entity = self.entity_structure.entry_point.simple_entity
         actual_class = utils.load_class(se_simple_entity.module + ".models", se_simple_entity.name)
-        return actual_class.objects.get(pk=self.entry_point_instance_id)
+        return actual_class.objects.using(db_alias).get(pk=self.entry_point_instance_id)
     
     def serialize_with_simple_entity(self, format = 'XML', force_external_reference=False):
         '''
@@ -1276,25 +1125,35 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
         Sets this version as the only released one 
         '''
         try:
-            with transaction.atomic():
+#             with transaction.atomic():
                 if not self.entity_structure.multiple_releases:
-                    currently_released = self.root.versions.filter(version_released=True)
-                    if len(currently_released) > 0:
-                        for currently_released_one in currently_released:
-                            # There should be just one; but let's take into account that multiple_releases has changed
-                            currently_released_one.version_released = False
-                            currently_released_one.save()
+                    # There cannot be more than one released? I set the others to False
+                    try:
+                        currently_released = self.root.versions.get(version_released=True)
+                        currently_released.version_released = False
+                        currently_released.save()
+                        previously_released = currently_released
+                    except:
+                        print("EntityInstance.set_released couldn't find a released version.")
+                        pass #not found
+                #this one is released now
                 self.version_released = True
                 self.save()
-                # MATERIALIZATION
+                # MATERIALIZATION Now we must copy newly released self to the materialized database
+                instance = self.get_instance()
+                materialized_instance = instance.materialize(self.entity_structure.entry_point, processed_instances = [])
+                materialized_self = self.materialize(self.shallow_entity_structure().entry_point, processed_instances = [])
+                # the id should already be the same; maybe autogeneration strategies on different dbms could ... 
+                materialized_self.entry_point_instance_id = materialized_instance.id
+                materialized_self.save()
                 if not self.entity_structure.multiple_releases:
-                    # We must delete those previously released
-                    for currently_released_one in currently_released:
-                        materialized_currently_released_one = EntityInstance.objects.using('ksm').get(URIInstance=currently_released_one.URIInstance)
-                        materialized_currently_released_one.delete_entire_dataset()
-                # TODO: Now we must copy newly released self to the materialized database
-                
-            
+                    # if there is only a materialized release I must set root to self otherwise deleting the previous version will delete this as well
+                    materialized_self.root = materialized_self
+                    materialized_self.save()
+                    # now I can delete the old data set
+                    materialized_previously_released = EntityInstance.objects.using('ksm').get(URIInstance=previously_released.URIInstance)
+                    materialized_previously_released.delete_entire_dataset()
+               
                 #end of transaction
         except Exception as e:
             print (str(e))
@@ -1305,7 +1164,7 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
         Then it deletes self
         '''
         # TODO: add transaction
-        instance = self.get_instance()
+        instance = self.get_instance('ksm')
         instance.delete_children(self.entity_structure.entry_point)
         instance.delete()
         self.delete()

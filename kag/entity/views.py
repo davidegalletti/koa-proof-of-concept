@@ -9,7 +9,7 @@ from django.shortcuts import render, get_object_or_404, redirect, render_to_resp
 from django.template import RequestContext
 
 from application.models import Application, Method
-from entity.models import SimpleEntity, EntityStructure, EntityInstance, EntityStructureNode, UploadedFile, SerializableSimpleEntity
+from entity.models import SimpleEntity, EntityStructure, KnowledgeServer, EntityInstance, EntityStructureNode, UploadedFile, SerializableSimpleEntity
 from forms import UploadFileForm, ImportChoice, ImportChoiceNothingOnDB
 from lxml import etree
 from userauthorization.models import KUser, PermissionHolder
@@ -97,12 +97,6 @@ def export(request, entity_structure_id, simple_entity_instance_id, simple_entit
     return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
     
 def upload_page(request):
-    print("TEST DELETEME")
-    ei = EntityInstance.objects.get(URIInstance = "http://rootks.thekoa.org/entity/EntityInstance/19")
-    ei_new = ei.new_version(ei.version_major, ei.version_minor + 2, 0, 'version_description')
-#     ei_new.delete_entire_dataset()
-    print("TEST DELETEME")
-
     message = ''
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
