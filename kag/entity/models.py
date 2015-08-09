@@ -382,7 +382,7 @@ class SerializableSimpleEntity(models.Model):
             # if it is an external reference I do not have to materialize it
             # I expect it to be already materialized so I try to return that instance
             try:
-                return self.__class__.objects.using("ksm").get(URIInstance=self.URIInstance)
+                return self.__class__.objects.using('ksm').get(URIInstance=self.URIInstance)
             except Exception as ex:
                 new_ex = Exception("SerializableSimpleEntity.materialize: self.URIInstance: " + self.URIInstance + " searching it on ksm: " + ex.message)
                 raise ex
@@ -401,7 +401,8 @@ class SerializableSimpleEntity(models.Model):
         for en_child_node in etn.child_nodes.all():
             if en_child_node.attribute in self.foreign_key_attributes():
                 #not is_many
-                child_instance = eval("self." + en_child_node.attribute)
+                #TODO: METTERE UN TRY SENZA ECCEZIONE X CAMPI CHE POSSONO ESSERE NULL; LOGGARE IL CASO EXCEPT
+                child_instance = getattr(self, en_child_node.attribute)
                 new_child_instance = child_instance.materialize(en_child_node, processed_instances)
                 setattr(new_instance, en_child_node.attribute, new_child_instance) #the parameter "parent" shouldn't be necessary in this case as this is a ForeignKey
                 

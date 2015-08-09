@@ -196,12 +196,12 @@ def forwards_func(apps, schema_editor):
     # 2 EntityInstance with the above EntityStructure
     # opendefinition.org conformant
     ei = EntityInstance(owner_knowledge_server=test_license_org_ks,filter_text="conformant_for_opendefinition=True",entity_structure=esLicenseList,description="All opendefinition.org conformant licenses.")
-    ei.save(using='default')
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
     # let's materialize the ei that is a view so it doesn't need to be set to released
     ei.materialize(ei.shallow_entity_structure().entry_point, processed_instances = [])
     # opendefinition.org conformant and reccomended
     ei = EntityInstance(owner_knowledge_server=test_license_org_ks,filter_text="reccomended_by_opendefinition=True",entity_structure=esLicenseList,description="All opendefinition.org conformant and reccomended licenses.")
-    ei.save(using='default')
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
     # let's materialize the ei that is a view so it doesn't need to be set to released
     ei.materialize(ei.shallow_entity_structure().entry_point, processed_instances = [])
 
