@@ -1,23 +1,33 @@
 from django.db import models
+from entity.models import SerializableSimpleEntity
 
-# Create your models here.
 
-class EventType():
+class EventType(SerializableSimpleEntity):
     '''
     '''
     
-class Event():
+class Event(SerializableSimpleEntity):
     '''
     Something you want to get notified about; so you can subscribe to a type of event for 
     a specific data set / EntityInstance
     '''
-    
-    
-class Subscriber():
+    entity_instance_uri = models.CharField(max_length=2000L)
+    root_instance_uri = models.CharField(max_length=2000L)
+    event_type = models.ForeignKey(EventType)
+
+class Subscriber(SerializableSimpleEntity):
     '''
     '''
 
-class Subscription():
+class Subscription(SerializableSimpleEntity):
+    '''
+    '''
+    root_instance_uri = models.CharField(max_length=2000L)
+
+class NotificationReceived(SerializableSimpleEntity):
     '''
     '''
 
+class Notification(SerializableSimpleEntity):
+    '''
+    '''

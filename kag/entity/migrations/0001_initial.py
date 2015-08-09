@@ -70,13 +70,15 @@ class Migration(migrations.Migration):
                 ('URIInstance', models.CharField(max_length=2000L)),
                 ('URI_imported_instance', models.CharField(max_length=2000L)),
                 ('URI_previous_version', models.CharField(max_length=2000L, null=True, blank=True)),
-                ('version_major', models.IntegerField(blank=True)),
-                ('version_minor', models.IntegerField(blank=True)),
-                ('version_patch', models.IntegerField(blank=True)),
+                ('filter_text', models.CharField(max_length=200L, null=True, blank=True)),
+                ('version_major', models.IntegerField(blank=True, null=True)),
+                ('version_minor', models.IntegerField(blank=True, null=True)),
+                ('version_patch', models.IntegerField(blank=True, null=True)),
                 ('version_description', models.CharField(max_length=2000L, default=b'')),
                 ('version_date', models.DateTimeField(auto_now_add=True)),
                 ('version_released', models.BooleanField(default=False)),
-                ('entry_point_instance_id', models.IntegerField()),
+                ('entry_point_instance_id', models.IntegerField(null=True, blank=True)),
+                ('description', models.CharField(max_length=2000L, default=b'')),
             ],
             options={
                 'abstract': False,
@@ -240,11 +242,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='entityinstance',
-            name='current_status',
-            field=models.ForeignKey(to='entity.WorkflowStatus'),
-        ),
-        migrations.AddField(
-            model_name='entityinstance',
             name='entity_structure',
             field=models.ForeignKey(to='entity.EntityStructure'),
         ),
@@ -257,11 +254,6 @@ class Migration(migrations.Migration):
             model_name='entityinstance',
             name='root',
             field=models.ForeignKey(related_name='versions', blank=True, to='entity.EntityInstance', null=True),
-        ),
-        migrations.AddField(
-            model_name='entityinstance',
-            name='workflow',
-            field=models.ForeignKey(to='entity.Workflow'),
         ),
         migrations.AddField(
             model_name='entitystructure',

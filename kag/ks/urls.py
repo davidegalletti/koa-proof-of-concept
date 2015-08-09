@@ -7,13 +7,12 @@ from django.conf.urls import patterns, url
 from ks import views
 
 urlpatterns = patterns('',
-
-
-
-    
+    url(r'^debug/$', views.debug),
+    url(r'^cron/$', views.cron, name='cron'),
     url(r'^ks_explorer_form/$', views.ks_explorer_form, name='ks_explorer_form'),
     url(r'^ks_explorer/$', views.ks_explorer, name='ks_explorer'),
     url(r'^browse_entity_instance/(?P<ks_url>[\w|=|%|.]+)/(?P<base64URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.browse_entity_instance, name='browse_entity_instance'),
+    url(r'^disclaimer/$', views.disclaimer, name="disclaimer"),
     
                        ###################   API   ####################
     #33:
@@ -37,4 +36,3 @@ urlpatterns = patterns('',
                        ###################   API ^ ####################
     
 )
-#     url(r'^ks_explorer/(?P<ks_url>[\w|=|%|.]+)/$', views.ks_explorer, name='ks_explorer'),

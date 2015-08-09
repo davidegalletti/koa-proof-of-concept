@@ -16,8 +16,7 @@ import kag.utils as utils
 from xml.dom import minidom
 from email.encoders import encode_base64
 import base64
-# from gmpy import root
-# from meld.matchers import self_dir
+from django.conf.urls import url
 
 class CustomModelManager(models.Manager):
     '''
@@ -39,7 +38,6 @@ class CustomModelManager(models.Manager):
 
     def _bind_post_save_signal(self, model):
         models.signals.post_save.connect(model_post_save, model)
-
 
 def model_post_save(sender, **kwargs):
     if kwargs['instance'].URIInstance == "":
@@ -374,11 +372,19 @@ class SerializableSimpleEntity(models.Model):
         '''
 
         if etn.external_reference:
+            return self
+            child_instance = eval("self." + etn.attribute)
+            # e.g. EntityInstance.root is a self relationship often set to self; I am materializing self
+            # so I don't have it; I return self; I could probably do the same also in the other case
+            # because what actually counts for Django is the pk
+            if self == child_instance:
+                return self
             # if it is an external reference I do not have to materialize it
             # I expect it to be already materialized so I try to return that instance
             try:
                 return self.__class__.objects.using("ksm").get(URIInstance=self.URIInstance)
             except Exception as ex:
+                new_ex = Exception("SerializableSimpleEntity.materialize: self.URIInstance: " + self.URIInstance + " searching it on ksm: " + ex.message)
                 raise ex
 
         if self.URIInstance and str(self.URIInstance) in processed_instances:
@@ -430,11 +436,12 @@ class SerializableSimpleEntity(models.Model):
     def delete_children(self, etn, parent = None):
         '''
         invoked by EntityInstance.delete_entire_dataset that wraps it in a transaction
-        it recursively invokes itself to delete children's children
+        it recursively invokes itself to delete children's children; self is in the 
+        materialized database
         
         It is invoked only if EntityInstance.entity_structure.multiple_releases = False
-        Then I also have to remap foreign keys pointing to it (at least in the materialized DB,
-        also in default ???????????????????????????????????????????????????????????????????????)
+        Then I also have to remap foreign keys pointing to it in the materialized DB and
+        in default DB
         '''
 
         # I delete the children; must do it before remapping foreignkeys otherwise some will escape deletion
@@ -456,19 +463,37 @@ class SerializableSimpleEntity(models.Model):
         try:
             # before deleting self I must remap foreignkeys pointing at it to the new instances
             # let's get the instance it should point to
-            new_instance = self.__class__.objects.using('ksm').get(URI_previous_version=self.URIInstance)
+            '''
+            There could be more than one; imagine the case of an Italian Province split into two of them (Region Sardinia
+            had four provinces and then they become 4) then there will be two new instances with the same URI_previous_version.
+            TODO: we should also take into account the case when a new_materialized_instance can have more than URI_previous_version; this
+            situation requires redesign of the model and db
+            '''
+            new_materialized_instances = self.__class__.objects.using('ksm').filter(URI_previous_version=self.URIInstance)
+            new_instances = self.__class__.objects.filter(URI_previous_version=self.URIInstance)
+            self_on_default_db = self.__class__.objects.filter(URIInstance=self.URIInstance)
             
-            #I NEED TO LIST TODO:ALL THE RELATIONSHIPS POINTING AT THIS MODEL
-            for rel_key in self._meta.fields_map.keys():
-                rel = self._meta.fields_map[rel_key]
-                if rel.__class__.__name__ == 'ManyToOneRel':
-                    related_name =rel.related_name
-                    if related_name is None:
-                        related_name = rel_key + "_set"
-                    related_instances_manager = getattr(self, related_name)
-                    # running      related_instances_manager.update(rel.field.name=new_instance)
-                    # raises       SyntaxError: keyword can't be an expression
-                    eval('related_instances_manager.update(' + rel.field.name + '=new_instance)')
+            assert (len(new_materialized_instances) == len(new_instances)), 'SerializableSimpleEntity.delete_children self.URIInstance="' + self.URIInstance + '": "(len(new_materialized_instances ' + str(new_materialized_instances) + ') != len(new_instances' + str(new_instances) + '))"'
+            if len(new_materialized_instances) == 1:
+                new_materialized_instance = new_materialized_instances[0]
+                new_instance = new_instances[0]
+                #I NEED TO LIST TODO:ALL THE RELATIONSHIPS POINTING AT THIS MODEL
+                for rel_key in self._meta.fields_map.keys():
+                    rel = self._meta.fields_map[rel_key]
+                    if rel.__class__.__name__ == 'ManyToOneRel':
+                        related_name =rel.related_name
+                        if related_name is None:
+                            related_name = rel_key + "_set"
+                        related_materialized_instances_manager = getattr(self, related_name)
+                        related_instances_manager = getattr(self_on_default_db, related_name)
+                        # running      related_materialized_instances_manager.update(rel.field.name=new_materialized_instance)
+                        # raises       SyntaxError: keyword can't be an expression
+                        # update relationship on the materialized DB
+                        eval('related_materialized_instances_manager.update(' + rel.field.name + '=new_materialized_instance)')
+                        # update relationship on default DB
+                        eval('related_instances_manager.update(' + rel.field.name + '=new_instance)')
+            else:
+                raise Exception('NOT IMPLEMENTED in SerializableSimpleEntity.delete_children: mapping between different versions: URIInstance "' + self.URIInstance + '" has ' +str(len(new_instances)) + ' materialized records that have this as URI_previous_version.') 
         except Exception as e:
             print(e.message)
             
@@ -498,7 +523,7 @@ class SerializableSimpleEntity(models.Model):
             #encode di URIInstance
             URIInstance_base64 = ""
             #wget ks_url + "/ks/api/simple_entity_definition/" + URIInstance_base64
-            raise Exception("TO BE IMPLEMENTED in simple_entity_from_xml_tag: get SimpleEntity from appropriate KS.")
+            raise Exception("NOT IMPLEMENTED in simple_entity_from_xml_tag: get SimpleEntity from appropriate KS.")
         return se
 
     @staticmethod
@@ -518,7 +543,7 @@ class SerializableSimpleEntity(models.Model):
             except:
                 if retrieve_externally:
                     #TODO: It fetches the instance from the source as it is not in this KS yet
-                    raise Exception("To be implemented: It fetches the instance from the source as it is not in this KS yet")
+                    raise Exception("NOT IMPLEMENTED: It fetches the instance from the source as it is not in this KS yet")
                 else:
                     raise Exception("Can't find instance with URI: " + URIInstance)
         return actual_instance
@@ -748,7 +773,6 @@ class Workflow(SerializableSimpleEntity):
     entity_structure = models.ForeignKey('EntityStructure', null = True, blank=True)
 #     ASSERT: I metodi di un wf devono avere impatto solo su SimpleEntity contenute nell'EntityStructure
 
-
 class WorkflowMethod(SerializableSimpleEntity):
     '''
     If there are no initial_statuses then this is a method which creates the entity
@@ -756,7 +780,6 @@ class WorkflowMethod(SerializableSimpleEntity):
     initial_statuses = models.ManyToManyField("WorkflowStatus", blank=True, related_name="+")
     final_status = models.ForeignKey("WorkflowStatus", related_name="+")
     workflow = models.ForeignKey(Workflow)
-
 
 class WorkflowStatus(SerializableSimpleEntity):
     '''
@@ -774,8 +797,6 @@ class WorkflowEntityInstance(models.Model):
     class Meta:
         abstract = True
 
-
-
 class WorkflowTransition(SerializableSimpleEntity):
     instance = models.ForeignKey("EntityInstance")
     workflow_method = models.ForeignKey('WorkflowMethod')
@@ -789,7 +810,6 @@ class Organization(SerializableSimpleEntity):
     name = models.CharField(max_length=500L, blank=True)
     description = models.CharField(max_length=2000L, blank=True)
     website = models.CharField(max_length=500L, blank=True)
-    
 
 class KnowledgeServer(SerializableSimpleEntity):
     name = models.CharField(max_length=500L, blank=True)
@@ -842,7 +862,8 @@ class SimpleEntity(SerializableSimpleEntity):
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
     '''
     entity_structure attribute is not in NORMAL FORM! When not null it tells in which EntityStructure is this 
-    SimpleEntity; a SimpleEntity must be in only one EntityStructure!
+    SimpleEntity; a SimpleEntity must be in only one EntityStructure for version/state purposes! It can be in
+    other EntityStructure that are used as views.
     '''
     entity_structure = models.ForeignKey("EntityStructure", null=True, blank=True)
 
@@ -869,12 +890,12 @@ class EntityStructureNode(SerializableSimpleEntity):
     is_many = models.BooleanField(default=False, db_column='isMany')
 
 class EntityStructure(SerializableSimpleEntity):
-    entity_structure_entity_structure_name = "EntityStructure-EntityStructureNode-Application"
+    entity_structure_entity_structure_name = "EntityStructure-EntityStructureNode"
     simple_entity_entity_structure_name = "SimpleEntity-attributes"
     workflow_entity_structure_name = "Workflow-statuses"
-    organization_entity_structure_name = "Organization-KS"
+    organization_entity_structure_name = "Organization-KnowledgeServer"
     '''
-    Main idea behind the model: an EntityStructure is not represented by a single class or a single 
+    Main idea behind the model: an Entity is not represented with a single class or a single 
     table in a database but it is usually represented using a collection of them: more than 
     one class and more than one table in the database. An Issue in a tracking system is an 
     EntityStructure; it has a list of notes that can be appended to it, it has a user who has created
@@ -895,7 +916,6 @@ class EntityStructure(SerializableSimpleEntity):
     used by EntityInstance must partition the E/R diagram of our database in graphs without
     any intersection. 
      
-    
     An EntityStructure is a graph that defines a set of simple entities on which we can perform a task; 
     it has an entry point which is a Node e.g. an EntityStructure; from an instance of an EntityStructure we can use
     the "attribute" attribute from the corresponding EntityStructureNode to get the instances of
@@ -908,7 +928,7 @@ class EntityStructure(SerializableSimpleEntity):
     standard ones: used to define the structure of an EntityInstance
                    if a SimpleEntity is in one of them it cannot be in another one of them
     shallow      : created automatically to export a SimpleEntity
-    view         : used for example to export a structure different from one of the above
+    view         : used for example to export a structure different from one of the above; it has no version information
     '''
     name = models.CharField(max_length=200L)
     description = models.CharField(max_length=2000L)
@@ -931,6 +951,7 @@ class EntityStructure(SerializableSimpleEntity):
     when multiple_releases is true more than one instance get materialized
     otherwise just one; it defaults to False just not to make it nullable;
     a default is indicated as shallow structures are created without specifying it
+    makes no sense when is_a_view
     '''
     multiple_releases = models.BooleanField(default=False)
     
@@ -950,10 +971,7 @@ class EntityStructure(SerializableSimpleEntity):
     '''
     namespace = models.CharField(max_length=500L, blank=True)
 
-
-    
-
-class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
+class EntityInstance(SerializableSimpleEntity):
     '''
     A data set / chunk of knowledge; its data structure is described by self.entity_structure
     The only Versionable object so far
@@ -963,15 +981,30 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
     An EntityInstance is Versionable
     an Instance belongs to a set of instances which are basically the same but with a different version
     
-    Methods:
+    It will inherit from WorkflowEntityInstance when we will implement workflow features
+    
+    Relevant methods:
         new version: create new instances starting from entry point, following the nodes but those with external_reference=True
-        release: it sets version_released True and it sets it to False for all the other instances of the same set
+        set_released: it sets version_released True and it sets it to False for all the other instances of the same set
     '''
     owner_knowledge_server = models.ForeignKey(KnowledgeServer)
 
+    # if the structure is intended to be a view there won't be any version information
+    # assert entity_structure.is_a_view ===> root, version, ... == None
     entity_structure = models.ForeignKey(EntityStructure)
+
+    # if it is a view a description might be useful
+    description = models.CharField(max_length=2000L, default = "")
+    
     # we have the ID of the instance because we do not know its class so we can't have a ForeignKey to an unknown class
-    entry_point_instance_id = models.IntegerField()
+    entry_point_instance_id = models.IntegerField(null=True, blank=True)
+
+    # An alternative to the entry_point_instance_id is to have a filter to apply to the all the objects of type entry_point.instance
+    # assert 
+    #     filter_text != None ===> entry_point_instance_id == None
+    #     entry_point_instance_id != None ===> filter_text == None
+    # if entry_point_instance_id == None filter_text can be "" meaning that you have to take all of the entries without filtering them
+    filter_text = models.CharField(max_length=200L, null=True, blank=True)
 
     #following attributes used to be in a separate class VersionableEntityInstance
     '''
@@ -982,9 +1015,9 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
     '''
     root = models.ForeignKey('self', related_name='versions', null=True, blank=True)
     # http://semver.org/
-    version_major = models.IntegerField(blank=True)
-    version_minor = models.IntegerField(blank=True)
-    version_patch = models.IntegerField(blank=True)
+    version_major = models.IntegerField(null=True, blank=True)
+    version_minor = models.IntegerField(null=True, blank=True)
+    version_patch = models.IntegerField(null=True, blank=True)
     version_description = models.CharField(max_length=2000L, default = "")
     version_date = models.DateTimeField(auto_now_add=True)
     '''
@@ -1026,14 +1059,6 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
         temp_etn = EntityStructureNode(simple_entity=ei_simple_entity, external_reference=True, is_many=False, attribute = "root")
         serialized_head += comma + self.root.serialize(temp_etn, format = format)
 
-        w_simple_entity = SimpleEntity.objects.get(name="Workflow")
-        temp_etn = EntityStructureNode(simple_entity=w_simple_entity, external_reference=True, is_many=False, attribute = "workflow")
-        serialized_head += comma + self.workflow.serialize(temp_etn, format = format)
-        
-        ws_simple_entity = SimpleEntity.objects.get(name="WorkflowStatus")
-        temp_etn = EntityStructureNode(simple_entity=ws_simple_entity, external_reference=True, is_many=False, attribute = "current_status")
-        serialized_head += comma + self.current_status.serialize(temp_etn, format = format)
-        
         instance = self.get_instance()
         if force_external_reference:
             self.entity_structure.entry_point.external_reference = True
@@ -1123,15 +1148,17 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
     def set_released(self):
         '''
         Sets this version as the only released one 
+        It materializes data and the EntityInstance itself
         '''
         try:
-#             with transaction.atomic():
+            with transaction.atomic():
                 if not self.entity_structure.multiple_releases:
                     # There cannot be more than one released? I set the others to False
                     try:
                         currently_released = self.root.versions.get(version_released=True)
-                        currently_released.version_released = False
-                        currently_released.save()
+                        if currently_released.pk != self.pk:
+                            currently_released.version_released = False
+                            currently_released.save()
                         previously_released = currently_released
                     except:
                         print("EntityInstance.set_released couldn't find a released version.")
@@ -1151,8 +1178,9 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
                     materialized_self.root = materialized_self
                     materialized_self.save()
                     # now I can delete the old data set
-                    materialized_previously_released = EntityInstance.objects.using('ksm').get(URIInstance=previously_released.URIInstance)
-                    materialized_previously_released.delete_entire_dataset()
+                    if currently_released.pk != self.pk:
+                        materialized_previously_released = EntityInstance.objects.using('ksm').get(URIInstance=previously_released.URIInstance)
+                        materialized_previously_released.delete_entire_dataset()
                
                 #end of transaction
         except Exception as e:
@@ -1179,9 +1207,6 @@ class EntityInstance(WorkflowEntityInstance, SerializableSimpleEntity):
         version_patch__max = EntityInstance.objects.filter(root = any_from_the_set.root, version_major = version_major__max, version_minor = version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
         return EntityInstance.objects.get(root = any_from_the_set, version_major = version_major__max, version_minor = version_minor__max, version_patch = version_patch__max)
    
-   
-   
-   
 class UploadedFile(models.Model):
     '''
     Used to save uploaded xml file so that it can be later retrieved and imported
@@ -1192,3 +1217,4 @@ class UploadedFile(models.Model):
 # class Choices():
 #     serialization_format = (        'XML', 'JSON'    ) #tuple
 #     serialization_format = [        'XML', 'JSON'    ] #list
+

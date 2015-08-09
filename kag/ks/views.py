@@ -18,6 +18,8 @@ from entity.models import EntityStructure, EntityInstance, SerializableSimpleEnt
 import kag.utils as utils
 import forms as myforms 
 
+#DEBUG
+#DEBUG
 
 
 def api_simple_entity_definition(request, base64_SimpleEntity_URIInstance, format):
@@ -181,10 +183,11 @@ def api_entity_instance_info(request, base64_EntityInstance_URIInstance, format)
         instance = entity_instance.get_instance()
         all_versions_with_instances = []
         for v in all_versions:
-            version_with_instance = {}
-            version_with_instance['entity_instance'] = v
-            version_with_instance['simple_entity'] = v.get_instance()
-            all_versions_with_instances.append(version_with_instance)
+            if v.URIInstance != entity_instance.URIInstance:
+                version_with_instance = {}
+                version_with_instance['entity_instance'] = v
+                version_with_instance['simple_entity'] = v.get_instance()
+                all_versions_with_instances.append(version_with_instance)
         cont = RequestContext(request, {'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'entity_instance': entity_instance, 'all_versions_with_instances': all_versions_with_instances, 'ks': entity_instance.owner_knowledge_server, 'instance': instance})
         return render_to_response('ks/api_entity_instance_info.html', context_instance=cont)
     
@@ -251,11 +254,11 @@ def ks_explorer(request):
         for ei in decoded['Export']['EntityInstances']:
             entity = {}
             entity['actual_instance_name'] = ei['ActualInstance']['EntityStructure']['name']
-            entity['URIInstance'] = base64.encodestring(ei['ActualInstance']['EntityStructure']['URIInstance']).rstrip('\n')
+            entity['URIInstance'] = base64.encodestring(ei['ActualInstance']['EntityStructure']['URIInstance']).replace('\n','')
             entities.append(entity)
     except Exception as es:
         pass #TODO: view.ks_explorer manage exception 
-    cont = RequestContext(request, {'entities':entities, 'organization': organization, 'external_ks': external_ks, 'ks_url':base64.encodestring(ks_url).rstrip('\n')})
+    cont = RequestContext(request, {'entities':entities, 'organization': organization, 'external_ks': external_ks, 'ks_url':base64.encodestring(ks_url).replace('\n','')})
     return render_to_response('ks/ks_explorer_entities.html', context_instance=cont)
 
 
@@ -305,7 +308,7 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
             entity = {}
             actual_instance_class = ei['ActualInstance'].keys()[0]
             entity['actual_instance_name'] = ei['ActualInstance'][actual_instance_class]['name']
-            entity['base64URIInstance'] = base64.encodestring(ei['URIInstance']).rstrip('\n')
+            entity['base64URIInstance'] = base64.encodestring(ei['URIInstance']).replace('\n','')
             entity['URIInstance'] = ei['URIInstance']
             entities.append(entity)
         cont = RequestContext(request, {'entities':entities, 'organization': organization, 'external_ks': external_ks, 'es_info_json': es_info_json})
@@ -390,4 +393,238 @@ def api_notify(request, base64_URIInstance):
         base64_URL the URL this KS has to invoke to notify
     '''
     
+def cron(request):
+    '''
+    to run tasks that have to be executed periodically on this ks; e.g. 
+    * send messages
+    * process notifications
+    * ...
+    '''
+    pass
+
+def disclaimer(request):
+    '''
+    created to debug code
+    '''
+    this_ks = KnowledgeServer.this_knowledge_server()
+    cont = RequestContext(request, {'this_ks': this_ks})
+    return render_to_response('ks/disclaimer.html', context_instance=cont)
+
+def debug(request):
+    '''
+    created to debug code
+    '''
+    from django.db import models, migrations
+    from entity.models import Organization, KnowledgeServer, EntityInstance, EntityStructure, SimpleEntity, EntityStructureNode
+    from license.models import License
+#     ei = EntityInstance.objects.get(pk=30)
+#     # let's materialize the ei that is a view so it doesn't need to be set to released
+#     ei.materialize(ei.shallow_entity_structure().entry_point, processed_instances = [])
+#     # opendefinition.org conformant and reccomended
+#     ei = EntityInstance(owner_knowledge_server=test_license_org_ks,filter_text="reccomended_by_opendefinition=True",entity_structure=esLicenseList,description="All opendefinition.org conformant and reccomended licenses.")
+#     ei.save(using='default')
+#     # let's materialize the ei that is a view so it doesn't need to be set to released
+#     ei.materialize(ei.shallow_entity_structure().entry_point, processed_instances = [])
+
     
+    
+    test_license_org = Organization();test_license_org.name="A test Organization hosting license information";test_license_org.website='http://license_org.example.com';test_license_org.description="This is just a test Organization.";
+    test_license_org.save(using='default')
+    test_license_org.id = None
+    test_license_org.save(using='ksm')
+    m_test_license_org = test_license_org
+    test_license_org = Organization.objects.get(pk=m_test_license_org.id)
+    
+    root_ks = KnowledgeServer.this_knowledge_server('default')
+    root_ks.this_ks = False
+    root_ks.save()
+    root_ks = KnowledgeServer.this_knowledge_server()
+    root_ks.this_ks = False
+    root_ks.save()
+    
+    m_test_license_org_ks = KnowledgeServer(name="A test Open Knowledge Server using some data from opendefinition.org.", scheme="http", netloc="opendatalicenses.thekoa.org", description="WARNING: THIS IS NOT AFFILIATED WITH opendefinition.org. IT IS JUST A TEST USING opendefinition.org DATA.", organization=test_license_org, this_ks=True)
+    m_test_license_org_ks.save(using='ksm')
+    test_license_org_ks = m_test_license_org_ks
+    test_license_org_ks.id = None
+    test_license_org_ks.URIInstance = ""
+    test_license_org_ks.save(using='default')
+    
+    seLicense=SimpleEntity();seLicense.name="License";seLicense.module="license";seLicense.save(using='default')
+    m_seLicense=seLicense
+    m_seLicense.id=None
+    m_seLicense.save(using='ksm')
+    # The following line is needed to make sure that seLicense._state.db is 'default'; 
+    # before the following line it would be 'ksm'
+    seLicense = SimpleEntity.objects.using('default').get(pk=seLicense.pk)
+    
+    en1=EntityStructureNode();en1.simple_entity=seLicense;en1.save(using='default')
+    esLicense=EntityStructure();esLicense.multiple_releases=True;esLicense.is_shallow = True;
+    esLicense.entry_point=en1;esLicense.name="License";esLicense.description="License information";esLicense.namespace="license";
+    esLicense.save(using='default')
+    m_es = EntityStructure.objects.using('ksm').get(name=EntityStructure.entity_structure_entity_structure_name)
+    es = EntityStructure.objects.using('default').get(URIInstance=m_es.URIInstance)
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=es, entry_point_instance_id=esLicense.id, version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    ei.set_released() #here materialization happens
+    
+    
+    seLicense.entity_structure = esLicense; seLicense.save(using='default')
+    
+    ######## BEGIN LICENSES DATA
+    
+    #Against DRM 
+    adrm = License()
+    adrm.name = "Against DRM"
+    adrm.short_name = ""
+    adrm.attribution = True
+    adrm.share_alike = True
+    adrm.url_info = "http://opendefinition.org/licenses/against-drm"
+    adrm.reccomended_by_opendefinition = False
+    adrm.conformant_for_opendefinition = True
+    adrm.legalcode = '''
+    '''
+    adrm.save(using='default')
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=adrm.id, version_major=2,version_minor=0,version_patch=0,version_description="",version_released=True)
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    ei.set_released() #here materialization happens
+
+    #Creative Commons Attribution 1.0
+    ccby10 = License()
+    ccby10.name = "Creative Commons Attribution 1.0"
+    ccby10.short_name = "CC-BY-1.0"
+    ccby10.attribution = True
+    ccby10.share_alike = False
+    ccby10.url_info = "http://creativecommons.org/licenses/by/1.0"
+    ccby10.reccomended_by_opendefinition = False
+    ccby10.conformant_for_opendefinition = True
+    ccby10.legalcode = '''
+    '''
+    ccby10.save(using='default')
+    ei_ccby10 = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=ccby10.id, version_major=1,version_minor=0,version_patch=0,version_description="",version_released=True)
+    ei_ccby10.save(using='default');ei_ccby10.root_id=ei_ccby10.id;ei_ccby10.save(using='default')
+    ei.set_released() #here materialization happens
+
+    # above reccomended; below other conformant
+    
+    #Creative Commons CCZero
+    cczero = License()
+    cczero.name = "Creative Commons CCZero"
+    cczero.short_name = "CC0"
+    cczero.attribution = False
+    cczero.share_alike = False
+    cczero.url_info = "http://opendefinition.org/licenses/cc-zero"
+    cczero.reccomended_by_opendefinition = True
+    cczero.conformant_for_opendefinition = True
+    cczero.legalcode = '''
+    '''
+    cczero.save(using='default')
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=cczero.id, version_major=1,version_minor=0,version_patch=0,version_description="",version_released=True)
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    ei.set_released() #here materialization happens
+
+    #Open Data Commons Public Domain Dedication and Licence
+    pddl = License()
+    pddl.name = "Open Data Commons Public Domain Dedication and Licence"
+    pddl.short_name = "PDDL"
+    pddl.attribution = False
+    pddl.share_alike = False
+    pddl.url_info = "http://opendefinition.org/licenses/odc-pddl"
+    pddl.reccomended_by_opendefinition = True
+    pddl.conformant_for_opendefinition = True
+    pddl.legalcode = '''
+    '''
+    pddl.save(using='default')
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=pddl.id, version_major=1,version_minor=0,version_patch=0,version_description="",version_released=True)
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    ei.set_released() #here materialization happens
+
+    #Creative Commons Attribution 4.0
+    ccby40 = License()
+    ccby40.name = "Creative Commons Attribution 4.0"
+    ccby40.short_name = "CC-BY-4.0"
+    ccby40.attribution = True
+    ccby40.share_alike = False
+    ccby40.url_info = "http://creativecommons.org/licenses/by/4.0"
+    ccby40.reccomended_by_opendefinition = True
+    ccby40.conformant_for_opendefinition = True
+    ccby40.legalcode = '''
+    '''
+    ccby40.save(using='default')
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,root_id=ei_ccby10.id,entity_structure=esLicense, entry_point_instance_id=ccby40.id, version_major=4,version_minor=0,version_patch=0,version_description="",version_released=True)
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    ei.set_released() #here materialization happens
+
+    #Open Data Commons Attribution License 
+    odcby = License()
+    odcby.name = "Open Data Commons Attribution License"
+    odcby.short_name = "ODC-BY"
+    odcby.attribution = True
+    odcby.share_alike = False
+    odcby.url_info = "http://opendefinition.org/licenses/odc-by"
+    odcby.reccomended_by_opendefinition = True
+    odcby.conformant_for_opendefinition = True
+    odcby.legalcode = '''
+    '''
+    odcby.save(using='default')
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=odcby.id, version_major=1,version_minor=0,version_patch=0,version_description="",version_released=True)
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    ei.set_released() #here materialization happens
+
+    #Creative Commons Attribution Share-Alike 4.0  
+    ccbysa40 = License()
+    ccbysa40.name = "Creative Commons Attribution Share-Alike 4.0"
+    ccbysa40.short_name = "CC-BY-SA-4.0"
+    ccbysa40.attribution = True
+    ccbysa40.share_alike = True
+    ccbysa40.url_info = "http://opendefinition.org/licenses/cc-by-sa"
+    ccbysa40.reccomended_by_opendefinition = True
+    ccbysa40.conformant_for_opendefinition = True
+    ccbysa40.legalcode = '''
+    '''
+    ccbysa40.save(using='default')
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=ccbysa40.id, version_major=4,version_minor=0,version_patch=0,version_description="",version_released=True)
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    ei.set_released() #here materialization happens
+
+    #Open Data Commons Open Database License 
+    odbl = License()
+    odbl.name = "Open Data Commons Open Database License"
+    odbl.short_name = "ODbL"
+    odbl.attribution = True
+    odbl.share_alike = False
+    odbl.url_info = "http://opendefinition.org/licenses/odc-odbl"
+    odbl.reccomended_by_opendefinition = True
+    odbl.conformant_for_opendefinition = True
+    odbl.legalcode = '''
+    '''
+    odbl.save(using='default')
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=odbl.id, version_major=1,version_minor=0,version_patch=0,version_description="",version_released=True)
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    ei.set_released() #here materialization happens
+
+    ######## END LICENSES DATA
+
+    
+    # EntityStructure di tipo view per la lista di licenze;  
+    en1=EntityStructureNode();en1.simple_entity=seLicense;en1.save(using='default')
+    esLicenseList=EntityStructure();esLicenseList.is_a_view = True;
+    esLicenseList.entry_point=en1;esLicenseList.name="List of licenses";esLicenseList.description="List of all released licenses";esLicenseList.namespace="license";
+    esLicenseList.save(using='default')
+    # EntityInstance of the above EntityStructure
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=es, entry_point_instance_id=esLicenseList.id, version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    ei.set_released() #here materialization happens
+
+    # 2 EntityInstance with the above EntityStructure
+    # opendefinition.org conformant
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,filter_text="conformant_for_opendefinition=True",entity_structure=esLicenseList,description="All opendefinition.org conformant licenses.")
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    # let's materialize the ei that is a view so it doesn't need to be set to released
+    ei.materialize(ei.shallow_entity_structure().entry_point, processed_instances = [])
+    # opendefinition.org conformant and reccomended
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,filter_text="reccomended_by_opendefinition=True",entity_structure=esLicenseList,description="All opendefinition.org conformant and reccomended licenses.")
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    # let's materialize the ei that is a view so it doesn't need to be set to released
+    ei.materialize(ei.shallow_entity_structure().entry_point, processed_instances = [])
+    print("a")
+

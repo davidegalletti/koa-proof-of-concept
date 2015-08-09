@@ -6,8 +6,7 @@
 	<div class="row-fluid">
 		<h2>The data set with URI<br>{{ entity_instance.URIInstance }} </h2>
     	<h3>... is:</h3>
-    	<p>"{{ instance.name }}" (<a href="{% url 'api_export_instance' base64_EntityInstance_URIInstance "html" %}">browse</a> the data or get it in <a href="{% url 'api_export_instance' base64_EntityInstance_URIInstance "XML" %}">XML</a> or <a href="{% url 'api_export_instance' base64_EntityInstance_URIInstance "JSON" %}">JSON</a>)<br>
-    	Version {{ entity_instance.version_major }}.{{ entity_instance.version_minor }}.{{ entity_instance.version_patch }}</p>
+    	{% version_instance_info entity_instance instance %}
     	<h3>The owner is:</h3>
     	{% ks_info ks %}
         <h3>The structure (more info - XML - JSON) is:</h3>
@@ -15,11 +14,12 @@
          <i>{{ entity_instance.entity_structure.description }}</i></p>
          <h4>The structure is owned by:</h4>
          <p>reperire il ks owner di una SerializableSimpleEntity</p>
-         {% if all_versions_with_instances|length > 1 %}
+         {% if all_versions_with_instances|length > 0 %}
 			<h3>... has the following versions:</h3> 
 			<ul>
 			{% for version_with_instance in all_versions_with_instances %}
 			    <li>
+			    	{% version_instance_info version_with_instance.entity_instance version_with_instance.simple_entity %}
 			        <p><strong><a href="{{ version_with_instance.entity_instance.URIInstance }}">{{ version_with_instance.simple_entity.name }}</a></strong> <br>
 			        <i>{{ version_with_instance.simple_entity.description }}</i></p>
 			    </li>
