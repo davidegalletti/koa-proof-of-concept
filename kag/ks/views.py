@@ -442,7 +442,7 @@ def debug(request):
     root_ks.this_ks = False
     root_ks.save()
     
-    m_test_license_org_ks = KnowledgeServer(name="A test Open Knowledge Server using some data from opendefinition.org.", scheme="http", netloc="opendatalicenses.thekoa.org", description="WARNING: THIS IS NOT AFFILIATED WITH opendefinition.org. IT IS JUST A TEST USING opendefinition.org DATA.", organization=test_license_org, this_ks=True)
+    m_test_license_org_ks = KnowledgeServer(name="A test Open Knowledge Server using some data from opendefinition.org.", scheme="http", netloc="licenses.thekoa.org", description="WARNING: THIS IS NOT AFFILIATED WITH opendefinition.org. IT IS JUST A TEST USING opendefinition.org DATA.", organization=test_license_org, this_ks=True)
     m_test_license_org_ks.save(using='ksm')
     test_license_org_ks = m_test_license_org_ks
     test_license_org_ks.id = None
