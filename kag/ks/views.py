@@ -270,6 +270,7 @@ def ks_explorer_form(request):
 
 def browse_entity_instance(request, ks_url, base64URIInstance, format):
     ks_url = base64.decodestring(ks_url)
+    this_ks = KnowledgeServer.this_knowledge_server()
     format = format.upper()
 
     # info on the remote ks{{  }}
@@ -281,8 +282,12 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
     organization = ks_info_json['Export']['Organization']
     for ks in ks_info_json['Export']['Organization']['knowledgeserver_set']:
         if ks['this_ks'] == 'True':
-            external_ks = ks
-
+            external_ks_json = ks
+    external_ks = KnowledgeServer()
+    external_ks.name = external_ks_json['name']
+    external_ks.scheme = external_ks_json['scheme']
+    external_ks.netloc = external_ks_json['netloc']
+    external_ks.description = external_ks_json['description']
     #info on the EntityStructure
     response = urllib2.urlopen(base64.decodestring(base64URIInstance) + "/json")
     es_info_json_stream = response.read()
@@ -311,7 +316,7 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
             entity['base64URIInstance'] = base64.encodestring(ei['URIInstance']).replace('\n','')
             entity['URIInstance'] = ei['URIInstance']
             entities.append(entity)
-        cont = RequestContext(request, {'entities':entities, 'organization': organization, 'external_ks': external_ks, 'es_info_json': es_info_json})
+        cont = RequestContext(request, {'entities':entities, 'organization': organization, 'this_ks': this_ks, 'external_ks': external_ks, 'es_info_json': es_info_json})
         return render_to_response('ks/browse_entity_instance.html', context_instance=cont)
     
 def home(request):

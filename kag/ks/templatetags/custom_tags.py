@@ -7,14 +7,19 @@ register = template.Library()
 
 @register.simple_tag
 def ks_info(ks, *args, **kwargs):
-    return "<p>Name: <a href=\"" + ks.scheme + "://" + ks.netloc + "/\" target=\"_blank\">" + ks.name + "</a><br>Organization: <a href=\"" + ks.organization.website + "\" target=\"_blank\">" + ks.organization.name + "</a></p>"
+    ret_html = "<p>" + ks.uri() + "<br><a href=\"" + ks.scheme + "://" + ks.netloc + "/\" target=\"_blank\">" + ks.name + "</a>"
+    if hasattr(ks, "organization"):
+        ret_html += "<br>Organization: <a href=\"" + ks.organization.website + "\" target=\"_blank\">" + ks.organization.name + "</a></p>"
+    else:
+        ret_html += "</p>"
+    return ret_html
 
 @register.simple_tag
 def version_instance_info(entity_instance, instance, *args, **kwargs):
     base64_EntityInstance_URIInstance = base64.encodestring(entity_instance.URIInstance).rstrip('\n')
     ret_string =  '<p>"' + instance.name + '" (<a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"html")) + '">browse</a> the data or'
-    ret_string += ' get it in <a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"html")) + '">XML</a> or '
-    ret_string += '<a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"html")) + '">JSON</a>)<br>'
+    ret_string += ' get it in <a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"XML")) + '">XML</a> or '
+    ret_string += '<a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"JSON")) + '">JSON</a>)<br>'
     ret_string += 'Version ' + str(entity_instance.version_major) + '.' + str(entity_instance.version_minor) + '.' + str(entity_instance.version_patch) + ' - ' + str(entity_instance.version_date) + '</p>'
     return ret_string
 

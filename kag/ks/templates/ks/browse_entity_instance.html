@@ -1,8 +1,11 @@
 {% extends "base.html" %}
+{% load custom_tags %}
+
 
 {% block content %}
     <div class="row-fluid">
-    	<h3>Browsing an external Knowledge Server: </h3>
+    	<h3>Browsing: </h3>
+    	{% ks_info external_ks %}
     	<p>Name: <a href="{{ external_ks.scheme }}://{{ external_ks.netloc }}/" target="_blank">{{ external_ks.name }}</a><br>
     	Organization: <a href="{{ organization.website }}" target="_blank">{{ organization.name }}</a></p>
         <h4>The data structure</h4>
@@ -12,7 +15,10 @@
         <ul>
         {% for entity in entities %}
             <li>
-                {{ external_ks.scheme }}://{{ external_ks.netloc }}<a href="{% url 'api_entity_instance_info' entity.base64URIInstance "html" %}">{{ entity.actual_instance_name }}</a>
+                {% if external_ks.scheme != this_ks.scheme or external_ks.netloc != this_ks.netloc %}
+                	<a href="">Subscribe</a>&nbsp;
+                {% endif %}
+                <a href="{{ external_ks.scheme }}://{{ external_ks.netloc }}/{% url 'api_entity_instance_info' entity.base64URIInstance "html" %}">{{ entity.actual_instance_name }}</a>
             </li>
         {% endfor %}
         </ul>

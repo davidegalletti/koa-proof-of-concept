@@ -1039,6 +1039,7 @@ class EntityInstance(SerializableSimpleEntity):
         parameters:
         TODO: force_external_reference if True ...
         '''
+        serialized_head = ''
         format = format.upper()
         if format == 'XML':
             serialized_head = "<EntityInstance namespace=\"" + self.entity_structure.namespace + "\" URIInstance=\"" + self.URIInstance + "\" VersionMajor=\"" + str(self.version_major) + "\" VersionMinor=\"" + str(self.version_minor) + "\" VersionPatch=\"" + str(self.version_patch) + "\" VersionReleased=\"" + str(self.version_released) + "\" VersionDescription=\"" + self.version_description + "\">"
