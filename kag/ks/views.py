@@ -6,6 +6,7 @@ import json
 import urllib2
 from xml.dom import minidom
 
+from django.db import transaction
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db.models import F, Min
@@ -13,8 +14,8 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, render_to_response
 from django.template import RequestContext
 
-from entity import models as entity_models
-from entity.models import EntityStructure, EntityInstance, SerializableSimpleEntity, KnowledgeServer
+from entity.models import SimpleEntity, EntityStructure, EntityInstance, SerializableSimpleEntity, KnowledgeServer
+from ks.models import SubscriptionToOther, SubscriptionToThis, ApiReponse
 import kag.utils as utils
 import forms as myforms 
 
@@ -27,12 +28,12 @@ def api_simple_entity_definition(request, base64_SimpleEntity_URIInstance, forma
     '''
     format = format.upper()
     URISimpleEntity = base64.decodestring(base64_SimpleEntity_URIInstance)
-    actual_class = entity_models.SimpleEntity
+    actual_class = SimpleEntity
 
-    se = entity_models.SimpleEntity.retrieve(actual_class, URISimpleEntity, False)
+    se = SimpleEntity.retrieve(actual_class, URISimpleEntity, False)
     
     instance = get_object_or_404(actual_class, pk=se.id)
-    e = entity_models.EntityStructure.objects.get(name = entity_models.EntityStructure.simple_entity_entity_structure_name)
+    e = EntityStructure.objects.get(name = EntityStructure.simple_entity_entity_structure_name)
     if format == 'JSON':
         exported_json = '{ "Export" : { "EntityStructureName" : "' + e.name + '", "EntityStructureURI" : "' + e.URIInstance + '", "ExportDateTime" : "' + str(datetime.now()) + '", ' + instance.serialize(e.entry_point, format=format, exported_instances = []) + ' } }'
         return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
@@ -99,7 +100,7 @@ def api_catch_all(request, uri_instance):
             simple_entity_name = split_path[1]
             actual_class = utils.load_class(module_name + ".models", simple_entity_name)
             this_ks = KnowledgeServer.this_knowledge_server()
-            instance = SerializableSimpleEntity.retrieve(actual_class, this_ks.uri() + uri_instance, False)
+            instance = SerializableSimpleEntity.retrieve(actual_class, this_ks.uri() + "/" + uri_instance, False)
             if format == 'JSON':
                 exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", ' + instance.serialize(format='JSON', exported_instances = []) + ' } }'
                 return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
@@ -337,7 +338,7 @@ def api_ks_info(request, format):
     '''
     format = format.upper()
     this_ks = KnowledgeServer.this_knowledge_server()    
-    es = entity_models.EntityStructure.objects.get(name = entity_models.EntityStructure.organization_entity_structure_name)
+    es = EntityStructure.objects.get(name = EntityStructure.organization_entity_structure_name)
     
     if format == 'XML':
         exported_xml = "<Export EntityStructureName=\"" + es.name + "\" EntityStructureURI=\"" + es.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + this_ks.organization.serialize(es.entry_point, exported_instances = []) + "</Export>"
@@ -347,8 +348,6 @@ def api_ks_info(request, format):
     if format == 'JSON':
         exported_json = '{ "Export" : { "EntityStructureName" : "' + es.name + '", "EntityStructureURI" : "' + es.URIInstance + '", "ExportDateTime" : "' + str(datetime.now()) + '", ' + this_ks.organization.serialize(es.entry_point, format=format, exported_instances = []) + ' } }'
         return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
-
-
 
 def api_export_instance(request, base64_EntityInstance_URIInstance, format):
     '''
@@ -381,39 +380,114 @@ def api_export_instance(request, base64_EntityInstance_URIInstance, format):
             cont = RequestContext(request, {'etn': entity_instance.entity_structure.entry_point, 'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'entity_instance': entity_instance, 'exported_json': exported_json, 'simple_entity': simple_entity})
             return render_to_response('ks/api_export_instance.html', context_instance=cont)
     
-def api_subscribe(request, base64_URIInstance, base64_URL):
+def api_root_uri(request, base64_URIInstance):
+    '''
+    base64_URIInstance is the URI of an EntityInstance
+    Simply return the URIinstance of the root
+    '''
+    try:
+        URIInstance = base64.decodestring(base64_URIInstance)
+        ei = EntityInstance.objects.get(URIInstance=URIInstance)
+        return ei.root.URIInstance
+    except:
+        return ""
+
+def this_ks_subscribes_to(request, base64_URIInstance):
+    '''
+    This ks is subscribing to a data set in another ks
+    First I store the subscription locally
+    Then I invoke remotely api_subscribe
+    If it works I commit locally
+    '''
+    URIInstance = base64.decodestring(base64_URIInstance)
+    other_ks_uri = URIInstance[:str.find(URIInstance, '/', str.find(URIInstance, '/', str.find(URIInstance, '/')+1)+1)]  # TODO: make it a method of a helper class to find the URL of the KS from a URIInstance
+    try:
+        with transaction.atomic():
+            # am I already subscribed? We check also whether we have subscribed to another version 
+            # (with an API to get the root URIInstance and the attribute root_URI of SubscriptionToOther)
+            local_url = reverse('api_root_uri', args=(base64_URIInstance,))
+            response = urllib2.urlopen(other_ks_uri + local_url)
+            root_URIInstance = response.read()
+            others = SubscriptionToOther.filter(root_URI=root_URIInstance)
+            if len(others) > 0:
+                return render(request, 'entity/export.json', {'json': ApiReponse("failure", "Already subscribed").json()}, content_type="application/json")
+            # save locally
+            sto = SubscriptionToOther()
+            sto.URI = URIInstance
+            sto.root_URI = root_URIInstance
+            sto.save()
+            # invoke remote API to subscribe
+            this_ks = KnowledgeServer.this_knowledge_server()
+            url_to_invoke = this_ks.uri() + reverse ('api_notify')
+            local_url = reverse ('api_subscribe', args=(base64_URIInstance,url_to_invoke))
+            response = urllib2.urlopen(other_ks_uri + local_url)
+            return render(request, 'entity/export.json', {'json': response}, content_type="application/json")
+    except:
+        pass
+    
+def api_subscribe(request, base64_URIInstance, base64_remote_url):
     '''
         #35 
         parameters:
         base64_URIInstance the base64 encoded URIInstance to which I want to subscribe
         base64_URL the URL this KS has to invoke to notify
     '''
+    # check the client KS has already subscribed
+    URIInstance = base64.decodestring(base64_URIInstance)
+    root_instance_uri = api_root_uri(base64_URIInstance)
+    remote_url = base64.decodestring(base64_remote_url)
+    existing_subscriptions = SubscriptionToThis.objects.filter(root_instance_uri=root_instance_uri, remote_url=remote_url)
+    if len(existing_subscriptions) > 0:
+        return render(request, 'entity/export.json', {'json': ApiReponse("failure", "Already subscribed").json()}, content_type="application/json")
+    stt = SubscriptionToThis()
+    stt.root_instance_uri=root_instance_uri
+    stt.remote_url=remote_url
+    stt.save()
+    return render(request, 'entity/export.json', {'json': ApiReponse("success", "Subscribed sucessfully").json()}, content_type="application/json")
     
-    
-def api_notify(request, base64_URIInstance):
+def api_unsubscribe(request, base64_URIInstance, base64_URL):
     '''
-        #35 
+        #123
         parameters:
         base64_URIInstance the base64 encoded URIInstance to which I want to subscribe
         base64_URL the URL this KS has to invoke to notify
     '''
+    
+def api_notify(request):
+    '''
+        #35 it receives a notification; the verb is POST
+        parameters:
+        URIInstance: the base64 encoded URIInstance of the EntityInstance for which the event has happened
+        event_type: the URInstance of the EventType
+        extra_info_json: a JSON structure with info specific to an EventType (optional)
+    '''
+    URIInstance = request.POST.get("URIInstance", "")
+    event_type = request.POST.get("event_type", "")
+    extra_info_json = request.POST.get("extra_info_json", "")
     
 def cron(request):
     '''
-    to run tasks that have to be executed periodically on this ks; e.g. 
-    * send messages
-    * process notifications
-    * ...
+        to run tasks that have to be executed periodically on this ks; e.g. 
+        * send messages
+        * process notifications
+        * ...
     '''
-    pass
+    this_ks = KnowledgeServer.this_knowledge_server()
+    this_ks.run_cron()
 
 def disclaimer(request):
     '''
-    created to debug code
     '''
     this_ks = KnowledgeServer.this_knowledge_server()
     cont = RequestContext(request, {'this_ks': this_ks})
     return render_to_response('ks/disclaimer.html', context_instance=cont)
+
+def subscriptions(request):
+    '''
+    '''
+    this_ks = KnowledgeServer.this_knowledge_server()
+    cont = RequestContext(request, {'this_ks': this_ks})
+    return render_to_response('ks/subscriptions.html', context_instance=cont)
 
 def debug(request):
     '''

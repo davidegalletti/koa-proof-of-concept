@@ -91,16 +91,24 @@ class SerializableSimpleEntity(models.Model):
     def generate_URIInstance(self):
         '''
         *** method that works on the same database of self ***
+        This method is quite forgiving; there is no SimpleEntity? Then I use the class name
+        there is no EntityStructure? Then I use the app name
         '''
         try:
             # http://stackoverflow.com/questions/10375019/get-database-django-model-object-was-queried-from
             db_alias = self._state.db
             this_ks = KnowledgeServer.this_knowledge_server()
-            se = self.get_simple_entity(db_alias=db_alias)
-            if se.entity_structure != None:
-                return this_ks.uri() + se.entity_structure.namespace + "/" + se.name + "/" + str(getattr(self, se.id_field))
-            else:
-                return ""
+
+            # removing tail ".models"
+            namespace = self.__class__.__module__[:-7]
+            try:
+                se = self.get_simple_entity(db_alias=db_alias)
+                name = se.name
+                if se.entity_structure != None:
+                    namespace = se.entity_structure.namespace
+            except:
+                name = self.__class__.__name__
+            return this_ks.uri() + "/" + namespace + "/" + name + "/" + str(getattr(self, se.id_field))
         except Exception as es:
             print ("Error in 'generate_URIInstance' " + self.__class__.__name__ + "." + str(self.pk) + ":" + es.message)
             return ""
@@ -826,11 +834,17 @@ class KnowledgeServer(SerializableSimpleEntity):
     organization = models.ForeignKey(Organization)
     def uri(self, encode_base64 = False):
         # "http://rootks.thekoa.org/"
-        uri = self.scheme + "://" + self.netloc + "/"
+        uri = self.scheme + "://" + self.netloc
         if encode_base64:
             uri = base64.encodestring(uri)
         return uri
     
+    def run_cron(self):
+        '''
+        This method processes notifications received, generate notifications to be sent
+        if events have occurred, ...
+        '''
+        pass
     @staticmethod
     def this_knowledge_server(db_alias = 'ksm'):
         '''
@@ -1007,6 +1021,12 @@ class EntityInstance(SerializableSimpleEntity):
     # if entry_point_instance_id == None filter_text can be "" meaning that you have to take all of the entries without filtering them
     filter_text = models.CharField(max_length=200L, null=True, blank=True)
 
+    # when the entry_point_instance_id is None (hence the structure is a view) I still might want to refer to a version for the data
+    # that will be in my view; there might be data belongin to different versions matching the criteria in the filter text; to prevent
+    # this I specify an EntityInstance (that has its own version) so that I will put in the view only those belonging to that version
+    filter_entity_instance = models.ForeignKey('self', null=True, blank=True)
+    # if filter_entity_instance is None then the view will filter on the materialized DB
+
     #following attributes used to be in a separate class VersionableEntityInstance
     '''
     an Instance belongs to a set of instances which are basically the same but with a different version
@@ -1022,7 +1042,7 @@ class EntityInstance(SerializableSimpleEntity):
     version_description = models.CharField(max_length=2000L, default = "")
     version_date = models.DateTimeField(auto_now_add=True)
     '''
-    Assert: At most one instance with the same root_version_id has version_released = True
+    Assert: If self.entity_structure.multiple_releases==False: at most one instance with the same root_version_id has version_released = True
     '''
     version_released = models.BooleanField(default=False)
     

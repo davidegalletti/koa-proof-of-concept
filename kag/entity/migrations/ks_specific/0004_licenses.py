@@ -129,7 +129,7 @@ def forwards_func(apps, schema_editor):
     '''
     ccby40.save(using='default')
     ei = EntityInstance(owner_knowledge_server=test_license_org_ks,root_id=ei_ccby10.id,entity_structure=esLicense, entry_point_instance_id=ccby40.id, version_major=4,version_minor=0,version_patch=0,version_description="",version_released=True)
-    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    ei.save(using='default')
     ei.set_released() #here materialization happens
 
     #Open Data Commons Attribution License 

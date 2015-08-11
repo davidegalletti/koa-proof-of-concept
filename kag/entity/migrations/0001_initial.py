@@ -256,6 +256,11 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(related_name='versions', blank=True, to='entity.EntityInstance', null=True),
         ),
         migrations.AddField(
+            model_name='entityinstance',
+            name='filter_entity_instance',
+            field=models.ForeignKey(blank=True, to='entity.EntityInstance', null=True),
+        ),
+        migrations.AddField(
             model_name='entitystructure',
             name='entry_point',
             field=models.ForeignKey(to='entity.EntityStructureNode'),

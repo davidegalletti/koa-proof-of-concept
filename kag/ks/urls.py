@@ -13,8 +13,11 @@ urlpatterns = patterns('',
     url(r'^ks_explorer/$', views.ks_explorer, name='ks_explorer'),
     url(r'^browse_entity_instance/(?P<ks_url>[\w|=|%|.]+)/(?P<base64URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.browse_entity_instance, name='browse_entity_instance'),
     url(r'^disclaimer/$', views.disclaimer, name="disclaimer"),
+    url(r'^subscriptions/$', views.subscriptions, name="subscriptions"),
+    url(r'^this_ks_subscribes_to/(?P<base64_URIInstance>[\w|=|%|.]+)/$', views.this_ks_subscribes_to, name='this_ks_subscribes_to'),
     
                        ###################   API   ####################
+    url(r'^api/root_uri/(?P<base64_URIInstance>[\w|=|%|.]+)/$', views.api_root_uri, name='api_root_uri'),
     #33:
     url(r'^api/simple_entity_definition/(?P<base64_SimpleEntity_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_simple_entity_definition, name='api_simple_entity_definition'), 
     #36:
@@ -30,9 +33,11 @@ urlpatterns = patterns('',
     #110
     url(r'^api/export_instance/(?P<base64_EntityInstance_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_export_instance, name='api_export_instance'),
     #35 
-    url(r'^api/subscribe/(?P<base64_URIInstance>[\w|=|%|.]+)/(?P<base64_URL>[\w|=|%|.]+)/$', views.api_subscribe, name='api_subscribe'),
+    url(r'^api/subscribe/(?P<base64_URIInstance>[\w|=|%|.]+)/(?P<base64_remote_URL>[\w|=|%|.]+)/$', views.api_subscribe, name='api_subscribe'),
+    #123
+    url(r'^api/unsubscribe/(?P<base64_URIInstance>[\w|=|%|.]+)/(?P<base64_URL>[\w|=|%|.]+)/$', views.api_unsubscribe, name='api_unsubscribe'),
     #37 
-    url(r'^api/notify/(?P<base64_URIInstance>[\w|=|%|.]+)/$', views.api_notify, name='api_notify'),
+    url(r'^api/notify/$', views.api_notify, name='api_notify'),
                        ###################   API ^ ####################
     
 )
