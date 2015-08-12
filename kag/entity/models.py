@@ -5,12 +5,17 @@ from random import randrange, uniform
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.urlresolvers import reverse
 from django.db import models, transaction
 from django.db.models import Max, Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from userauthorization.models import KUser
+
+import urllib
+import urllib2
+
 import kag.utils as utils
 
 from xml.dom import minidom
@@ -420,7 +425,8 @@ class SerializableSimpleEntity(models.Model):
                         new_child_instance = child_instance.materialize(en_child_node, processed_instances)
                         setattr(new_instance, en_child_node.attribute, new_child_instance) #the parameter "parent" shouldn't be necessary in this case as this is a ForeignKey
                 except Exception as ex:
-                    print("SerializableSimpleEntity.materialize: " + self.__class__.__name__ + " " + str(self.pk) + " attribute \"" + en_child_node.attribute + "\" " + ex.message)
+#                     print("SerializableSimpleEntity.materialize: " + self.__class__.__name__ + " " + str(self.pk) + " attribute \"" + en_child_node.attribute + "\" " + ex.message)
+                    pass
         for key in self._meta.fields:
             if key.__class__.__name__ != "ForeignKey" and self._meta.pk != key:
                 setattr(new_instance, key.name, eval("self." + key.name))
@@ -855,7 +861,62 @@ class KnowledgeServer(SerializableSimpleEntity):
         This method processes notifications received, generate notifications to be sent
         if events have occurred, ...
         '''
-        pass
+        self.process_events()
+        self.send_notifications()
+        self.process_received_notifications()
+        
+    def process_events(self):
+        '''
+        Events are transformed in notifications to be sent
+        "New version" is the only event so far
+        '''
+        events = Event.objects.filter(processed=False, type="New version")
+        for event in events:
+            subs = SubscriptionToThis.objects.filter(root_URIInstance = event.entity_instance.root.URIInstance)
+            try:
+                with transaction.atomic():
+                    for sub in subs:
+                        n = Notification()
+                        n.event = event
+                        n.remote_url = sub.remote_url
+                        n.save()
+                    event.processed = True
+                    event.save()
+            except Exception as e:
+                print (str(e))
+
+    def send_notifications(self):
+        '''
+        '''
+        notifications = Notification.objects.filter(sent=False)
+        for notification in notifications:
+            values = { 'root_URIInstance' : notification.event.entity_instance.URIInstance,
+                       'URL' : reverse('api_export_instance', args=(base64.encodestring(notification.event.URIInstance),"JSON")),
+                       'type' : notification.event.type,
+                       'timestamp' : notification.event.timestamp, }
+            data = urllib.urlencode(values)
+            req = urllib2.Request(notification.remote_url, data)
+            response = urllib2.urlopen(req)
+            ar = ApiReponse()
+            ar.parse(response.read())
+            if ar.status == "success":
+                notification.sent = True
+                notification.save()
+            else:
+                print("send_notifications " + notification.remote_url + " responded: " + ar.message)
+    
+    def process_received_notifications(self):
+        '''
+        '''
+        notifications = NotificationReceived.objects.filter(processed=False)
+        for notification in notifications:
+            response = urllib2.urlopen(NotificationReceived.URI_to_updates)
+            json_stream = response.read()
+            #TODO:  json o xml?
+            notification.processed = True
+            notification.save()
+        
+        
     @staticmethod
     def this_knowledge_server(db_alias = 'ksm'):
         '''
@@ -1242,10 +1303,15 @@ class EntityInstance(SerializableSimpleEntity):
                     if currently_released.pk != self.pk:
                         materialized_previously_released = EntityInstance.objects.using('ksm').get(URIInstance=previously_released.URIInstance)
                         materialized_previously_released.delete_entire_dataset()
-               
+                
+                # I create the event for notifications
+                e = Event()
+                e.entity_instance = self
+                e.type = "New version"
+                e.save()
                 #end of transaction
-        except Exception as e:
-            print (str(e))
+        except Exception as ex:
+            print (str(ex))
     
     def delete_entire_dataset(self):
         '''
@@ -1279,3 +1345,76 @@ class UploadedFile(models.Model):
 #     serialization_format = (        'XML', 'JSON'    ) #tuple
 #     serialization_format = [        'XML', 'JSON'    ] #list
 
+
+class Event(SerializableSimpleEntity):
+    '''
+    Something that has happened to a specific instance and you want to get notified about; 
+    so you can subscribe to a type of event for a specific data set / EntityInstance
+    '''
+    # The EntityInstance
+    entity_instance = models.ForeignKey(EntityInstance)
+    # the event type
+    type = models.CharField(max_length=50, default="New version")
+    # when it was fired
+    timestamp = models.DateTimeField(auto_now_add=True)
+    # if all notifications have been prepared e.g. relevant Notification instances are saved
+    processed = models.BooleanField(default=False)
+
+class SubscriptionToThis(SerializableSimpleEntity):
+    '''
+    The subscriptions other systems do to my data
+    '''
+    root_URIInstance = models.CharField(max_length=2000L)
+    # where to send the notification; remote_url, in the case of a KS, will be something like http://rootks.thekoa.org/notify
+    # the actual notification will have the URIInstance of the EntityInstance and the URIInstance of the EventType
+    remote_url = models.CharField(max_length=200L)
+    # I send a first notification that can be used to get the data the first time
+    first_notification_sent = models.BooleanField(default=False)
+
+class Notification(SerializableSimpleEntity):
+    '''
+    When an event happens for an instance, for each corresponding subscription
+    I create a  Notification; cron will send it and change its status to sent
+    '''
+    event = models.ForeignKey(Event)
+    sent = models.BooleanField(default=False)
+    remote_url = models.CharField(max_length=200L)
+
+
+
+
+class SubscriptionToOther(SerializableSimpleEntity):
+    '''
+    The subscriptions I make to other systems' data
+    '''
+    # The URIInstance I am subscribing to 
+    URI = models.CharField(max_length=200L)
+    root_URIInstance = models.CharField(max_length=200L)
+    
+
+class NotificationReceived(SerializableSimpleEntity):
+    '''
+    When I receive a notification it is stored here and processed asynchronously in cron 
+    '''
+    # URI to fetch the new data
+    URI_to_updates = models.CharField(max_length=200L)
+    processed = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+class ApiReponse():
+    '''
+    
+    '''
+    def __init__(self, status = "", message = ""):
+        self.status = status
+        self.message = message
+        
+    def json(self):
+        ret_str = '{ "status" : "' + self.status + '", "message" : "' + self.message + '"}'
+        return ret_str
+    
+    def parse(self, json_response):
+        decoded = json.loads(json_response)
+        self.status = decoded['status']
+        self.message = decoded['message']
+        

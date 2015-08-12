@@ -15,6 +15,7 @@ urlpatterns = patterns('',
     url(r'^disclaimer/$', views.disclaimer, name="disclaimer"),
     url(r'^subscriptions/$', views.subscriptions, name="subscriptions"),
     url(r'^this_ks_subscribes_to/(?P<base64_URIInstance>[\w|=|%|.]+)/$', views.this_ks_subscribes_to, name='this_ks_subscribes_to'),
+    url(r'^this_ks_unsubscribes_to/(?P<base64_URIInstance>[\w|=|%|.]+)/$', views.this_ks_unsubscribes_to, name='this_ks_unsubscribes_to'),
     
                        ###################   API   ####################
     url(r'^api/root_uri/(?P<base64_URIInstance>[\w|=|%|.]+)/$', views.api_root_uri, name='api_root_uri'),

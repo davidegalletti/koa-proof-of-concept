@@ -15,7 +15,7 @@ from django.shortcuts import render, get_object_or_404, render_to_response
 from django.template import RequestContext
 
 from entity.models import SimpleEntity, EntityStructure, EntityInstance, SerializableSimpleEntity, KnowledgeServer
-from ks.models import SubscriptionToOther, SubscriptionToThis, ApiReponse
+from entity.models import SubscriptionToOther, SubscriptionToThis, ApiReponse, NotificationReceived
 import kag.utils as utils
 import forms as myforms 
 
@@ -67,7 +67,6 @@ def api_entity_instance(request, base64_EntityInstance_URIInstance, format):
         xmldoc = minidom.parseString(exported_xml)
         exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
         return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
-
 
 def api_catch_all(request, uri_instance):
     '''
@@ -139,7 +138,6 @@ def api_entity_structures(request, format):
     e = EntityStructure.objects.get(pk=ei.entry_point_instance_id)
     
     return api_entity_instances(request, base64.encodestring(e.URIInstance), format)
-
 
 def api_entity_instance_info(request, base64_EntityInstance_URIInstance, format):
     '''
@@ -268,7 +266,6 @@ def ks_explorer(request):
     cont = RequestContext(request, {'entities':entities, 'organization': organization, 'external_ks': external_ks, 'ks_url':base64.encodestring(ks_url).replace('\n','')})
     return render_to_response('ks/ks_explorer_entities.html', context_instance=cont)
 
-
 def ks_explorer_form(request):
     form = myforms.ExploreOtherKSForm()
 
@@ -315,6 +312,14 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
     if format == 'BROWSE':
         # parse
         decoded = json.loads(entities)
+        # I prepare a list of URIInstance of root so that I can check which I have subscribed to
+        root_URIInstances = []
+        for ei in decoded['Export']['EntityInstances']:
+            root_URIInstances.append(ei['root']['URIInstance'])
+        subscribed = SubscriptionToOther.objects.filter(root_URIInstance__in=root_URIInstances)
+        subscribed_root_URIInstances = []
+        for s in subscribed:
+            subscribed_root_URIInstances.append(s.root_URI)
         entities = []
         for ei in decoded['Export']['EntityInstances']:
             entity = {}
@@ -325,6 +330,8 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
                 entity['actual_instance_name'] = ei['description']
             entity['base64URIInstance'] = base64.encodestring(ei['URIInstance']).replace('\n','')
             entity['URIInstance'] = ei['URIInstance']
+            if ei['root']['URIInstance'] in subscribed_root_URIInstances:
+                entity['subscribed'] = True
             entities.append(entity)
         cont = RequestContext(request, {'entities':entities, 'organization': organization, 'this_ks': this_ks, 'external_ks': external_ks, 'es_info_json': es_info_json})
         return render_to_response('ks/browse_entity_instance.html', context_instance=cont)
@@ -401,6 +408,11 @@ def api_root_uri(request, base64_URIInstance):
     except:
         return HttpResponse('{ "URI" : "" }')
 
+def this_ks_unsubscribes_to(request, base64_URIInstance):
+    '''
+    '''
+    pass
+
 def this_ks_subscribes_to(request, base64_URIInstance):
     '''
     This ks is subscribing to a data set in another ks
@@ -418,13 +430,13 @@ def this_ks_subscribes_to(request, base64_URIInstance):
             response = urllib2.urlopen(other_ks_uri + local_url)
             root_URIInstance_json = json.loads(response.read())
             root_URIInstance = root_URIInstance_json['URI']
-            others = SubscriptionToOther.objects.filter(root_URI=root_URIInstance)
+            others = SubscriptionToOther.objects.filter(root_URIInstance=root_URIInstance)
             if len(others) > 0:
                 return render(request, 'entity/export.json', {'json': ApiReponse("failure", "Already subscribed").json()}, content_type="application/json")
             # save locally
             sto = SubscriptionToOther()
             sto.URI = URIInstance
-            sto.root_URI = root_URIInstance
+            sto.root_URIInstance = root_URIInstance
             sto.save()
             # invoke remote API to subscribe
             this_ks = KnowledgeServer.this_knowledge_server()
@@ -445,13 +457,13 @@ def api_subscribe(request, base64_URIInstance, base64_remote_url):
     # check the client KS has already subscribed
     URIInstance = base64.decodestring(base64_URIInstance)
     ei = EntityInstance.objects.get(URIInstance=URIInstance)
-    root_instance_uri = ei.root.URIInstance
+    root_URIInstance = ei.root.URIInstance
     remote_url = base64.decodestring(base64_remote_url)
-    existing_subscriptions = SubscriptionToThis.objects.filter(root_instance_uri=root_instance_uri, remote_url=remote_url)
+    existing_subscriptions = SubscriptionToThis.objects.filter(root_URIInstance=root_URIInstance, remote_url=remote_url)
     if len(existing_subscriptions) > 0:
         return render(request, 'entity/export.json', {'json': ApiReponse("failure", "Already subscribed").json()}, content_type="application/json")
     stt = SubscriptionToThis()
-    stt.root_instance_uri=root_instance_uri
+    stt.root_URIInstance=root_URIInstance
     stt.remote_url=remote_url
     stt.save()
     return render(request, 'entity/export.json', {'json': ApiReponse("success", "Subscribed sucessfully").json()}, content_type="application/json")
@@ -472,10 +484,22 @@ def api_notify(request):
         event_type: the URInstance of the EventType
         extra_info_json: a JSON structure with info specific to an EventType (optional)
     '''
-    URIInstance = request.POST.get("URIInstance", "")
-    event_type = request.POST.get("event_type", "")
-    extra_info_json = request.POST.get("extra_info_json", "")
-    
+    root_URIInstance = request.POST.get("root_URIInstance", "")
+    URL = request.POST.get("URL", "")
+    type = request.POST.get("event_type", "")
+    timestamp = request.POST.get("timestamp", "")
+    # Did I subscribe to this?
+    sto = SubscriptionToOther.objects.filter(root_URIInstance=root_URIInstance)
+    ar = ApiReponse()
+    if len(sto) > 0:
+        nr = NotificationReceived()
+        nr.URI_to_updates = URL
+        ar.status = "success"
+    else:
+        ar.status = "failure"
+        ar.message = "Not subscribed to this"
+    return render(request, 'entity/export.json', {'json': ar.json()}, content_type="application/json")
+        
 def cron(request):
     '''
         to run tasks that have to be executed periodically on this ks; e.g. 

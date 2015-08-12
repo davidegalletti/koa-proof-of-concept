@@ -220,6 +220,81 @@ class Migration(migrations.Migration):
                 'abstract': False,
             },
         ),
+        migrations.CreateModel(
+            name='Event',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('URIInstance', models.CharField(max_length=2000L)),
+                ('URI_imported_instance', models.CharField(max_length=2000L)),
+                ('URI_previous_version', models.CharField(max_length=2000L, null=True, blank=True)),
+                ('type', models.CharField(default=b'New version', max_length=50)),
+                ('timestamp', models.DateTimeField(auto_now_add=True)),
+                ('processed', models.BooleanField(default=False)),
+                ('entity_instance', models.ForeignKey(to='entity.EntityInstance')),
+            ],
+            options={
+                'abstract': False,
+            },
+        ),
+        migrations.CreateModel(
+            name='Notification',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('URIInstance', models.CharField(max_length=2000L)),
+                ('URI_imported_instance', models.CharField(max_length=2000L)),
+                ('URI_previous_version', models.CharField(max_length=2000L, null=True, blank=True)),
+                ('sent', models.BooleanField(default=False)),
+                ('remote_url', models.CharField(max_length=200L)),
+                ('event', models.ForeignKey(to='entity.Event')),
+            ],
+            options={
+                'abstract': False,
+            },
+        ),
+        migrations.CreateModel(
+            name='NotificationReceived',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('URIInstance', models.CharField(max_length=2000L)),
+                ('URI_imported_instance', models.CharField(max_length=2000L)),
+                ('URI_previous_version', models.CharField(max_length=2000L, null=True, blank=True)),
+                ('URI_to_updates', models.CharField(max_length=200L)),
+                ('processed', models.BooleanField(default=False)),
+                ('timestamp', models.DateTimeField(auto_now_add=True)),
+            ],
+            options={
+                'abstract': False,
+            },
+        ),
+        migrations.CreateModel(
+            name='SubscriptionToOther',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('URIInstance', models.CharField(max_length=2000L)),
+                ('URI_imported_instance', models.CharField(max_length=2000L)),
+                ('URI_previous_version', models.CharField(max_length=2000L, null=True, blank=True)),
+                ('URI', models.CharField(max_length=200L)),
+                ('root_URIInstance', models.CharField(max_length=200L)),
+            ],
+            options={
+                'abstract': False,
+            },
+        ),
+        migrations.CreateModel(
+            name='SubscriptionToThis',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('URIInstance', models.CharField(max_length=2000L)),
+                ('URI_imported_instance', models.CharField(max_length=2000L)),
+                ('URI_previous_version', models.CharField(max_length=2000L, null=True, blank=True)),
+                ('root_URIInstance', models.CharField(max_length=2000L)),
+                ('remote_url', models.CharField(max_length=200L)),
+                ('first_notification_sent', models.BooleanField(default=False)),
+            ],
+            options={
+                'abstract': False,
+            },
+        ),
         migrations.AddField(
             model_name='workflowmethod',
             name='final_status',
