@@ -17,7 +17,6 @@ from xml.dom import minidom
 from email.encoders import encode_base64
 import base64
 from django.conf.urls import url
-from colorama.ansi import Fore
 
 class CustomModelManager(models.Manager):
     '''
