@@ -21,7 +21,7 @@ def forwards_func(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('entity', '0003_auto_20150617_1440'),
+        ('entity', '0004_common_to_other_ks'),
     ]
 
     operations = [

@@ -28,27 +28,8 @@ def forwards_func(apps, schema_editor):
     test_license_org_ks.URIInstance = ""
     test_license_org_ks.save(using='default')
     
-    seLicense=SimpleEntity();seLicense.name="License";seLicense.module="license";seLicense.save(using='default')
-    m_seLicense=seLicense
-    id_on_default_db = seLicense.id
-    m_seLicense.id=None
-    m_seLicense.save(using='ksm')
-    # The following line is needed to make sure that seLicense._state.db is 'default'; 
-    # before the following line it would be 'ksm'
-    seLicense = SimpleEntity.objects.using('default').get(pk=id_on_default_db)
-    
-    en1=EntityStructureNode();en1.simple_entity=seLicense;en1.save(using='default')
-    esLicense=EntityStructure();esLicense.multiple_releases=True;esLicense.is_shallow = True;
-    esLicense.entry_point=en1;esLicense.name="License";esLicense.description="License information";esLicense.namespace="license";
-    esLicense.save(using='default')
-    m_es = EntityStructure.objects.using('ksm').get(name=EntityStructure.entity_structure_entity_structure_name)
-    es = EntityStructure.objects.using('default').get(URIInstance=m_es.URIInstance)
-    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=es, entry_point_instance_id=esLicense.id, version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
-    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
-    ei.set_released() #here materialization happens
-    
-    
-    seLicense.entity_structure = esLicense; seLicense.save(using='default')
+    # temporarily created in 0004
+    esLicense=EntityStructure.objects.get(name="License") 
     
     ######## BEGIN LICENSES DATA
     
@@ -162,9 +143,11 @@ def forwards_func(apps, schema_editor):
     ccbysa40.legalcode = '''
     '''
     ccbysa40.save(using='default')
-    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=ccbysa40.id, version_major=4,version_minor=0,version_patch=0,version_description="",version_released=True)
+    # note that version_released=False
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=ccbysa40.id, version_major=4,version_minor=0,version_patch=0,version_description="",version_released=False)
     ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
-    ei.set_released() #here materialization happens
+    # I do not set it as released; it will be done to demonstrate the notification and update process
+    # ei.set_released() #here materialization happens
 
     #Open Data Commons Open Database License 
     odbl = License()
@@ -184,17 +167,8 @@ def forwards_func(apps, schema_editor):
 
     ######## END LICENSES DATA
 
+    esLicenseList = EntityStructure.objects.get(name="List of licenses")
     
-    # EntityStructure di tipo view per la lista di licenze;  
-    en1=EntityStructureNode();en1.simple_entity=seLicense;en1.save(using='default')
-    esLicenseList=EntityStructure();esLicenseList.is_a_view = True;
-    esLicenseList.entry_point=en1;esLicenseList.name="List of licenses";esLicenseList.description="List of all released licenses";esLicenseList.namespace="license";
-    esLicenseList.save(using='default')
-    # EntityInstance of the above EntityStructure
-    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=es, entry_point_instance_id=esLicenseList.id, version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
-    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
-    ei.set_released() #here materialization happens
-
     # 2 EntityInstance with the above EntityStructure
     # opendefinition.org conformant
     ei = EntityInstance(owner_knowledge_server=test_license_org_ks,filter_text="conformant_for_opendefinition=True",entity_structure=esLicenseList,description="All opendefinition.org conformant licenses.")
@@ -206,11 +180,12 @@ def forwards_func(apps, schema_editor):
     ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
     # let's materialize the ei that is a view so it doesn't need to be set to released
     ei.materialize(ei.shallow_entity_structure().entry_point, processed_instances = [])
+    
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('entity', '0003_auto_20150617_1440'),
+        ('entity', '0004_common_to_other_ks'),
     ]
 
     operations = [

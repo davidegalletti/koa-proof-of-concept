@@ -5,11 +5,11 @@
     	<h3>Browsing an external Knowledge Server: </h3>
     	<p>Name: <a href="{{ external_ks.scheme }}://{{ external_ks.netloc }}/" target="_blank">{{ external_ks.name }}</a><br>
     	Organization: <a href="{{ organization.website }}" target="_blank">{{ organization.name }}</a></p>
-        <h4>It contains instances of the following data structures (click to list the instances): </h4>
+        <h4>It contains data sets of the following types. Follow the link to list them: </h4>
         <ul>
         {% for entity in entities %}
             <li>
-                <a href="{% url 'browse_entity_instance' ks_url entity.URIInstance "browse" %}">{{ entity.actual_instance_name }}</a> ( <a href="{% url 'browse_entity_instance' ks_url entity.URIInstance "xml" %}">XML</a> | <a href="{% url 'browse_entity_instance' ks_url entity.URIInstance "json" %}">JSON</a> )
+                <a href="{% url 'browse_entity_instance' ks_url entity.URIInstance "browse" %}">{{ entity.actual_instance_name }}</a> ( <a href="{% url 'browse_entity_instance' ks_url entity.URIInstance "xml" %}">xml</a> | <a href="{% url 'browse_entity_instance' ks_url entity.URIInstance "json" %}">json</a> )
             </li>
         {% endfor %}
         </ul>

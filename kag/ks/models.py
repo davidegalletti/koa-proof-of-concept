@@ -75,5 +75,5 @@ class ApiReponse():
         self.message = message
         
     def json(self):
-        ret_str = '{ "status" : "' + self.status + ', "message" : ' + self.message + '}'
+        ret_str = '{ "status" : "' + self.status + '", "message" : "' + self.message + '"}'
         return ret_str

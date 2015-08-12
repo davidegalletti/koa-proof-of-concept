@@ -91,7 +91,7 @@ class SerializableSimpleEntity(models.Model):
     def generate_URIInstance(self):
         '''
         *** method that works on the same database of self ***
-        This method is quite forgiving; there is no SimpleEntity? Then I use the class name
+        This method is quite forgiving; there is no SimpleEntity? Then I use the class name and id_field="pk"
         there is no EntityStructure? Then I use the app name
         '''
         try:
@@ -104,13 +104,15 @@ class SerializableSimpleEntity(models.Model):
             try:
                 se = self.get_simple_entity(db_alias=db_alias)
                 name = se.name
+                id_field = se.id_field
                 if se.entity_structure != None:
                     namespace = se.entity_structure.namespace
             except:
                 name = self.__class__.__name__
-            return this_ks.uri() + "/" + namespace + "/" + name + "/" + str(getattr(self, se.id_field))
+                id_field = "pk"
+            return this_ks.uri() + "/" + namespace + "/" + name + "/" + str(getattr(self, id_field))
         except Exception as es:
-            print ("Error in 'generate_URIInstance' " + self.__class__.__name__ + "." + str(self.pk) + ":" + es.message)
+            print ("Exception 'generate_URIInstance' " + self.__class__.__name__ + "." + str(self.pk) + ":" + es.message)
             return ""
     
     def get_simple_entity(self, class_name = "", db_alias = 'ksm'):
