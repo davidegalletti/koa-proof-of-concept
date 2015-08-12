@@ -181,7 +181,10 @@ def api_entity_instance_info(request, base64_EntityInstance_URIInstance, format)
         exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstance" : ' + entity_instance.serialize_with_simple_entity(format = format, force_external_reference=True) + ', "Versions" : [' + all_versions_serialized + '] } }'
         return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
     if format == 'HTML' or format == 'BROWSE':
-        instance = entity_instance.get_instance()
+        if entity_instance.entity_structure.is_a_view:
+            instances = entity_instance.get_instances()
+        else:
+            instances = [].append(entity_instance.get_instance())
         all_versions_with_instances = []
         for v in all_versions:
             if v.URIInstance != entity_instance.URIInstance:
@@ -189,7 +192,7 @@ def api_entity_instance_info(request, base64_EntityInstance_URIInstance, format)
                 version_with_instance['entity_instance'] = v
                 version_with_instance['simple_entity'] = v.get_instance()
                 all_versions_with_instances.append(version_with_instance)
-        cont = RequestContext(request, {'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'entity_instance': entity_instance, 'all_versions_with_instances': all_versions_with_instances, 'ks': entity_instance.owner_knowledge_server, 'instance': instance})
+        cont = RequestContext(request, {'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'entity_instance': entity_instance, 'all_versions_with_instances': all_versions_with_instances, 'ks': entity_instance.owner_knowledge_server, 'instances': instances})
         return render_to_response('ks/api_entity_instance_info.html', context_instance=cont)
     
 def api_entity_instances(request, base64_EntityStructure_URIInstance, format):
@@ -315,8 +318,11 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
         entities = []
         for ei in decoded['Export']['EntityInstances']:
             entity = {}
-            actual_instance_class = ei['ActualInstance'].keys()[0]
-            entity['actual_instance_name'] = ei['ActualInstance'][actual_instance_class]['name']
+            if 'ActualInstance' in ei.keys():
+                actual_instance_class = ei['ActualInstance'].keys()[0]
+                entity['actual_instance_name'] = ei['ActualInstance'][actual_instance_class]['name']
+            else: #is a view
+                entity['actual_instance_name'] = ei['description']
             entity['base64URIInstance'] = base64.encodestring(ei['URIInstance']).replace('\n','')
             entity['URIInstance'] = ei['URIInstance']
             entities.append(entity)

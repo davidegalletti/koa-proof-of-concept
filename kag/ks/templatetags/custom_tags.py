@@ -15,12 +15,14 @@ def ks_info(ks, *args, **kwargs):
     return ret_html
 
 @register.simple_tag
-def version_instance_info(entity_instance, instance, *args, **kwargs):
+def version_instance_info(entity_instance, instances, *args, **kwargs):
     base64_EntityInstance_URIInstance = base64.encodestring(entity_instance.URIInstance).rstrip('\n')
-    ret_string =  '<p>"' + instance.name + '" (<a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"html")) + '">browse</a> the data or'
-    ret_string += ' get it in <a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"XML")) + '">XML</a> or '
-    ret_string += '<a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"JSON")) + '">JSON</a>)<br>'
-    ret_string += 'Version ' + str(entity_instance.version_major) + '.' + str(entity_instance.version_minor) + '.' + str(entity_instance.version_patch) + ' - ' + str(entity_instance.version_date) + '</p>'
+    ret_string = ''
+    for instance in instances:
+        ret_string +=  '<p>"' + instance.name + '" (<a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"html")) + '">browse</a> the data or'
+        ret_string += ' get it in <a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"XML")) + '">XML</a> or '
+        ret_string += '<a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"JSON")) + '">JSON</a>)<br>'
+        ret_string += 'Version ' + str(entity_instance.version_major) + '.' + str(entity_instance.version_minor) + '.' + str(entity_instance.version_patch) + ' - ' + str(entity_instance.version_date) + '</p>'
     return ret_string
 
 @register.simple_tag
