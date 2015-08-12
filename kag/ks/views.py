@@ -10,7 +10,7 @@ from django.db import transaction
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db.models import F, Min
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, render_to_response
 from django.template import RequestContext
 
@@ -388,9 +388,9 @@ def api_root_uri(request, base64_URIInstance):
     try:
         URIInstance = base64.decodestring(base64_URIInstance)
         ei = EntityInstance.objects.get(URIInstance=URIInstance)
-        return '{ "URI" : "' + ei.root.URIInstance + '" }'
+        return HttpResponse('{ "URI" : "' + ei.root.URIInstance + '" }')
     except:
-        return '{ "URI" : "" }'
+        return HttpResponse('{ "URI" : "" }')
 
 def this_ks_subscribes_to(request, base64_URIInstance):
     '''
