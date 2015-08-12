@@ -17,6 +17,7 @@ from xml.dom import minidom
 from email.encoders import encode_base64
 import base64
 from django.conf.urls import url
+from colorama.ansi import Fore
 
 class CustomModelManager(models.Manager):
     '''
@@ -382,15 +383,7 @@ class SerializableSimpleEntity(models.Model):
         '''
 
         if etn.external_reference:
-            return self
-            child_instance = eval("self." + etn.attribute)
-            # e.g. EntityInstance.root is a self relationship often set to self; I am materializing self
-            # so I don't have it; I return self; I could probably do the same also in the other case
-            # because what actually counts for Django is the pk
-            if self == child_instance:
-                return self
-            # if it is an external reference I do not have to materialize it
-            # I expect it to be already materialized so I try to return that instance
+
             try:
                 return self.__class__.objects.using('ksm').get(URIInstance=self.URIInstance)
             except Exception as ex:
@@ -407,15 +400,26 @@ class SerializableSimpleEntity(models.Model):
             field_name = SerializableSimpleEntity.get_parent_field_name(parent, etn.attribute)
             if field_name:
                 setattr(new_instance, field_name, parent)
-                
+          
+        list_of_self_relationships_pointing_to_self = []      
         for en_child_node in etn.child_nodes.all():
             if en_child_node.attribute in self.foreign_key_attributes():
                 #not is_many
                 # if they are nullable I do nothing
                 try:
                     child_instance = getattr(self, en_child_node.attribute)
-                    new_child_instance = child_instance.materialize(en_child_node, processed_instances)
-                    setattr(new_instance, en_child_node.attribute, new_child_instance) #the parameter "parent" shouldn't be necessary in this case as this is a ForeignKey
+                    
+                    # e.g. EntityInstance.root is a self relationship often set to self; I am materializing self
+                    # so I don't have it; I return self; I could probably do the same also in the other case
+                    # because what actually counts for Django is the pk
+                    if self == child_instance:
+                        # In Django ORM it seems not possible to have not nullable self relationships pointing to self
+                        # I make not nullable in the model (this becomes a general constraint!); 
+                        # put them in a list and save them after saving new_instance
+                        list_of_self_relationships_pointing_to_self.append(en_child_node.attribute)
+                    else:
+                        new_child_instance = child_instance.materialize(en_child_node, processed_instances)
+                        setattr(new_instance, en_child_node.attribute, new_child_instance) #the parameter "parent" shouldn't be necessary in this case as this is a ForeignKey
                 except Exception as ex:
                     print("SerializableSimpleEntity.materialize: " + self.__class__.__name__ + " " + str(self.pk) + " attribute \"" + en_child_node.attribute + "\" " + ex.message)
         for key in self._meta.fields:
@@ -424,7 +428,11 @@ class SerializableSimpleEntity(models.Model):
         
         # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
         new_instance.save(using='ksm')
-                
+        if len(list_of_self_relationships_pointing_to_self)>0:
+            for attribute in list_of_self_relationships_pointing_to_self:
+                setattr(new_instance, attribute, new_instance)
+            new_instance.save(using='ksm')
+        
         for en_child_node in etn.child_nodes.all():
             if not (en_child_node.attribute in self.foreign_key_attributes()):
                 if en_child_node.is_many:
