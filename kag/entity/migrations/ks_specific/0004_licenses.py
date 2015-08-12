@@ -8,10 +8,11 @@ from license.models import License
 def forwards_func(apps, schema_editor):
     test_license_org = Organization();test_license_org.name="A test Organization hosting license information";test_license_org.website='http://license_org.example.com';test_license_org.description="This is just a test Organization.";
     test_license_org.save(using='default')
+    id_on_default_db = test_license_org.id
     test_license_org.id = None
     test_license_org.save(using='ksm')
     m_test_license_org = test_license_org
-    test_license_org = Organization.objects.get(pk=m_test_license_org.id)
+    test_license_org = Organization.objects.get(pk=id_on_default_db)
     
     root_ks = KnowledgeServer.this_knowledge_server('default')
     root_ks.this_ks = False
@@ -29,11 +30,12 @@ def forwards_func(apps, schema_editor):
     
     seLicense=SimpleEntity();seLicense.name="License";seLicense.module="license";seLicense.save(using='default')
     m_seLicense=seLicense
+    id_on_default_db = seLicense.id
     m_seLicense.id=None
     m_seLicense.save(using='ksm')
     # The following line is needed to make sure that seLicense._state.db is 'default'; 
     # before the following line it would be 'ksm'
-    seLicense = SimpleEntity.objects.using('default').get(pk=seLicense.pk)
+    seLicense = SimpleEntity.objects.using('default').get(pk=id_on_default_db)
     
     en1=EntityStructureNode();en1.simple_entity=seLicense;en1.save(using='default')
     esLicense=EntityStructure();esLicense.multiple_releases=True;esLicense.is_shallow = True;

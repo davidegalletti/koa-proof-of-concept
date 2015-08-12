@@ -409,11 +409,13 @@ class SerializableSimpleEntity(models.Model):
         for en_child_node in etn.child_nodes.all():
             if en_child_node.attribute in self.foreign_key_attributes():
                 #not is_many
-                #TODO: METTERE UN TRY SENZA ECCEZIONE X CAMPI CHE POSSONO ESSERE NULL; LOGGARE IL CASO EXCEPT
-                child_instance = getattr(self, en_child_node.attribute)
-                new_child_instance = child_instance.materialize(en_child_node, processed_instances)
-                setattr(new_instance, en_child_node.attribute, new_child_instance) #the parameter "parent" shouldn't be necessary in this case as this is a ForeignKey
-                
+                # if they are nullable I do nothing
+                try:
+                    child_instance = getattr(self, en_child_node.attribute)
+                    new_child_instance = child_instance.materialize(en_child_node, processed_instances)
+                    setattr(new_instance, en_child_node.attribute, new_child_instance) #the parameter "parent" shouldn't be necessary in this case as this is a ForeignKey
+                except Exception as ex:
+                    print("SerializableSimpleEntity.materialize: " + self.__class__.__name__ + " " + str(self.pk) + " attribute \"" + en_child_node.attribute + "\" " + ex.message)
         for key in self._meta.fields:
             if key.__class__.__name__ != "ForeignKey" and self._meta.pk != key:
                 setattr(new_instance, key.name, eval("self." + key.name))

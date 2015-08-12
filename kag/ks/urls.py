@@ -33,7 +33,7 @@ urlpatterns = patterns('',
     #110
     url(r'^api/export_instance/(?P<base64_EntityInstance_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_export_instance, name='api_export_instance'),
     #35 
-    url(r'^api/subscribe/(?P<base64_URIInstance>[\w|=|%|.]+)/(?P<base64_remote_URL>[\w|=|%|.]+)/$', views.api_subscribe, name='api_subscribe'),
+    url(r'^api/subscribe/(?P<base64_URIInstance>[\w|=|%|.]+)/(?P<base64_remote_url>[\w|=|%|.]+)/$', views.api_subscribe, name='api_subscribe'),
     #123
     url(r'^api/unsubscribe/(?P<base64_URIInstance>[\w|=|%|.]+)/(?P<base64_URL>[\w|=|%|.]+)/$', views.api_unsubscribe, name='api_unsubscribe'),
     #37 
