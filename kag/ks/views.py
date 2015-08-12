@@ -388,9 +388,9 @@ def api_root_uri(request, base64_URIInstance):
     try:
         URIInstance = base64.decodestring(base64_URIInstance)
         ei = EntityInstance.objects.get(URIInstance=URIInstance)
-        return ei.root.URIInstance
+        return '{ "URI" : "' + ei.root.URIInstance + '" }'
     except:
-        return ""
+        return '{ "URI" : "" }'
 
 def this_ks_subscribes_to(request, base64_URIInstance):
     '''
@@ -407,7 +407,8 @@ def this_ks_subscribes_to(request, base64_URIInstance):
             # (with an API to get the root URIInstance and the attribute root_URI of SubscriptionToOther)
             local_url = reverse('api_root_uri', args=(base64_URIInstance,))
             response = urllib2.urlopen(other_ks_uri + local_url)
-            root_URIInstance = response.read()
+            root_URIInstance_json = json.loads(response.read())
+            root_URIInstance = root_URIInstance_json['URI']
             others = SubscriptionToOther.filter(root_URI=root_URIInstance)
             if len(others) > 0:
                 return render(request, 'entity/export.json', {'json': ApiReponse("failure", "Already subscribed").json()}, content_type="application/json")
@@ -434,7 +435,8 @@ def api_subscribe(request, base64_URIInstance, base64_remote_url):
     '''
     # check the client KS has already subscribed
     URIInstance = base64.decodestring(base64_URIInstance)
-    root_instance_uri = api_root_uri(base64_URIInstance)
+    root_instance_uri_json = api_root_uri(base64_URIInstance)
+    root_instance_uri = root_instance_uri_json['URI']
     remote_url = base64.decodestring(base64_remote_url)
     existing_subscriptions = SubscriptionToThis.objects.filter(root_instance_uri=root_instance_uri, remote_url=remote_url)
     if len(existing_subscriptions) > 0:
