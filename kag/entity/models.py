@@ -6,7 +6,7 @@ from random import randrange, uniform
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, transaction
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -1033,7 +1033,7 @@ class EntityInstance(SerializableSimpleEntity):
     filter_text = models.CharField(max_length=200L, null=True, blank=True)
 
     # when the entry_point_instance_id is None (hence the structure is a view) I still might want to refer to a version for the data
-    # that will be in my view; there might be data belongin to different versions matching the criteria in the filter text; to prevent
+    # that will be in my view; there might be data belonging to different versions matching the criteria in the filter text; to prevent
     # this I specify an EntityInstance (that has its own version) so that I will put in the view only those belonging to that version
     filter_entity_instance = models.ForeignKey('self', null=True, blank=True)
     # if filter_entity_instance is None then the view will filter on the materialized DB
@@ -1065,6 +1065,15 @@ class EntityInstance(SerializableSimpleEntity):
         actual_class = utils.load_class(se_simple_entity.module + ".models", se_simple_entity.name)
         return actual_class.objects.using(db_alias).get(pk=self.entry_point_instance_id)
     
+    def get_instances(self, db_alias='default'):
+        '''
+        it returns the list of instances matching the filter criteria
+        '''
+        se_simple_entity = self.entity_structure.entry_point.simple_entity
+        actual_class = utils.load_class(se_simple_entity.module + ".models", se_simple_entity.name)
+        q = eval("Q(" + self.filter_text + ")")
+        return actual_class.objects.using(db_alias).filter(q)
+    
     def serialize_with_simple_entity(self, format = 'XML', force_external_reference=False):
         '''
         parameters:
@@ -1073,9 +1082,9 @@ class EntityInstance(SerializableSimpleEntity):
         serialized_head = ''
         format = format.upper()
         if format == 'XML':
-            serialized_head = "<EntityInstance namespace=\"" + self.entity_structure.namespace + "\" URIInstance=\"" + self.URIInstance + "\" VersionMajor=\"" + str(self.version_major) + "\" VersionMinor=\"" + str(self.version_minor) + "\" VersionPatch=\"" + str(self.version_patch) + "\" VersionReleased=\"" + str(self.version_released) + "\" VersionDescription=\"" + self.version_description + "\">"
+            serialized_head = "<EntityInstance description=\"" + self.description + "\" namespace=\"" + self.entity_structure.namespace + "\" URIInstance=\"" + self.URIInstance + "\" VersionMajor=\"" + str(self.version_major) + "\" VersionMinor=\"" + str(self.version_minor) + "\" VersionPatch=\"" + str(self.version_patch) + "\" VersionReleased=\"" + str(self.version_released) + "\" VersionDescription=\"" + self.version_description + "\">"
         if format == 'JSON':
-            serialized_head = ' { "namespace" : "' + self.entity_structure.namespace + '", "URIInstance" : "' + self.URIInstance + '", "VersionMajor" : "' + str(self.version_major) + '", "VersionMinor" : "' + str(self.version_minor) + '", "VersionPatch" : "' + str(self.version_patch) + '", "VersionReleased" : "' + str(self.version_released) + '", "VersionDescription" : "' + self.version_description + '" '
+            serialized_head = ' { "description" : "' + self.description + '",  "namespace" : "' + self.entity_structure.namespace + '", "URIInstance" : "' + self.URIInstance + '", "VersionMajor" : "' + str(self.version_major) + '", "VersionMinor" : "' + str(self.version_minor) + '", "VersionPatch" : "' + str(self.version_patch) + '", "VersionReleased" : "' + str(self.version_released) + '", "VersionDescription" : "' + self.version_description + '" '
         comma = ""    
         if format == 'JSON':
             comma = ", "
@@ -1092,17 +1101,36 @@ class EntityInstance(SerializableSimpleEntity):
         temp_etn = EntityStructureNode(simple_entity=ei_simple_entity, external_reference=True, is_many=False, attribute = "root")
         serialized_head += comma + self.root.serialize(temp_etn, format = format)
 
-        instance = self.get_instance()
         if force_external_reference:
             self.entity_structure.entry_point.external_reference = True
 
+        if self.entry_point_instance_id:
+            instance = self.get_instance()
+            if format == 'XML':
+                serialized_head += "<ActualInstance>" + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + "</ActualInstance>"
+            if format == 'JSON':
+                serialized_head += ', "ActualInstance" : { ' + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + " } "
+        if self.filter_text:
+            instances = self.get_instances()
+            if format == 'XML':
+                serialized_head += "<ActualInstances>"
+            if format == 'JSON':
+                serialized_head += ', "ActualInstances" : [ '
+            comma = ""
+            for instance in instances:
+                if format == 'XML':
+                    serialized_head += "<ActualInstance>" + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + "</ActualInstance>"
+                if format == 'JSON':
+                    serialized_head += comma + ' { ' + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + " } "
+                    comma = ', '
+            if format == 'XML':
+                serialized_head += "</ActualInstances>"
+            if format == 'JSON':
+                serialized_head += ' ] '
         if format == 'XML':
-            serialized_head += "<ActualInstance>" + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + "</ActualInstance>"
             serialized_tail = "</EntityInstance>"
         if format == 'JSON':
-            serialized_head += ', "ActualInstance" : { ' + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + " } "
             serialized_tail = " }"
-        
         return serialized_head + serialized_tail
 
 

@@ -211,7 +211,10 @@ def api_entity_instances(request, base64_EntityStructure_URIInstance, format):
     e = EntityStructure.retrieve(EntityStructure, URIInstance, False)
     
     # Now I need to get all the released EntityInstance of the EntityStructure passed as a parameter
-    released_entity_instances = EntityInstance.objects.filter(entity_structure = e, version_released=True)
+    if e.is_a_view:
+        released_entity_instances = EntityInstance.objects.filter(entity_structure = e, version_released=False)
+    else:
+        released_entity_instances = EntityInstance.objects.filter(entity_structure = e, version_released=True)
     serialized = ""
     comma = ""
     for ei in released_entity_instances:
@@ -307,7 +310,7 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
     if format == 'JSON':
         return render(request, 'entity/export.json', {'json': entities}, content_type="application/json")
     if format == 'BROWSE':
-        # fare il parse
+        # parse
         decoded = json.loads(entities)
         entities = []
         for ei in decoded['Export']['EntityInstances']:
