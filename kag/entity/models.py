@@ -175,9 +175,9 @@ class SerializableSimpleEntity(models.Model):
                 if value is None:
                     value = ""
                 if format == 'XML':
-                    attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'  
+                    attributes += ' ' + key.name + '="' + str(value) + '"'  
                 if format == 'JSON':
-                    attributes += comma + '"' + key.name + '" : "' + str(getattr(self, key.name)) + '"'
+                    attributes += comma + '"' + key.name + '" : "' + str(value) + '"'
                     comma = ", "
         return attributes
 
