@@ -1229,7 +1229,7 @@ class EntityInstance(SerializableSimpleEntity):
                 serialized_head += "<ActualInstance>" + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + "</ActualInstance>"
             if format == 'JSON':
                 serialized_head += ', "ActualInstance" : { ' + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + " } "
-        if self.filter_text:
+        elif self.filter_text:
             instances = self.get_instances()
             if format == 'XML':
                 serialized_head += "<ActualInstances>"
