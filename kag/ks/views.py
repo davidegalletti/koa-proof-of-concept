@@ -26,6 +26,7 @@ import forms as myforms
 
 def api_simple_entity_definition(request, base64_SimpleEntity_URIInstance, format):
     '''
+        #33
     '''
     format = format.upper()
     URISimpleEntity = base64.decodestring(base64_SimpleEntity_URIInstance)
@@ -46,6 +47,7 @@ def api_simple_entity_definition(request, base64_SimpleEntity_URIInstance, forma
 
 def api_entity_instance(request, base64_EntityInstance_URIInstance, format):
     '''
+        #36
         It returns the EntityInstance with the URIInstance in the parameter 
         
         parameter:
@@ -368,7 +370,7 @@ def api_ks_info(request, format):
 
 def api_export_instance(request, base64_EntityInstance_URIInstance, format):
     '''
-        #110 
+        #110 duplicates #36 = api_entity_instance
         
         Parameters:
         * format { 'XML' | 'JSON' | 'HTML' = 'BROWSE' }
@@ -379,18 +381,20 @@ def api_export_instance(request, base64_EntityInstance_URIInstance, format):
         it returns SimpleEntity.serialize according to the EntityStructure and the format
 
     '''
+    return api_entity_instance(request, base64_EntityInstance_URIInstance, format)
+
     format = format.upper()
     URIInstance = base64.decodestring(base64_EntityInstance_URIInstance)
     entity_instance = EntityInstance.retrieve(EntityInstance, URIInstance, False)
     simple_entity = entity_instance.get_instance()
-
+    entity_instance.ser
     if format == 'XML':
-        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\">" + simple_entity.serialize(etn = entity_instance.entity_structure.entry_point, exported_instances = [], format = format) + "</Export>"
+        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\" EntityStructureURI=\"" + entity_instance.entity_structure.URIInstance + "\">" + simple_entity.serialize(etn = entity_instance.entity_structure.entry_point, exported_instances = [], format = format) + "</Export>"
         xmldoc = minidom.parseString(exported_xml)
         exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
         return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
     if format == 'JSON' or format == 'HTML' or format == 'BROWSE':
-        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", ' + simple_entity.serialize(etn = entity_instance.entity_structure.entry_point, exported_instances = [], format = "JSON") + ' } }'
+        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityStructureURI" : "' + entity_instance.entity_structure.URIInstance + '", ' + simple_entity.serialize(etn = entity_instance.entity_structure.entry_point, exported_instances = [], format = "JSON") + ' } }'
         if format == 'JSON':
             return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
         else:
@@ -487,14 +491,16 @@ def api_notify(request):
         extra_info_json: a JSON structure with info specific to an EventType (optional)
     '''
     root_URIInstance = request.POST.get("root_URIInstance", "")
-    URL = request.POST.get("URL", "")
+    URL_dataset = request.POST.get("URL_dataset", "")
+    URL_structure = request.POST.get("URL_structure", "")
     type = request.POST.get("type", "")
     # Did I subscribe to this?
     sto = SubscriptionToOther.objects.filter(root_URIInstance=root_URIInstance)
     ar = ApiReponse()
     if len(sto) > 0:
         nr = NotificationReceived()
-        nr.URI_to_updates = URL
+        nr.URL_dataset = URL_dataset
+        nr.URL_structure = URL_structure
         nr.save()
         ar.status = "success"
     else:

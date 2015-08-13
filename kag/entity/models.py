@@ -11,6 +11,8 @@ from django.db.models import Max, Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from lxml import etree
+
 from userauthorization.models import KUser
 
 import json
@@ -919,7 +921,8 @@ class KnowledgeServer(SerializableSimpleEntity):
         notifications = Notification.objects.filter(sent=False)
         for notification in notifications:
             values = { 'root_URIInstance' : notification.event.entity_instance.URIInstance,
-                       'URL' : this_ks.uri() + reverse('api_export_instance', args=(base64.encodestring(notification.event.entity_instance.URIInstance).replace('\n',''),"JSON",)),
+                       'URL_dataset' : this_ks.uri() + reverse('api_export_instance', args=(base64.encodestring(notification.event.entity_instance.URIInstance).replace('\n',''),"XML",)),
+                       'URL_structure' : this_ks.uri() + reverse('api_export_instance', args=(base64.encodestring(notification.event.entity_instance.entity_structure.URIInstance).replace('\n',''),"XML",)),
                        'type' : notification.event.type,
                        'timestamp' : notification.event.timestamp, }
             data = urllib.urlencode(values)
@@ -939,8 +942,23 @@ class KnowledgeServer(SerializableSimpleEntity):
         notifications = NotificationReceived.objects.filter(processed=False)
         for notification in notifications:
             try:
-                response = urllib2.urlopen(notification.URI_to_updates)
-                json_stream = response.read()
+                # We assume we have already all SimpleEntity and EntityStructure
+                # TODO: in the future we will retrieve it from notification.URL_structure
+                # now we assume that we find it in dataset_xml_stream like this:
+                # <Export EntityStructureURI="http://rootks.thekoa.org/entity/EntityStructure/2" 
+                
+                response = urllib2.urlopen(notification.URL_dataset)
+                dataset_xml_stream = response.read()
+                
+                # http://stackoverflow.com/questions/3310614/remove-whitespaces-in-xml-string 
+                p = etree.XMLParser(remove_blank_text=True)
+                elem = etree.XML(dataset_xml_stream, parser=p)
+                dataset_xml_stream = etree.tostring(elem)
+                xmldoc = minidom.parseString(dataset_xml_stream)
+                EntityStructureURI = xmldoc.childNodes[0].attributes["EntityStructureURI"].firstChild.data
+                # Will be created dynamically in the future, now we get it locally
+                es = EntityStructure.objects.get(URIInstance = EntityStructureURI)
+                
                 #TODO:  json o xml?
                 notification.processed = True
                 notification.save()
@@ -1431,7 +1449,8 @@ class NotificationReceived(SerializableSimpleEntity):
     When I receive a notification it is stored here and processed asynchronously in cron 
     '''
     # URI to fetch the new data
-    URI_to_updates = models.CharField(max_length=200L)
+    URL_dataset = models.CharField(max_length=200L)
+    URL_structure = models.CharField(max_length=200L)
     processed = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
     

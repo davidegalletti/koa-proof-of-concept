@@ -24,6 +24,9 @@
 	                	{% endif %}
 	                {% endif %}
 	                <a href="{{ external_ks.scheme }}://{{ external_ks.netloc }}{% url 'api_entity_instance_info' entity.base64URIInstance "html" %}">{{ entity.actual_instance_name }}</a>
+	                <a href="{{ external_ks.scheme }}://{{ external_ks.netloc }}{% url 'api_export_instance' entity.base64URIInstance "json" %}">json</a>
+	                <a href="{{ external_ks.scheme }}://{{ external_ks.netloc }}{% url 'api_export_instance' entity.base64URIInstance "xml" %}">xml</a>
+	                
 	            </li>
 	        {% endfor %}
 	        </ul>
