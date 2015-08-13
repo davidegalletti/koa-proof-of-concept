@@ -945,21 +945,19 @@ class KnowledgeServer(SerializableSimpleEntity):
                 # We assume we have already all SimpleEntity and EntityStructure
                 # TODO: in the future we will retrieve it from notification.URL_structure
                 # now we assume that we find it in dataset_xml_stream like this:
-                # <Export EntityStructureURI="http://rootks.thekoa.org/entity/EntityStructure/2" 
+                # <Export  ....><EntityInstance ....><entity_structure URIInstance="http://rootks.thekoa.org/entity/EntityStructure/2"  
+                # http://127.0.0.1:8000/ks/api/export_instance/aHR0cDovL3Jvb3Rrcy50aGVrb2Eub3JnL2VudGl0eS9FbnRpdHlJbnN0YW5jZS8xNg==/xml/
                 
+                # the dataset is retrieved with api #36 api_entity_instance that serializes
+                # the EntityInstance and also the complete actual instance 
+                # from_xml_with_actual_instance will create the EntityInstance and the actual instance
                 response = urllib2.urlopen(notification.URL_dataset)
                 dataset_xml_stream = response.read()
+                ei = EntityInstance()
+                ei.from_xml_with_actual_instance(dataset_xml_stream)
                 
-                # http://stackoverflow.com/questions/3310614/remove-whitespaces-in-xml-string 
-                p = etree.XMLParser(remove_blank_text=True)
-                elem = etree.XML(dataset_xml_stream, parser=p)
-                dataset_xml_stream = etree.tostring(elem)
-                xmldoc = minidom.parseString(dataset_xml_stream)
-                EntityStructureURI = xmldoc.childNodes[0].attributes["EntityStructureURI"].firstChild.data
-                # Will be created dynamically in the future, now we get it locally
-                es = EntityStructure.objects.get(URIInstance = EntityStructureURI)
                 
-                #TODO:  json o xml?
+                
                 notification.processed = True
                 notification.save()
             except Exception as ex:
@@ -1183,17 +1181,20 @@ class EntityInstance(SerializableSimpleEntity):
         q = eval("Q(" + self.filter_text + ")")
         return actual_class.objects.using(db_alias).filter(q)
     
-    def serialize_with_simple_entity(self, format = 'XML', force_external_reference=False):
+    def serialize_with_actual_instance(self, format = 'XML', force_external_reference=False):
         '''
+        EntityInstance should use GenericForeignKey https://docs.djangoproject.com/en/1.8/ref/contrib/contenttypes/
+        instead of entry_point_instance_id; then serialize_with_actual_instance will be done with normal serialize
+
         parameters:
         TODO: force_external_reference if True ...
         '''
         serialized_head = ''
         format = format.upper()
         if format == 'XML':
-            serialized_head = "<EntityInstance description=\"" + self.description + "\" namespace=\"" + self.entity_structure.namespace + "\" URIInstance=\"" + self.URIInstance + "\" VersionMajor=\"" + str(self.version_major) + "\" VersionMinor=\"" + str(self.version_minor) + "\" VersionPatch=\"" + str(self.version_patch) + "\" VersionReleased=\"" + str(self.version_released) + "\" VersionDescription=\"" + self.version_description + "\">"
+            serialized_head = "<EntityInstance " + self.serialized_attributes(format) + " >"
         if format == 'JSON':
-            serialized_head = ' { "description" : "' + self.description + '",  "namespace" : "' + self.entity_structure.namespace + '", "URIInstance" : "' + self.URIInstance + '", "VersionMajor" : "' + str(self.version_major) + '", "VersionMinor" : "' + str(self.version_minor) + '", "VersionPatch" : "' + str(self.version_patch) + '", "VersionReleased" : "' + str(self.version_released) + '", "VersionDescription" : "' + self.version_description + '" '
+            serialized_head = ' { ' + self.serialized_attributes(format)
         comma = ""    
         if format == 'JSON':
             comma = ", "
@@ -1242,9 +1243,46 @@ class EntityInstance(SerializableSimpleEntity):
             serialized_tail = " }"
         return serialized_head + serialized_tail
 
-
-
-    #following methods used to be in a separate class VersionableEntityInstance
+    def from_xml_with_actual_instance(self, dataset_xml_stream):
+        '''
+        EntityInstance should use GenericForeignKey https://docs.djangoproject.com/en/1.8/ref/contrib/contenttypes/
+        instead of entry_point_instance_id; then from_xml_with_actual_instance will be done with normal from_xml
+        '''
+        # http://stackoverflow.com/questions/3310614/remove-whitespaces-in-xml-string 
+        p = etree.XMLParser(remove_blank_text=True)
+        elem = etree.XML(dataset_xml_stream, parser=p)
+        dataset_xml_stream = etree.tostring(elem)
+        xmldoc = minidom.parseString(dataset_xml_stream)
+        
+        entity_instance_xml = xmldoc.childNodes[0].childNodes[0]
+        EntityStructureURI = entity_instance_xml.getElementsByTagName("entity_structure")[0].attributes["URIInstance"].firstChild.data
+        # Will be created dynamically in the future, now we get it locally
+        es = EntityStructure.objects.get(URIInstance = EntityStructureURI)
+        
+        try:
+            with transaction.atomic():
+                # I create the actual instance
+                actual_instance_xml = entity_instance_xml.getElementsByTagName("ActualInstance")[0].childNodes[0]
+                actual_class = utils.load_class(es.entry_point.simple_entity.module + ".models", es.entry_point.simple_entity.name)
+                # already imported ?
+                actual_instance_URIInstance = actual_instance_xml.attributes["URIInstance"]
+                actual_instance_on_db = actual_class.objects.filter(URIInstance=actual_instance_URIInstance)
+                if len(actual_instance_on_db) > 0:
+                    # it is already in this database; I return the corresponding EntityInstance
+                    return EntityInstance.objects.get(entity_structure=es, entry_point_instance_id=actual_instance_on_db.pk)
+                actual_instance = actual_class()
+                actual_instance.from_xml(actual_instance_xml, es.entry_point, always_insert = True)
+                # from_xml saves actual_instance on the database
+                
+                # I create the EntityInstance
+                # In the next call the KnowledgeServer owner of this EntityInstance must exist
+                # So it must be imported while subscribing; it is imported by this very same method
+                # Since it is in the actual instance the next method will find it
+                self.from_xml(entity_instance_xml, self.shallow_entity_structure().entry_point, always_insert = True)
+        except Exception as ex:
+            print (str(ex))
+            raise ex
+        return self
 
     def new_version(self, version_major=None, version_minor=None, version_patch=None, version_description = "", version_date = None):
         '''

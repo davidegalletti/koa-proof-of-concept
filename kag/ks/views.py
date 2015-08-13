@@ -63,10 +63,10 @@ def api_entity_instance(request, base64_EntityInstance_URIInstance, format):
     ei = EntityInstance.retrieve(EntityInstance, URIInstance, False)
 
     if format == 'JSON':
-        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstance" : ' + ei.serialize_with_simple_entity(format = format) + ' } }'
+        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstance" : ' + ei.serialize_with_actual_instance(format = format) + ' } }'
         return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
     if format == 'XML':
-        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\">" + ei.serialize_with_simple_entity(format = format) + "</Export>"
+        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\">" + ei.serialize_with_actual_instance(format = format) + "</Export>"
         xmldoc = minidom.parseString(exported_xml)
         exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
         return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
@@ -152,7 +152,7 @@ def api_entity_instance_info(request, base64_EntityInstance_URIInstance, format)
         
         Implementation:
         it fetches the EntityInstance, then the list of all that share the same root
-        it returns EntityInstance.serialize_with_simple_entity(format) and for each on the above list:
+        it returns EntityInstance.serialize_with_actual_instance(format) and for each on the above list:
             the URIInstance of the ErtityInstance
             the version status {working | released | obsolete}
             the version number (e.g. 0.1.0)
@@ -171,15 +171,15 @@ def api_entity_instance_info(request, base64_EntityInstance_URIInstance, format)
         for v in all_versions:
             if format == 'JSON':
                 all_versions_serialized += comma
-            all_versions_serialized += v.serialize_with_simple_entity(format = format, force_external_reference=True)
+            all_versions_serialized += v.serialize_with_actual_instance(format = format, force_external_reference=True)
             comma = ", "
     if format == 'XML':
-        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\"><EntityInstance>" + entity_instance.serialize_with_simple_entity(format = format, force_external_reference=True) + "</EntityInstance><Versions>" + all_versions_serialized + "</Versions></Export>"
+        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\"><EntityInstance>" + entity_instance.serialize_with_actual_instance(format = format, force_external_reference=True) + "</EntityInstance><Versions>" + all_versions_serialized + "</Versions></Export>"
         xmldoc = minidom.parseString(exported_xml)
         exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
         return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
     if format == 'JSON':
-        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstance" : ' + entity_instance.serialize_with_simple_entity(format = format, force_external_reference=True) + ', "Versions" : [' + all_versions_serialized + '] } }'
+        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstance" : ' + entity_instance.serialize_with_actual_instance(format = format, force_external_reference=True) + ', "Versions" : [' + all_versions_serialized + '] } }'
         return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
     if format == 'HTML' or format == 'BROWSE':
         if entity_instance.entity_structure.is_a_view:
@@ -224,7 +224,7 @@ def api_entity_instances(request, base64_EntityStructure_URIInstance, format):
     for ei in released_entity_instances:
         if format == 'JSON':
             serialized += comma
-        serialized += ei.serialize_with_simple_entity(format = format, force_external_reference=True)
+        serialized += ei.serialize_with_actual_instance(format = format, force_external_reference=True)
         comma = ", "
     if format == 'XML':
         exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\"><EntityInstances>" + serialized + "</EntityInstances></Export>"
@@ -247,8 +247,8 @@ def ks_explorer(request):
         ks_info_json_stream = response.read()
         # parsing json
         ks_info_json = json.loads(ks_info_json_stream)
-        organization = ks_info_json['Export']['Organization']
-        for ks in ks_info_json['Export']['Organization']['knowledgeserver_set']:
+        organization = ks_info_json['Export']['EntityInstance']['ActualInstance']['Organization']
+        for ks in organization['knowledgeserver_set']:
             if ks['this_ks'] == 'True':
                 external_ks = ks
             
@@ -286,8 +286,8 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
     ks_info_json_stream = response.read()
     # parsing json
     ks_info_json = json.loads(ks_info_json_stream)
-    organization = ks_info_json['Export']['Organization']
-    for ks in ks_info_json['Export']['Organization']['knowledgeserver_set']:
+    organization = ks_info_json['Export']['EntityInstance']['ActualInstance']['Organization']
+    for ks in organization['knowledgeserver_set']:
         if ks['this_ks'] == 'True':
             external_ks_json = ks
     external_ks = KnowledgeServer()
@@ -346,7 +346,7 @@ def home(request):
 
 def api_ks_info(request, format):
     '''
-        http://redmine.davide.galletti.name/issues/80
+        #80
 
         parameter:
         * format { 'XML' | 'JSON' }
@@ -358,7 +358,9 @@ def api_ks_info(request, format):
     format = format.upper()
     this_ks = KnowledgeServer.this_knowledge_server()    
     es = EntityStructure.objects.get(name = EntityStructure.organization_entity_structure_name)
-    
+    ei = EntityInstance.objects.get(entity_structure=es, entry_point_instance_id=this_ks.organization.id)
+    base64_EntityInstance_URIInstance = base64.encodestring(ei.URIInstance).replace('\n','')
+    return api_entity_instance(request, base64_EntityInstance_URIInstance, format)
     if format == 'XML':
         exported_xml = "<Export EntityStructureName=\"" + es.name + "\" EntityStructureURI=\"" + es.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + this_ks.organization.serialize(es.entry_point, exported_instances = []) + "</Export>"
         xmldoc = minidom.parseString(exported_xml)
@@ -427,6 +429,14 @@ def this_ks_subscribes_to(request, base64_URIInstance):
     '''
     URIInstance = base64.decodestring(base64_URIInstance)
     other_ks_uri = URIInstance[:str.find(URIInstance, '/', str.find(URIInstance, '/', str.find(URIInstance, '/')+1)+1)]  # TODO: make it a method of a helper class to find the URL of the KS from a URIInstance
+
+    local_url = reverse('api_ks_info', args=("XML",))
+    response = urllib2.urlopen(other_ks_uri + local_url)
+    ks_info_xml_stream = response.read()
+    # from_xml_with_actual_instance creates the entity instance and the actual instance
+    ei = EntityInstance()
+    ei.from_xml_with_actual_instance(ks_info_xml_stream)
+    
     try:
         with transaction.atomic():
             # am I already subscribed? We check also whether we have subscribed to another version 
