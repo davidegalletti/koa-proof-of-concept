@@ -16,7 +16,7 @@ def ks_info(ks, *args, **kwargs):
 
 @register.simple_tag
 def version_instance_info(entity_instance, instances, *args, **kwargs):
-    base64_EntityInstance_URIInstance = base64.encodestring(entity_instance.URIInstance).rstrip('\n')
+    base64_EntityInstance_URIInstance = base64.encodestring(entity_instance.URIInstance).replace('\n','')
     ret_string = ''
     for instance in instances:
         ret_string +=  '<p>"' + instance.name + '" (<a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"html")) + '">browse</a> the data or'

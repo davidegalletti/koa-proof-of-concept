@@ -13,6 +13,7 @@ from django.dispatch import receiver
 
 from userauthorization.models import KUser
 
+import json
 import urllib
 import urllib2
 
@@ -853,7 +854,7 @@ class KnowledgeServer(SerializableSimpleEntity):
         # "http://rootks.thekoa.org/"
         uri = self.scheme + "://" + self.netloc
         if encode_base64:
-            uri = base64.encodestring(uri)
+            uri = base64.encodestring(uri).replace('\n','')
         return uri
     
     def run_cron(self):
@@ -869,17 +870,43 @@ class KnowledgeServer(SerializableSimpleEntity):
         '''
         Events are transformed in notifications to be sent
         "New version" is the only event so far
+        
+        Subscriptions to a released dataset generates a notification too, only once though
         '''
+        # subscriptions
+        subs_first_time = SubscriptionToThis.objects.filter(first_notification_sent = False)
+        for sub in subs_first_time:
+            try:
+                with transaction.atomic():
+                    # I get the EntityInstance from the subscription (it is the root)
+                    root_ei = EntityInstance.objects.get(URIInstance=sub.root_URIInstance)
+                    event = Event()
+                    event.entity_instance = root_ei.get_latest(True)
+                    event.type = "First notification"
+                    event.processed = True
+                    event.save()
+                    n = Notification()
+                    n.event = event
+                    n.remote_url = sub.remote_url
+                    n.save()
+                    sub.first_notification_sent = True
+                    sub.save()
+            except Exception as e:
+                print (str(e))
+            
+        # events
         events = Event.objects.filter(processed=False, type="New version")
         for event in events:
             subs = SubscriptionToThis.objects.filter(root_URIInstance = event.entity_instance.root.URIInstance)
             try:
                 with transaction.atomic():
                     for sub in subs:
-                        n = Notification()
-                        n.event = event
-                        n.remote_url = sub.remote_url
-                        n.save()
+                        # I do not want to send two notifications if "First notification" and "New version" happen at the same time
+                        if not sub in subs_first_time:
+                            n = Notification()
+                            n.event = event
+                            n.remote_url = sub.remote_url
+                            n.save()
                     event.processed = True
                     event.save()
             except Exception as e:
@@ -888,10 +915,11 @@ class KnowledgeServer(SerializableSimpleEntity):
     def send_notifications(self):
         '''
         '''
+        this_ks = KnowledgeServer.this_knowledge_server()
         notifications = Notification.objects.filter(sent=False)
         for notification in notifications:
             values = { 'root_URIInstance' : notification.event.entity_instance.URIInstance,
-                       'URL' : reverse('api_export_instance', args=(base64.encodestring(notification.event.URIInstance),"JSON")),
+                       'URL' : this_ks.uri() + reverse('api_export_instance', args=(base64.encodestring(notification.event.entity_instance.URIInstance).replace('\n',''),"JSON",)),
                        'type' : notification.event.type,
                        'timestamp' : notification.event.timestamp, }
             data = urllib.urlencode(values)
@@ -910,12 +938,14 @@ class KnowledgeServer(SerializableSimpleEntity):
         '''
         notifications = NotificationReceived.objects.filter(processed=False)
         for notification in notifications:
-            response = urllib2.urlopen(NotificationReceived.URI_to_updates)
-            json_stream = response.read()
-            #TODO:  json o xml?
-            notification.processed = True
-            notification.save()
-        
+            try:
+                response = urllib2.urlopen(notification.URI_to_updates)
+                json_stream = response.read()
+                #TODO:  json o xml?
+                notification.processed = True
+                notification.save()
+            except Exception as ex:
+                print(ex.message)
         
     @staticmethod
     def this_knowledge_server(db_alias = 'ksm'):
@@ -1324,15 +1354,19 @@ class EntityInstance(SerializableSimpleEntity):
         instance.delete()
         self.delete()
         
-    @staticmethod
-    def get_latest(any_from_the_set):
+    def get_latest(self, released = None):
         '''
         gets the latest version starting from any EntityInstance in the version set 
         '''
-        version_major__max = EntityInstance.objects.filter(root = any_from_the_set.root).aggregate(Max('version_major'))['version_major__max']
-        version_minor__max = EntityInstance.objects.filter(root = any_from_the_set.root, version_major = version_major__max).aggregate(Max('version_minor'))['version_minor__max']
-        version_patch__max = EntityInstance.objects.filter(root = any_from_the_set.root, version_major = version_major__max, version_minor = version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
-        return EntityInstance.objects.get(root = any_from_the_set, version_major = version_major__max, version_minor = version_minor__max, version_patch = version_patch__max)
+        if released is None: # I take the latest regardless of the fact that it is released or not
+            version_major__max = EntityInstance.objects.filter(root = self.root).aggregate(Max('version_major'))['version_major__max']
+            version_minor__max = EntityInstance.objects.filter(root = self.root, version_major = version_major__max).aggregate(Max('version_minor'))['version_minor__max']
+            version_patch__max = EntityInstance.objects.filter(root = self.root, version_major = version_major__max, version_minor = version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
+        else: # I filter according to released
+            version_major__max = EntityInstance.objects.filter(version_released = released, root = self.root).aggregate(Max('version_major'))['version_major__max']
+            version_minor__max = EntityInstance.objects.filter(version_released = released, root = self.root, version_major = version_major__max).aggregate(Max('version_minor'))['version_minor__max']
+            version_patch__max = EntityInstance.objects.filter(version_released = released, root = self.root, version_major = version_major__max, version_minor = version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
+        return EntityInstance.objects.get(root = self.root, version_major = version_major__max, version_minor = version_minor__max, version_patch = version_patch__max)
    
 class UploadedFile(models.Model):
     '''

@@ -13,6 +13,7 @@ from django.db.models import F, Min
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, render_to_response
 from django.template import RequestContext
+from django.views.decorators.csrf import csrf_exempt
 
 from entity.models import SimpleEntity, EntityStructure, EntityInstance, SerializableSimpleEntity, KnowledgeServer
 from entity.models import SubscriptionToOther, SubscriptionToThis, ApiReponse, NotificationReceived
@@ -137,7 +138,7 @@ def api_entity_structures(request, format):
     ei = EntityInstance.objects.get(version_released=True, entry_point_instance_id__in=entities_id, entity_structure_id__in=entities_id)
     e = EntityStructure.objects.get(pk=ei.entry_point_instance_id)
     
-    return api_entity_instances(request, base64.encodestring(e.URIInstance), format)
+    return api_entity_instances(request, base64.encodestring(e.URIInstance).replace('\n',''), format)
 
 def api_entity_instance_info(request, base64_EntityInstance_URIInstance, format):
     '''
@@ -239,7 +240,7 @@ def ks_explorer(request):
         ks_url = request.POST['ks_complete_url']
     try:
         # info on the remote ks
-        local_url = reverse ('api_ks_info', args=("JSON",))
+        local_url = reverse('api_ks_info', args=("JSON",))
         response = urllib2.urlopen(ks_url + local_url)
         ks_info_json_stream = response.read()
         # parsing json
@@ -250,7 +251,7 @@ def ks_explorer(request):
                 external_ks = ks
             
         # info about structures on the remote ks
-        local_url = reverse ('api_entity_structures', args=("JSON",))
+        local_url = reverse('api_entity_structures', args=("JSON",))
         response = urllib2.urlopen(ks_url + local_url)
         entities_json = response.read()
         # parsing json
@@ -278,7 +279,7 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
     format = format.upper()
 
     # info on the remote ks{{  }}
-    local_url = reverse ('api_ks_info', args=("JSON",))
+    local_url = reverse('api_ks_info', args=("JSON",))
     response = urllib2.urlopen(ks_url + local_url)
     ks_info_json_stream = response.read()
     # parsing json
@@ -300,7 +301,7 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
     
     
     if format == 'XML':
-        local_url = reverse ('api_entity_instances', args=(base64URIInstance,format))
+        local_url = reverse('api_entity_instances', args=(base64URIInstance,format))
     if format == 'JSON' or format == 'BROWSE':
         local_url = reverse ('api_entity_instances', args=(base64URIInstance,'JSON'))
     response = urllib2.urlopen(ks_url + local_url)
@@ -319,7 +320,7 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
         subscribed = SubscriptionToOther.objects.filter(root_URIInstance__in=root_URIInstances)
         subscribed_root_URIInstances = []
         for s in subscribed:
-            subscribed_root_URIInstances.append(s.root_URI)
+            subscribed_root_URIInstances.append(s.root_URIInstance)
         entities = []
         for ei in decoded['Export']['EntityInstances']:
             entity = {}
@@ -425,7 +426,7 @@ def this_ks_subscribes_to(request, base64_URIInstance):
     try:
         with transaction.atomic():
             # am I already subscribed? We check also whether we have subscribed to another version 
-            # (with an API to get the root URIInstance and the attribute root_URI of SubscriptionToOther)
+            # (with an API to get the root URIInstance and the attribute root_URIInstance of SubscriptionToOther)
             local_url = reverse('api_root_uri', args=(base64_URIInstance,))
             response = urllib2.urlopen(other_ks_uri + local_url)
             root_URIInstance_json = json.loads(response.read())
@@ -440,8 +441,8 @@ def this_ks_subscribes_to(request, base64_URIInstance):
             sto.save()
             # invoke remote API to subscribe
             this_ks = KnowledgeServer.this_knowledge_server()
-            url_to_invoke = base64.encodestring(this_ks.uri() + reverse ('api_notify')).replace('\n','')
-            local_url = reverse ('api_subscribe', args=(base64_URIInstance,url_to_invoke,))
+            url_to_invoke = base64.encodestring(this_ks.uri() + reverse('api_notify')).replace('\n','')
+            local_url = reverse('api_subscribe', args=(base64_URIInstance,url_to_invoke,))
             response = urllib2.urlopen(other_ks_uri + local_url)
             return render(request, 'entity/export.json', {'json': response.read()}, content_type="application/json")
     except:
@@ -476,6 +477,7 @@ def api_unsubscribe(request, base64_URIInstance, base64_URL):
         base64_URL the URL this KS has to invoke to notify
     '''
     
+@csrf_exempt
 def api_notify(request):
     '''
         #35 it receives a notification; the verb is POST
@@ -486,14 +488,14 @@ def api_notify(request):
     '''
     root_URIInstance = request.POST.get("root_URIInstance", "")
     URL = request.POST.get("URL", "")
-    type = request.POST.get("event_type", "")
-    timestamp = request.POST.get("timestamp", "")
+    type = request.POST.get("type", "")
     # Did I subscribe to this?
     sto = SubscriptionToOther.objects.filter(root_URIInstance=root_URIInstance)
     ar = ApiReponse()
     if len(sto) > 0:
         nr = NotificationReceived()
         nr.URI_to_updates = URL
+        nr.save()
         ar.status = "success"
     else:
         ar.status = "failure"
@@ -509,6 +511,7 @@ def cron(request):
     '''
     this_ks = KnowledgeServer.this_knowledge_server()
     this_ks.run_cron()
+    return HttpResponse("OK")
 
 def disclaimer(request):
     '''

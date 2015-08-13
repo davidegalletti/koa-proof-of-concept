@@ -111,9 +111,11 @@ def forwards_func(apps, schema_editor):
     ccby40.legalcode = '''
     '''
     ccby40.save(using='default')
-    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,root_id=ei_ccby10.id,entity_structure=esLicense, entry_point_instance_id=ccby40.id, version_major=4,version_minor=0,version_patch=0,version_description="",version_released=True)
+    # note that version_released=False
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,root_id=ei_ccby10.id,entity_structure=esLicense, entry_point_instance_id=ccby40.id, version_major=4,version_minor=0,version_patch=0,version_description="",version_released=False)
     ei.save(using='default')
-    ei.set_released() #here materialization happens
+    # I do not set it as released; it will be done to demonstrate the notification and update process
+#     ei.set_released() #here materialization happens
 
     #Open Data Commons Attribution License 
     odcby = License()
@@ -143,11 +145,9 @@ def forwards_func(apps, schema_editor):
     ccbysa40.legalcode = '''
     '''
     ccbysa40.save(using='default')
-    # note that version_released=False
-    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=ccbysa40.id, version_major=4,version_minor=0,version_patch=0,version_description="",version_released=False)
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=ccbysa40.id, version_major=4,version_minor=0,version_patch=0,version_description="",version_released=True)
     ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
-    # I do not set it as released; it will be done to demonstrate the notification and update process
-    # ei.set_released() #here materialization happens
+    ei.set_released() #here materialization happens
 
     #Open Data Commons Open Database License 
     odbl = License()
