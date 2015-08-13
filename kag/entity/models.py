@@ -657,6 +657,8 @@ class SerializableSimpleEntity(models.Model):
                 try:
                     if key.__class__.__name__ == "BooleanField":
                         setattr(self, key.name, xmldoc.attributes[key.name].firstChild.data.lower() == "true") 
+                    elif key.__class__.__name__ == "IntegerField":
+                        setattr(self, key.name, int(xmldoc.attributes[key.name].firstChild.data))
                     else:
                         setattr(self, key.name, xmldoc.attributes[key.name].firstChild.data)
                 except:
@@ -685,14 +687,18 @@ class SerializableSimpleEntity(models.Model):
                         If it is an external reference I must search for it in the database first;  
                         if it is not there I fetch it using it's URI and then create it in the database
                         '''
-                        try:
-                            # let's search it in the database
-                            instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
-                        except ObjectDoesNotExist:
-                            # TODO: if it is not there I fetch it using it's URI and then create it in the database
-                            pass
-                        except:
-                            raise Exception("\"" + module_name + ".models " + se.name + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data)
+                        # it can be a self relation; if so instance is self
+                        if self.URIInstance == xml_child_node.attributes["URIInstance"].firstChild.data:
+                            instance = self 
+                        else:
+                            try:
+                                # let's search it in the database
+                                instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
+                            except ObjectDoesNotExist:
+                                # TODO: if it is not there I fetch it using it's URI and then create it in the database
+                                pass
+                            except:
+                                raise Exception("\"" + module_name + ".models " + se.name + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data)
                     else:
                         if insert:
                             # the user asked to "always create", let's create the instance
@@ -1265,22 +1271,22 @@ class EntityInstance(SerializableSimpleEntity):
                 actual_instance_xml = entity_instance_xml.getElementsByTagName("ActualInstance")[0].childNodes[0]
                 actual_class = utils.load_class(es.entry_point.simple_entity.module + ".models", es.entry_point.simple_entity.name)
                 # already imported ?
-                actual_instance_URIInstance = actual_instance_xml.attributes["URIInstance"]
+                actual_instance_URIInstance = actual_instance_xml.attributes["URIInstance"].firstChild.data
                 actual_instance_on_db = actual_class.objects.filter(URIInstance=actual_instance_URIInstance)
                 if len(actual_instance_on_db) > 0:
                     # it is already in this database; I return the corresponding EntityInstance
-                    return EntityInstance.objects.get(entity_structure=es, entry_point_instance_id=actual_instance_on_db.pk)
+                    return EntityInstance.objects.get(entity_structure=es, entry_point_instance_id=actual_instance_on_db[0].pk)
                 actual_instance = actual_class()
-                actual_instance.from_xml(actual_instance_xml, es.entry_point, always_insert = True)
+                actual_instance.from_xml(actual_instance_xml, es.entry_point, insert = True)
                 # from_xml saves actual_instance on the database
                 
                 # I create the EntityInstance
                 # In the next call the KnowledgeServer owner of this EntityInstance must exist
                 # So it must be imported while subscribing; it is imported by this very same method
                 # Since it is in the actual instance the next method will find it
-                self.from_xml(entity_instance_xml, self.shallow_entity_structure().entry_point, always_insert = True)
+                self.from_xml(entity_instance_xml, self.shallow_entity_structure().entry_point, insert = True)
         except Exception as ex:
-            print (str(ex))
+            print (ex.message)
             raise ex
         return self
 
@@ -1375,27 +1381,32 @@ class EntityInstance(SerializableSimpleEntity):
                 self.version_released = True
                 self.save()
                 # MATERIALIZATION Now we must copy newly released self to the materialized database
-                instance = self.get_instance()
-                materialized_instance = instance.materialize(self.entity_structure.entry_point, processed_instances = [])
-                materialized_self = self.materialize(self.shallow_entity_structure().entry_point, processed_instances = [])
-                # the id should already be the same; maybe autogeneration strategies on different dbms could ... 
-                materialized_self.entry_point_instance_id = materialized_instance.id
-                materialized_self.save()
-                if not self.entity_structure.multiple_releases:
-                    # if there is only a materialized release I must set root to self otherwise deleting the previous version will delete this as well
-                    materialized_self.root = materialized_self
+                # I must check whether it is already materialized so that I don't do it twice
+                m_existing = EntityInstance.objects.using('ksm').filter(URIInstance=self.URIInstance)
+                if len(m_existing) == 0:
+                    instance = self.get_instance()
+                    materialized_instance = instance.materialize(self.entity_structure.entry_point, processed_instances = [])
+                    materialized_self = self.materialize(self.shallow_entity_structure().entry_point, processed_instances = [])
+                    # the id should already be the same; maybe autogeneration strategies on different dbms could ... 
+                    materialized_self.entry_point_instance_id = materialized_instance.id
                     materialized_self.save()
-                    # now I can delete the old data set
-                    if currently_released.pk != self.pk:
-                        materialized_previously_released = EntityInstance.objects.using('ksm').get(URIInstance=previously_released.URIInstance)
-                        materialized_previously_released.delete_entire_dataset()
-                
-                # I create the event for notifications
-                e = Event()
-                e.entity_instance = self
-                e.type = "New version"
-                e.save()
-                #end of transaction
+                    if not self.entity_structure.multiple_releases:
+                        # if there is only a materialized release I must set root to self otherwise deleting the previous version will delete this as well
+                        materialized_self.root = materialized_self
+                        materialized_self.save()
+                        # now I can delete the old data set
+                        if currently_released.pk != self.pk:
+                            materialized_previously_released = EntityInstance.objects.using('ksm').get(URIInstance=previously_released.URIInstance)
+                            materialized_previously_released.delete_entire_dataset()
+                    
+                    # If I own this EntityInstance then I create the event for notifications
+                    this_ks = KnowledgeServer.this_knowledge_server()
+                    if self.owner_knowledge_server.URIInstance == this_ks.URIInstance:
+                        e = Event()
+                        e.entity_instance = self
+                        e.type = "New version"
+                        e.save()
+                    #end of transaction
         except Exception as ex:
             print (str(ex))
     

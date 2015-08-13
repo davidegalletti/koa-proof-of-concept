@@ -28,12 +28,19 @@ def forwards_func(apps, schema_editor):
     test_license_org_ks.URIInstance = ""
     test_license_org_ks.save(using='default')
     
+    # m_test_license_org and test_license_org have the wrong URIInstance because they where created before their Knowledge Server
+    # I fis this:
+    m_test_license_org.URIInstance = ""
+    m_test_license_org.save()
+    test_license_org.URIInstance = ""
+    test_license_org.save()
+    
     m_es = EntityStructure.objects.using('ksm').get(name = EntityStructure.organization_entity_structure_name)
     es = EntityStructure.objects.get(URIInstance = m_es.URIInstance)
-    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entry_point_instance_id=test_license_org.id,entity_structure=es,description="A test Organization and their KSs")
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entry_point_instance_id=test_license_org.id,entity_structure=es,description="A test Organization and their KSs",version_major=0,version_minor=1,version_patch=0)
     ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
-    # let's materialize the ei that is a view so it doesn't need to be set to released
-    ei.materialize(ei.shallow_entity_structure().entry_point, processed_instances = [])
+    # let's release and materialize
+    ei.set_released()
     
     # temporarily created in 0004
     esLicense=EntityStructure.objects.get(name="License") 

@@ -435,7 +435,14 @@ def this_ks_subscribes_to(request, base64_URIInstance):
     ks_info_xml_stream = response.read()
     # from_xml_with_actual_instance creates the entity instance and the actual instance
     ei = EntityInstance()
-    ei.from_xml_with_actual_instance(ks_info_xml_stream)
+    local_ei = ei.from_xml_with_actual_instance(ks_info_xml_stream)
+    # I have imported a KnowledgeServer with this_ks = True; must set it to False (see this_knowledge_server())
+    external_org = local_ei.get_instance()
+    for ks in external_org.knowledgeserver_set.all():
+        ks.this_ks = False
+        ks.save()
+    # Now I can materialize it; I can use set released as I have certainly retrieved a released EntityInstance
+    local_ei.set_released()
     
     try:
         with transaction.atomic():
