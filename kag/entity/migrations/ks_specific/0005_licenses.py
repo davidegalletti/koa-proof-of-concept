@@ -28,6 +28,13 @@ def forwards_func(apps, schema_editor):
     test_license_org_ks.URIInstance = ""
     test_license_org_ks.save(using='default')
     
+    m_es = EntityStructure.objects.using('ksm').get(name = EntityStructure.organization_entity_structure_name)
+    es = EntityStructure.objects.get(URIInstance = m_es.URIInstance)
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entry_point_instance_id=test_license_org.id,entity_structure=es,description="A test Organization and their KSs")
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    # let's materialize the ei that is a view so it doesn't need to be set to released
+    ei.materialize(ei.shallow_entity_structure().entry_point, processed_instances = [])
+    
     # temporarily created in 0004
     esLicense=EntityStructure.objects.get(name="License") 
     
