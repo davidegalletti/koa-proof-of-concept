@@ -171,6 +171,9 @@ class SerializableSimpleEntity(models.Model):
         comma = ""
         for key in self._meta.fields:
             if key.__class__.__name__ != "ForeignKey":
+                value = getattr(self, key.name)
+                if value is None:
+                    value = ""
                 if format == 'XML':
                     attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'  
                 if format == 'JSON':
