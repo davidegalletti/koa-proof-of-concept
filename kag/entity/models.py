@@ -929,9 +929,13 @@ class KnowledgeServer(SerializableSimpleEntity):
         this_ks = KnowledgeServer.this_knowledge_server()
         notifications = Notification.objects.filter(sent=False)
         for notification in notifications:
+            m_es = EntityStructure.objects.using('ksm').get(name = EntityStructure.organization_entity_structure_name)
+            es = EntityStructure.objects.get(URIInstance = m_es.URIInstance)
+            this_es = EntityStructure.objects.get(URIInstance=notification.event.entity_instance.entity_structure.URIInstance)
+            ei_of_this_es = EntityInstance.objects.get(entry_point_instance_id=this_es.id, entity_structure=es)
             values = { 'root_URIInstance' : notification.event.entity_instance.URIInstance,
                        'URL_dataset' : this_ks.uri() + reverse('api_export_instance', args=(base64.encodestring(notification.event.entity_instance.URIInstance).replace('\n',''),"XML",)),
-                       'URL_structure' : this_ks.uri() + reverse('api_export_instance', args=(base64.encodestring(notification.event.entity_instance.entity_structure.URIInstance).replace('\n',''),"XML",)),
+                       'URL_structure' : this_ks.uri() + reverse('api_export_instance', args=(base64.encodestring(ei_of_this_es.URIInstance).replace('\n',''),"XML",)),
                        'type' : notification.event.type,
                        'timestamp' : notification.event.timestamp, }
             data = urllib.urlencode(values)
