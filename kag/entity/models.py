@@ -937,6 +937,8 @@ class KnowledgeServer(SerializableSimpleEntity):
             this_ks = KnowledgeServer.this_knowledge_server()
             notifications = Notification.objects.filter(sent=False)
             for notification in notifications:
+                message += "send_notifications, found a notification for URIInstance " + notification.event.entity_instance.entity_structure.URIInstance + "<br>"
+                message += "about to notify " + notification.remote_url + "<br>"
                 m_es = EntityStructure.objects.using('ksm').get(name = EntityStructure.organization_entity_structure_name)
                 es = EntityStructure.objects.get(URIInstance = m_es.URIInstance)
                 this_es = EntityStructure.objects.get(URIInstance=notification.event.entity_instance.entity_structure.URIInstance)
@@ -955,6 +957,7 @@ class KnowledgeServer(SerializableSimpleEntity):
                     notification.sent = True
                     notification.save()
                 else:
+                    message += "send_notifications " + notification.remote_url + " responded: " + ar.message + "<br>"
                     print("send_notifications " + notification.remote_url + " responded: " + ar.message)
         except Exception as e:
             message += "send_notifications: " + e.message
