@@ -676,45 +676,47 @@ class SerializableSimpleEntity(models.Model):
         for en_child_node in entity_structure_node.child_nodes.all():
             if en_child_node.attribute in self.foreign_key_attributes():
                 try:
-                    # ASSERT: in the XML there is exactly one child tag
-                    xml_child_node = xmldoc.getElementsByTagName(en_child_node.attribute)[0] 
-                    # I search for the corresponding SimpleEntity
-                     
-                    se = SerializableSimpleEntity.simple_entity_from_xml_tag(xml_child_node)
-                    # TODO: I'd like the module name to be function of the organization and namespace
-                    assert (en_child_node.simple_entity.name == se.name), "en_child_node.simple_entity.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
-                    module_name = en_child_node.simple_entity.module
-                    actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
-                    if en_child_node.external_reference:
-                        '''
-                        If it is an external reference I must search for it in the database first;  
-                        if it is not there I fetch it using it's URI and then create it in the database
-                        '''
-                        # it can be a self relation; if so instance is self
-                        if self.URIInstance == xml_child_node.attributes["URIInstance"].firstChild.data:
-                            instance = self 
+                    # ASSERT: in the XML there is exactly at most one child tag
+                    child_tag = xmldoc.getElementsByTagName(en_child_node.attribute)
+                    if len(child_tag) == 1:
+                        xml_child_node = xmldoc.getElementsByTagName(en_child_node.attribute)[0] 
+                        # I search for the corresponding SimpleEntity
+                         
+                        se = SerializableSimpleEntity.simple_entity_from_xml_tag(xml_child_node)
+                        # TODO: I'd like the module name to be function of the organization and namespace
+                        assert (en_child_node.simple_entity.name == se.name), "en_child_node.simple_entity.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
+                        module_name = en_child_node.simple_entity.module
+                        actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
+                        if en_child_node.external_reference:
+                            '''
+                            If it is an external reference I must search for it in the database first;  
+                            if it is not there I fetch it using it's URI and then create it in the database
+                            '''
+                            # it can be a self relation; if so instance is self
+                            if self.URIInstance == xml_child_node.attributes["URIInstance"].firstChild.data:
+                                instance = self 
+                            else:
+                                try:
+                                    # let's search it in the database
+                                    instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
+                                except ObjectDoesNotExist:
+                                    # TODO: if it is not there I fetch it using it's URI and then create it in the database
+                                    pass
+                                except:
+                                    raise Exception("\"" + module_name + ".models " + se.name + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data)
                         else:
-                            try:
-                                # let's search it in the database
-                                instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
-                            except ObjectDoesNotExist:
-                                # TODO: if it is not there I fetch it using it's URI and then create it in the database
-                                pass
-                            except:
-                                raise Exception("\"" + module_name + ".models " + se.name + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data)
-                    else:
-                        if insert:
-                            # the user asked to "always create", let's create the instance
-                            instance = actual_class()
-                        else:
-                            try:
-                                instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, False)
-                            except:
-                                # didn't find it; I create the instance anyway
+                            if insert:
+                                # the user asked to "always create", let's create the instance
                                 instance = actual_class()
-                        # from_xml takes care of saving instance with a self.save() at the end
-                        instance.from_xml(xml_child_node, en_child_node, insert) #the fourth parameter, "parent" shouldn't be necessary in this case as this is a ForeignKey
-                    setattr(self, en_child_node.attribute, instance)
+                            else:
+                                try:
+                                    instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, False)
+                                except:
+                                    # didn't find it; I create the instance anyway
+                                    instance = actual_class()
+                            # from_xml takes care of saving instance with a self.save() at the end
+                            instance.from_xml(xml_child_node, en_child_node, insert) #the fourth parameter, "parent" shouldn't be necessary in this case as this is a ForeignKey
+                        setattr(self, en_child_node.attribute, instance)
                 except Exception as ex:
                     print (ex.message)
                     #raise Exception("### add relevant message: from_xml")

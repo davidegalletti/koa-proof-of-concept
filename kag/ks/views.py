@@ -559,6 +559,19 @@ def debug(request):
     from license.models import License
     from ks.utils import KsUri
     
+    dataset_xml_stream='''<?xml version="1.0" ?>
+<Export ExportDateTime="2015-08-19 11:11:18.156712">
+    <EntityInstance URIInstance="http://licenses.thekoa.org/entity/EntityInstance/24" URI_imported_instance="" URI_previous_version="" description="" entry_point_instance_id="2" filter_text="" id="24" version_date="2015-08-19 07:36:30+00:00" version_description="" version_major="1" version_minor="0" version_patch="0" version_released="True">
+        <entity_structure URIInstance="http://rootks.thekoa.org/entity/EntityStructure/6" URISimpleEntity="http://rootks.thekoa.org/entity/SimpleEntity/10" id="6" name="License"/>
+        <owner_knowledge_server URIInstance="http://licenses.thekoa.org/entity/KnowledgeServer/2" URISimpleEntity="http://rootks.thekoa.org/entity/SimpleEntity/14" id="2" name="A test Open Knowledge Server using some data from opendefinition.org."/>
+        <root URIInstance="http://licenses.thekoa.org/entity/EntityInstance/24" URISimpleEntity="http://rootks.thekoa.org/entity/SimpleEntity/13" id="24"/>
+        <ActualInstance>
+            <License URIInstance="http://licenses.thekoa.org/license/License/2" URISimpleEntity="http://rootks.thekoa.org/entity/SimpleEntity/16" URI_imported_instance="" URI_previous_version="" adaptation_shared="" attribution="True" commercial_use="" conformant_for_opendefinition="True" human_readable="" id="2" image="" image_small="" legalcode="     " name="Creative Commons Attribution 1.0" reccomended_by_opendefinition="False" share_alike="False" short_name="CC-BY-1.0" url_info="http://creativecommons.org/licenses/by/1.0"/>
+        </ActualInstance>
+    </EntityInstance>
+</Export>'''
+    ei = EntityInstance()
+    ei.from_xml_with_actual_instance(dataset_xml_stream)
     k = KsUri("http://rootks.thekoa.org/entity/SimpleEntity/1/json/")
     
     
