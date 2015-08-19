@@ -1,4 +1,8 @@
 import importlib
+from datetime import datetime
+from urlparse import urlparse
+
+from django.conf import settings
 
 class xmlMinidom():
     @staticmethod    
@@ -32,3 +36,32 @@ def load_class(module_name, class_name):
     module = importlib.import_module(module_name)
     # Finally, we retrieve the Class
     return getattr(module, class_name)
+
+class poor_mans_logger():
+    def __init__(self):
+        self.file = open('/tmp/' + settings.LOG_FILE_NAME + '.log', "a")
+        
+    def log(self, message):
+        self.file.write(str(datetime.now()) + " " + message + "\n")
+        
+    def debug(self, message):
+        self.log("Debug: " + message)
+        
+    def info(self, message):
+        self.log("Info: " + message)
+        
+    def warning(self, message):
+        self.log("Warning: " + message)
+        
+    def error(self, message):
+        self.log("Error: " + message)
+
+    def critical(self, message):
+        self.log("Critical: " + message)
+
+
+class Choices():
+    # in lower case as they are brought to lower before verification
+    FORMAT = ['xml','json','html','browse']
+    SCHEME = ['http','https']
+

@@ -165,3 +165,5 @@ LOGGING = {
         },
     }
 }
+
+LOG_FILE_NAME = "this_ks_name"

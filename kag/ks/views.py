@@ -555,9 +555,9 @@ def debug(request):
     created to debug code
     '''
     from django.db import models, migrations
-    from entity.models import Organization, KnowledgeServer, EntityInstance, EntityStructure, SimpleEntity, EntityStructureNode
+    from entity.models import KsUri, Organization, KnowledgeServer, EntityInstance, EntityStructure, SimpleEntity, EntityStructureNode
     from license.models import License
-    from ks.utils import KsUri, poor_mans_logger
+    from kag.utils import poor_mans_logger
     
     dataset_xml_stream='''<?xml version="1.0" ?>
 <Export ExportDateTime="2015-08-19 11:11:18.156712">

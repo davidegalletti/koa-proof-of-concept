@@ -609,6 +609,7 @@ class SerializableSimpleEntity(models.Model):
             or fetched from remote KS, so I assert self it is not an external reference
         
         '''
+        logger = utils.poor_mans_logger()
         field_name = ""
         if parent:
 #           I have a parent; let's set it
@@ -643,7 +644,7 @@ class SerializableSimpleEntity(models.Model):
                         self.SetNotNullFields()
                         self.save()
                     except:
-                        print("Error in KS_TAG_WITH_NO_DATA TAG setting attribute URIInstance for instance of class " + self.__class__.__name__)
+                        logger.error("Error in KS_TAG_WITH_NO_DATA TAG setting attribute URIInstance for instance of class " + self.__class__.__name__)
             #let's exit, nothing else to do, it's a KS_TAG_WITH_NO_DATA
             return
              
@@ -665,7 +666,7 @@ class SerializableSimpleEntity(models.Model):
                     else:
                         setattr(self, key.name, xmldoc.attributes[key.name].firstChild.data)
                 except:
-                    print("Error extracting from xml \"" + key.name + "\" for object of class \"" + self.__class__.__name__ + "\" with ID " + str(self.id))
+                    logger.error("Error extracting from xml \"" + key.name + "\" for object of class \"" + self.__class__.__name__ + "\" with ID " + str(self.id))
         try:
             # URI_imported_instance stores the URIInstance from the XML
             self.URI_imported_instance = xmldoc.attributes["URIInstance"].firstChild.data
@@ -703,6 +704,7 @@ class SerializableSimpleEntity(models.Model):
                                     # TODO: if it is not there I fetch it using it's URI and then create it in the database
                                     pass
                                 except:
+                                    logger.error("\"" + module_name + ".models " + se.name + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data)
                                     raise Exception("\"" + module_name + ".models " + se.name + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data)
                         else:
                             if insert:
@@ -718,6 +720,7 @@ class SerializableSimpleEntity(models.Model):
                             instance.from_xml(xml_child_node, en_child_node, insert) #the fourth parameter, "parent" shouldn't be necessary in this case as this is a ForeignKey
                         setattr(self, en_child_node.attribute, instance)
                 except Exception as ex:
+                    logger.error("from_xml: " + ex.message)
                     raise Exception("from_xml: " + ex.message)
                  
         # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
@@ -1280,6 +1283,7 @@ class EntityInstance(SerializableSimpleEntity):
         EntityInstance should use GenericForeignKey https://docs.djangoproject.com/en/1.8/ref/contrib/contenttypes/
         instead of entry_point_instance_id; then from_xml_with_actual_instance will be done with normal from_xml
         '''
+        logger = utils.poor_mans_logger()
         # http://stackoverflow.com/questions/3310614/remove-whitespaces-in-xml-string 
         p = etree.XMLParser(remove_blank_text=True)
         elem = etree.XML(dataset_xml_stream, parser=p)
@@ -1303,14 +1307,18 @@ class EntityInstance(SerializableSimpleEntity):
                     # it is already in this database; I return the corresponding EntityInstance
                     return EntityInstance.objects.get(entity_structure=es, entry_point_instance_id=actual_instance_on_db[0].pk)
                 actual_instance = actual_class()
+                logger.debug("from_xml_with_actual_instance before actual_instance.from_xml")
                 actual_instance.from_xml(actual_instance_xml, es.entry_point, insert = True)
+                logger.debug("from_xml_with_actual_instance after actual_instance.from_xml")
                 # from_xml saves actual_instance on the database
                 
                 # I create the EntityInstance
                 # In the next call the KnowledgeServer owner of this EntityInstance must exist
                 # So it must be imported while subscribing; it is imported by this very same method
                 # Since it is in the actual instance the next method will find it
+                logger.debug("from_xml_with_actual_instance before self.from_xml")
                 self.from_xml(entity_instance_xml, self.shallow_entity_structure().entry_point, insert = True)
+                logger.debug("from_xml_with_actual_instance after self.from_xml")
         except Exception as ex:
             print (ex.message)
             raise ex
@@ -1540,3 +1548,80 @@ class ApiReponse():
         self.status = decoded['status']
         self.message = decoded['message']
         
+class KsUri(object):
+    '''
+    This class is responsible for the good quality of all URI generated by a KS
+    in terms of syntax
+    and coherent use throughout the whole application
+    '''
+
+    def __init__(self, uri):
+        '''
+        only syntactic check
+        uu= urlunparse([o.scheme, o.netloc, o.path, o.params, o.query, o.fragment])
+        uu= urlunparse([o.scheme, o.netloc, o.path, o.params, o.query, ''])
+        così possiamo rimuovere il fragment e params query in modo da ripulire l'url ed essere più forgiving sulle api; da valutare
+        '''
+        self.uri = uri
+        self.parsed = urlparse(self.uri)
+        # I remove format options if any, e.g.
+        # http://rootks.thekoa.org/entity/SimpleEntity/1/json/  --> http://rootks.thekoa.org/entity/SimpleEntity/1/json/
+        self.clean_uri = uri
+        # remove the trailing slash
+        if self.clean_uri[-1:] == "/":
+            self.clean_uri = self.clean_uri[:-1]
+        # remove the format the slash before it and set self.format
+        self.format = ""
+        for format in utils.Choices.FORMAT:
+            if self.clean_uri[-(len(format)+1):].lower() == "/" + format:
+                self.clean_uri = self.clean_uri[:-(len(format)+1)]
+                self.format = format
+
+        # I check whether it's structure i well formed according to the GenerateURIInstance method
+        self.is_sintactically_correct = False
+        # not it looks something like: http://rootks.thekoa.org/entity/SimpleEntity/1
+        self.clean_parsed = urlparse(self.clean_uri)
+        self.scheme = ""
+        for scheme in utils.Choices.SCHEME:
+            if self.clean_parsed.scheme.lower() == scheme:
+                self.scheme = self.clean_parsed.scheme.lower()
+        self.netloc = self.clean_parsed.netloc.lower()
+        self.path = self.clean_parsed.path
+        if self.scheme and self.netloc and self.path:
+            # the path should have the format: "/entity/SimpleEntity/1"
+            # where "entity" is the module, "SimpleEntity" is the class name and "1" is the id or pk
+            temp_path = self.path
+            if temp_path[0] == "/":
+                temp_path = temp_path[1:]
+            # "entity/SimpleEntity/1"
+            if temp_path.find('/'):
+                self.namespace = temp_path[:temp_path.find('/')]
+                temp_path = temp_path[temp_path.find('/')+1:]
+                # 'SimpleEntity/1'
+                if temp_path.find('/'):
+                    self.class_name = temp_path[:temp_path.find('/')]
+                    temp_path = temp_path[temp_path.find('/')+1:]
+                    print(temp_path)
+                    if temp_path.find('/') < 0:
+                        self.pk_value = temp_path
+                        self.is_sintactically_correct = True
+
+    def search_on_db(self):
+        '''
+        Database check
+        I do not put this in the __init__ so the class can be used only for syntactic check or functionalities
+        '''
+        if self.is_sintactically_correct:
+            # I search the ks by netloc and scheme on ksm
+            try:
+                self.knowledge_server = KnowledgeServer.objects.using('ksm').get(scheme=self.schem, netloc=self.netloc)
+                self.is_ks_known = True
+            except:
+                self.is_ks_known = False
+            if self.is_ks_known:
+                # I search for its module and class and set relevant flags
+                pass
+        self.is_present = False
+        #I search on this database
+        #  on URIInstance
+            
