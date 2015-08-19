@@ -873,7 +873,6 @@ class KnowledgeServer(SerializableSimpleEntity):
         This method processes notifications received, generate notifications to be sent
         if events have occurred, ...
         '''
-        
         response = self.process_events()
         response += self.send_notifications()
         response += self.process_received_notifications()
@@ -885,9 +884,10 @@ class KnowledgeServer(SerializableSimpleEntity):
         
         Subscriptions to a released dataset generates a notification too, only once though
         '''
-        message = ""
+        message = "Running process_events<br>"
         # subscriptions
         subs_first_time = SubscriptionToThis.objects.filter(first_notification_sent = False)
+        message += "found " + str(len(subs_first_time)) + " SubscriptionToThis<br>"
         for sub in subs_first_time:
             try:
                 with transaction.atomic():
@@ -910,6 +910,7 @@ class KnowledgeServer(SerializableSimpleEntity):
             
         # events
         events = Event.objects.filter(processed=False, type="New version")
+        message += "found " + str(len(events)) + " Event<br>"
         for event in events:
             subs = SubscriptionToThis.objects.filter(root_URIInstance = event.entity_instance.root.URIInstance)
             try:
@@ -926,16 +927,17 @@ class KnowledgeServer(SerializableSimpleEntity):
             except Exception as e:
                 message += "process_events, events: " + e.message
                 print (str(e))
-        return message
+        return message + "<br>"
     
     
     def send_notifications(self):
         '''
         '''
-        message = ""
+        message = "Running send_notifications<br>"
         try:
             this_ks = KnowledgeServer.this_knowledge_server()
             notifications = Notification.objects.filter(sent=False)
+            message += "found " + str(len(notifications)) + " Notification<br>"
             for notification in notifications:
                 message += "send_notifications, found a notification for URIInstance " + notification.event.entity_instance.entity_structure.URIInstance + "<br>"
                 message += "about to notify " + notification.remote_url + "<br>"
@@ -961,13 +963,14 @@ class KnowledgeServer(SerializableSimpleEntity):
                     print("send_notifications " + notification.remote_url + " responded: " + ar.message)
         except Exception as e:
             message += "send_notifications: " + e.message
-        return message
+        return message + "<br>"
     
     def process_received_notifications(self):
         '''
         '''
-        message = ""
+        message = "Running process_received_notifications<br>"
         notifications = NotificationReceived.objects.filter(processed=False)
+        message += "found " + str(len(notifications)) + " NotificationReceived<br>"
         for notification in notifications:
             try:
                 # We assume we have already all SimpleEntity and EntityStructure
@@ -988,7 +991,7 @@ class KnowledgeServer(SerializableSimpleEntity):
             except Exception as ex:
                 message += "send_notifications: " + ex.message
                 print(ex.message)
-        return message
+        return message + "<br>"
         
     @staticmethod
     def this_knowledge_server(db_alias = 'ksm'):
