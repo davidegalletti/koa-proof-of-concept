@@ -21,7 +21,7 @@ def forwards_func(apps, schema_editor):
     root_ks.this_ks = False
     root_ks.save()
     
-    m_test_license_org_ks = KnowledgeServer(name="A test Open Knowledge Server using some data from opendefinition.org.", scheme="http", netloc="licenses.thekoa.org", description="WARNING: THIS IS NOT AFFILIATED WITH opendefinition.org. IT IS JUST A TEST USING opendefinition.org DATA.", organization=test_license_org, this_ks=True)
+    m_test_license_org_ks = KnowledgeServer(name="A test Open Knowledge Server using some data from opendefinition.org.", scheme="http", netloc="licenses.thekoa.org", description="Please not that this site not affiliated with opendefinition.org. cordis.europa.eu. It is just a test some opendefinition.org data.", organization=test_license_org, this_ks=True)
     m_test_license_org_ks.save(using='ksm')
     test_license_org_ks = m_test_license_org_ks
     test_license_org_ks.id = None

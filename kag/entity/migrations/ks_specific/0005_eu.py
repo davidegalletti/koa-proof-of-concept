@@ -12,7 +12,7 @@ def forwards_func(apps, schema_editor):
 #     root_ks.this_ks = False
 #     root_ks.save(using=db_alias)
 # 
-#     test_eu_projects_org_ks = KnowledgeServer(name="A test Open Knowledge Server using some data from cordis.europa.eu.", scheme="http", netloc="eufundedprojects.thekoa.org", description="WARNING: THIS IS NOT AFFILIATED WITH cordis.europa.eu. IT IS JUST A TEST USING SOME cordis.europa.eu DATA.", organization=test_eu_projects_org, this_ks=True)
+#     test_eu_projects_org_ks = KnowledgeServer(name="A test Open Knowledge Server using some data from cordis.europa.eu.", scheme="http", netloc="eufundedprojects.thekoa.org", description="Please not that this site not affiliated with cordis.europa.eu. It is just a test some cordis.europa.eu data.", organization=test_eu_projects_org, this_ks=True)
 #     test_eu_projects_org_ks.save(using=db_alias)
     
 

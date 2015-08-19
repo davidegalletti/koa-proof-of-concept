@@ -873,9 +873,10 @@ class KnowledgeServer(SerializableSimpleEntity):
         This method processes notifications received, generate notifications to be sent
         if events have occurred, ...
         '''
-        self.process_events()
-        self.send_notifications()
-        self.process_received_notifications()
+        
+        response = self.process_events()
+        response += self.send_notifications()
+        response += self.process_received_notifications()
         
     def process_events(self):
         '''
@@ -884,6 +885,7 @@ class KnowledgeServer(SerializableSimpleEntity):
         
         Subscriptions to a released dataset generates a notification too, only once though
         '''
+        message = ""
         # subscriptions
         subs_first_time = SubscriptionToThis.objects.filter(first_notification_sent = False)
         for sub in subs_first_time:
@@ -903,6 +905,7 @@ class KnowledgeServer(SerializableSimpleEntity):
                     sub.first_notification_sent = True
                     sub.save()
             except Exception as e:
+                message += "process_events, subscriptions: " + e.message
                 print (str(e))
             
         # events
@@ -921,37 +924,46 @@ class KnowledgeServer(SerializableSimpleEntity):
                     event.processed = True
                     event.save()
             except Exception as e:
+                message += "process_events, events: " + e.message
                 print (str(e))
-
+        return message
+    
+    
     def send_notifications(self):
         '''
         '''
-        this_ks = KnowledgeServer.this_knowledge_server()
-        notifications = Notification.objects.filter(sent=False)
-        for notification in notifications:
-            m_es = EntityStructure.objects.using('ksm').get(name = EntityStructure.organization_entity_structure_name)
-            es = EntityStructure.objects.get(URIInstance = m_es.URIInstance)
-            this_es = EntityStructure.objects.get(URIInstance=notification.event.entity_instance.entity_structure.URIInstance)
-            ei_of_this_es = EntityInstance.objects.get(entry_point_instance_id=this_es.id, entity_structure=es)
-            values = { 'root_URIInstance' : notification.event.entity_instance.URIInstance,
-                       'URL_dataset' : this_ks.uri() + reverse('api_export_instance', args=(base64.encodestring(notification.event.entity_instance.URIInstance).replace('\n',''),"XML",)),
-                       'URL_structure' : this_ks.uri() + reverse('api_export_instance', args=(base64.encodestring(ei_of_this_es.URIInstance).replace('\n',''),"XML",)),
-                       'type' : notification.event.type,
-                       'timestamp' : notification.event.timestamp, }
-            data = urllib.urlencode(values)
-            req = urllib2.Request(notification.remote_url, data)
-            response = urllib2.urlopen(req)
-            ar = ApiReponse()
-            ar.parse(response.read())
-            if ar.status == "success":
-                notification.sent = True
-                notification.save()
-            else:
-                print("send_notifications " + notification.remote_url + " responded: " + ar.message)
+        message = ""
+        try:
+            this_ks = KnowledgeServer.this_knowledge_server()
+            notifications = Notification.objects.filter(sent=False)
+            for notification in notifications:
+                m_es = EntityStructure.objects.using('ksm').get(name = EntityStructure.organization_entity_structure_name)
+                es = EntityStructure.objects.get(URIInstance = m_es.URIInstance)
+                this_es = EntityStructure.objects.get(URIInstance=notification.event.entity_instance.entity_structure.URIInstance)
+                ei_of_this_es = EntityInstance.objects.get(entry_point_instance_id=this_es.id, entity_structure=es)
+                values = { 'root_URIInstance' : notification.event.entity_instance.URIInstance,
+                           'URL_dataset' : this_ks.uri() + reverse('api_export_instance', args=(base64.encodestring(notification.event.entity_instance.URIInstance).replace('\n',''),"XML",)),
+                           'URL_structure' : this_ks.uri() + reverse('api_export_instance', args=(base64.encodestring(ei_of_this_es.URIInstance).replace('\n',''),"XML",)),
+                           'type' : notification.event.type,
+                           'timestamp' : notification.event.timestamp, }
+                data = urllib.urlencode(values)
+                req = urllib2.Request(notification.remote_url, data)
+                response = urllib2.urlopen(req)
+                ar = ApiReponse()
+                ar.parse(response.read())
+                if ar.status == "success":
+                    notification.sent = True
+                    notification.save()
+                else:
+                    print("send_notifications " + notification.remote_url + " responded: " + ar.message)
+        except Exception as e:
+            message += "send_notifications: " + e.message
+        return message
     
     def process_received_notifications(self):
         '''
         '''
+        message = ""
         notifications = NotificationReceived.objects.filter(processed=False)
         for notification in notifications:
             try:
@@ -968,13 +980,12 @@ class KnowledgeServer(SerializableSimpleEntity):
                 dataset_xml_stream = response.read()
                 ei = EntityInstance()
                 ei.from_xml_with_actual_instance(dataset_xml_stream)
-                
-                
-                
                 notification.processed = True
                 notification.save()
             except Exception as ex:
+                message += "send_notifications: " + ex.message
                 print(ex.message)
+        return message
         
     @staticmethod
     def this_knowledge_server(db_alias = 'ksm'):
@@ -1447,12 +1458,6 @@ class UploadedFile(models.Model):
     Used to save uploaded xml file so that it can be later retrieved and imported
     '''
     docfile = models.FileField(upload_to='documents/%Y/%m/%d')
-
-
-# class Choices():
-#     serialization_format = (        'XML', 'JSON'    ) #tuple
-#     serialization_format = [        'XML', 'JSON'    ] #list
-
 
 class Event(SerializableSimpleEntity):
     '''
