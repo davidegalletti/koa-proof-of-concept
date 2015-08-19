@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from random import randrange, uniform
+from urlparse import urlparse
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
@@ -889,10 +890,10 @@ class KnowledgeServer(SerializableSimpleEntity):
         
         Subscriptions to a released dataset generates a notification too, only once though
         '''
-        message = "Running process_events<br>"
+        message = "Processing events that could generate notifications<br>"
         # subscriptions
-        subs_first_time = SubscriptionToThis.objects.filter(first_notification_sent = False)
-        message += "found " + str(len(subs_first_time)) + " SubscriptionToThis<br>"
+        subs_first_time = SubscriptionToThis.objects.filter(first_notification_prepared = False)
+        message += "Found " + str(len(subs_first_time)) + " subscriptions to data in this OKS<br>"
         for sub in subs_first_time:
             try:
                 with transaction.atomic():
@@ -907,15 +908,15 @@ class KnowledgeServer(SerializableSimpleEntity):
                     n.event = event
                     n.remote_url = sub.remote_url
                     n.save()
-                    sub.first_notification_sent = True
+                    sub.first_notification_prepared = True
                     sub.save()
             except Exception as e:
-                message += "process_events, subscriptions: " + e.message
+                message += "process_events, subscriptions error: " + e.message
                 print (str(e))
             
         # events
         events = Event.objects.filter(processed=False, type="New version")
-        message += "found " + str(len(events)) + " Event<br>"
+        message += "Found " + str(len(events)) + " events<br>"
         for event in events:
             subs = SubscriptionToThis.objects.filter(root_URIInstance = event.entity_instance.root.URIInstance)
             try:
@@ -930,7 +931,7 @@ class KnowledgeServer(SerializableSimpleEntity):
                     event.processed = True
                     event.save()
             except Exception as e:
-                message += "process_events, events: " + e.message
+                message += "process_events, events error: " + e.message
                 print (str(e))
         return message + "<br>"
     
@@ -938,11 +939,11 @@ class KnowledgeServer(SerializableSimpleEntity):
     def send_notifications(self):
         '''
         '''
-        message = "Running send_notifications<br>"
+        message = "Sending notifications<br>"
         try:
             this_ks = KnowledgeServer.this_knowledge_server()
             notifications = Notification.objects.filter(sent=False)
-            message += "found " + str(len(notifications)) + " Notification<br>"
+            message += "Found " + str(len(notifications)) + " notifications<br>"
             for notification in notifications:
                 message += "send_notifications, found a notification for URIInstance " + notification.event.entity_instance.URIInstance + "<br>"
                 message += "about to notify " + notification.remote_url + "<br>"
@@ -965,17 +966,16 @@ class KnowledgeServer(SerializableSimpleEntity):
                     notification.save()
                 else:
                     message += "send_notifications " + notification.remote_url + " responded: " + ar.message + "<br>"
-                    print("send_notifications " + notification.remote_url + " responded: " + ar.message)
         except Exception as e:
-            message += "send_notifications: " + e.message
+            message += "send_notifications error: " + e.message
         return message + "<br>"
     
     def process_received_notifications(self):
         '''
         '''
-        message = "Running process_received_notifications<br>"
+        message = "Processing received notifications<br>"
         notifications = NotificationReceived.objects.filter(processed=False)
-        message += "found " + str(len(notifications)) + " NotificationReceived<br>"
+        message += "Found " + str(len(notifications)) + " notifications<br>"
         for notification in notifications:
             try:
                 # We assume we have already all SimpleEntity and EntityStructure
@@ -994,8 +994,7 @@ class KnowledgeServer(SerializableSimpleEntity):
                 notification.processed = True
                 notification.save()
             except Exception as ex:
-                message += "send_notifications: " + ex.message
-                print(ex.message)
+                message += "send_notifications error: " + ex.message
         return message + "<br>"
         
     @staticmethod
@@ -1498,7 +1497,7 @@ class SubscriptionToThis(SerializableSimpleEntity):
     # the actual notification will have the URIInstance of the EntityInstance and the URIInstance of the EventType
     remote_url = models.CharField(max_length=200L)
     # I send a first notification that can be used to get the data the first time
-    first_notification_sent = models.BooleanField(default=False)
+    first_notification_prepared = models.BooleanField(default=False)
 
 class Notification(SerializableSimpleEntity):
     '''

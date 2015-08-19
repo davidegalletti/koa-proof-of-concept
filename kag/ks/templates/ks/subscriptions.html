@@ -1,11 +1,60 @@
 {% extends "base.html" %}
 {% load staticfiles %}
 {% block content %}
-    <h3>Welcome to <strong>{{ this_ks.name }}</strong></h3>
-    <h4>{{ this_ks.description }}</h4>
-    <h4>Provided by <strong><a href="{{ this_ks.organization.website }}" target="_blank">{{ this_ks.organization.name }}</a></strong></h4>
     <h3>Subscriptions</h3>
-    <p>#############</p>
+    <h4>Click <a target="_blank" href="{% url 'cron' %}">here</a> to run cron and process incoming and outgoing notifications.</h4>
+    
+	{% if events %}
+	<h4>Events to be processed</h4>
+    <ul>
+    {% for event in events %}
+        <li>
+            "{{ event.type }}" for {{ event.entity_instance.URIInstance }}
+        </li>
+    {% endfor %}
+    </ul>
+    {% else %}
+	<h4>No events to be processed</h4>
+	{% endif %}
+	
+	{% if subscriptions_to_this %}
+	<h4>Subscriptions to datasets in this OKS</h4>
+    <ul>
+    {% for subscription in subscriptions_to_this %}
+        <li>
+            {{ subscription.remote_url }} has subscribed to {{ subscription.root_URIInstance }}
+        </li>
+    {% endfor %}
+    </ul>
+    {% else %}
+	<h4>No subscriptions to datasets in this OKS</h4>
+	{% endif %}
+	
+	{% if notifications_to_be_sent %}
+	<h4>Notifications to be sent to other systems</h4>
+    <ul>
+    {% for notification in notifications_to_be_sent %}
+        <li>
+            "{{ notification.event.type }}" for {{ notification.event.entity_instance.URIInstance }} must be sent to {{ notification.remote_url }}
+        </li>
+    {% endfor %}
+    </ul>
+    {% else %}
+	<h4>No notifications to be sent to other systems</h4>
+	{% endif %}
+	
+	{% if received_notifications %}
+	<h4>Notifications received for datasets with a new version</h4>
+    <ul>
+    {% for notification in received_notifications %}
+        <li>
+            Dataset {{ notification.URL_dataset }}, structure {{ notification.URL_structure }}
+        </li>
+    {% endfor %}
+    </ul>
+    {% else %}
+	<h4>No notifications received</h4>
+	{% endif %}
 {% endblock %}
 {% block message %}
 {{ message }}

@@ -21,7 +21,7 @@ def forwards_func(apps, schema_editor):
     root_ks.this_ks = False
     root_ks.save()
     
-    m_test_license_org_ks = KnowledgeServer(name="A test Open Knowledge Server using some data from opendefinition.org.", scheme="http", netloc="licenses.thekoa.org", description="Please not that this site not affiliated with opendefinition.org. cordis.europa.eu. It is just a test some opendefinition.org data.", organization=test_license_org, this_ks=True)
+    m_test_license_org_ks = KnowledgeServer(name="A test Open Knowledge Server using some data from opendefinition.org.", scheme="http", netloc="licenses.thekoa.org", description="Please not that this site not affiliated with opendefinition.org. It is just a test some opendefinition.org data.", organization=test_license_org, this_ks=True)
     m_test_license_org_ks.save(using='ksm')
     test_license_org_ks = m_test_license_org_ks
     test_license_org_ks.id = None
@@ -29,7 +29,7 @@ def forwards_func(apps, schema_editor):
     test_license_org_ks.save(using='default')
     
     # m_test_license_org and test_license_org have the wrong URIInstance because they where created before their Knowledge Server
-    # I fis this:
+    # I fix this:
     m_test_license_org.URIInstance = ""
     m_test_license_org.save()
     test_license_org.URIInstance = ""

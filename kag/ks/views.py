@@ -11,12 +11,12 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db.models import F, Min
 from django.http import HttpResponse
-from django.shortcuts import render, get_object_or_404, render_to_response
+from django.shortcuts import render, get_object_or_404, render_to_response, redirect
 from django.template import RequestContext
 from django.views.decorators.csrf import csrf_exempt
 
 from entity.models import SimpleEntity, EntityStructure, EntityInstance, SerializableSimpleEntity, KnowledgeServer
-from entity.models import SubscriptionToOther, SubscriptionToThis, ApiReponse, NotificationReceived
+from entity.models import SubscriptionToOther, SubscriptionToThis, ApiReponse, NotificationReceived, KsUri, Notification, Event
 import kag.utils as utils
 import logging
 import forms as myforms 
@@ -241,6 +241,7 @@ def ks_explorer(request):
     except:
         ks_url = request.POST['ks_complete_url']
     try:
+        this_ks = KnowledgeServer.this_knowledge_server()
         # info on the remote ks
         local_url = reverse('api_ks_info', args=("JSON",))
         response = urllib2.urlopen(ks_url + local_url)
@@ -250,7 +251,7 @@ def ks_explorer(request):
         organization = ks_info_json['Export']['EntityInstance']['ActualInstance']['Organization']
         for ks in organization['knowledgeserver_set']:
             if ks['this_ks'] == 'True':
-                external_ks = ks
+                explored_ks = ks
             
         # info about structures on the remote ks
         local_url = reverse('api_entity_structures', args=("JSON",))
@@ -258,21 +259,27 @@ def ks_explorer(request):
         entities_json = response.read()
         # parsing json
         decoded = json.loads(entities_json)
-        entities = []
+        owned_structures = []
+        other_structures = []
         for ei in decoded['Export']['EntityInstances']:
             entity = {}
             entity['actual_instance_name'] = ei['ActualInstance']['EntityStructure']['name']
             entity['URIInstance'] = base64.encodestring(ei['ActualInstance']['EntityStructure']['URIInstance']).replace('\n','')
-            entities.append(entity)
+            entity['oks_name'] = ei['owner_knowledge_server']['name']
+            entity['oks_URIInstance'] = base64.encodestring(ei['owner_knowledge_server']['URIInstance']).replace('\n','')
+            if ei['owner_knowledge_server']['URIInstance'] == explored_ks['URIInstance']:
+                owned_structures.append(entity)
+            else:
+                other_structures.append(entity)
     except Exception as es:
-        pass #TODO: view.ks_explorer manage exception 
-    cont = RequestContext(request, {'entities':entities, 'organization': organization, 'external_ks': external_ks, 'ks_url':base64.encodestring(ks_url).replace('\n','')})
+        pass #TODO: view.ks_explorer manage exception
+    cont = RequestContext(request, {'owned_structures':owned_structures, 'other_structures':other_structures, 'this_ks':this_ks, 'this_ks_base64_url':this_ks.uri(True), 'organization': organization, 'explored_ks': explored_ks, 'ks_url':base64.encodestring(ks_url).replace('\n','')})
     return render_to_response('ks/ks_explorer_entities.html', context_instance=cont)
 
 def ks_explorer_form(request):
     form = myforms.ExploreOtherKSForm()
-
-    cont = RequestContext(request, {'form':form})
+    this_ks = KnowledgeServer.this_knowledge_server()
+    cont = RequestContext(request, {'form':form, 'this_ks':this_ks, 'this_ks_base64_url':this_ks.uri(True)})
     return render_to_response('ks/ks_explorer_form.html', context_instance=cont)
 
 def browse_entity_instance(request, ks_url, base64URIInstance, format):
@@ -420,6 +427,16 @@ def this_ks_unsubscribes_to(request, base64_URIInstance):
     '''
     pass
 
+def redirect_to_base64_oks_url(request, base64_oks_URIInstance):
+    '''
+    Used in templates to redirect to a KS URIInstance when I have just the base64 encoding
+    '''
+    ks_uri = KsUri(base64.decodestring(base64_oks_URIInstance))
+    if ks_uri.is_sintactically_correct:
+        return redirect(ks_uri.scheme + "://" + ks_uri.netloc)
+    else:
+        return HttpResponse("The URI is not sintactically correct: " + base64.decodestring(base64_oks_URIInstance))
+
 def this_ks_subscribes_to(request, base64_URIInstance):
     '''
     This ks is subscribing to a data set in another ks
@@ -547,7 +564,12 @@ def subscriptions(request):
     '''
     '''
     this_ks = KnowledgeServer.this_knowledge_server()
-    cont = RequestContext(request, {'this_ks': this_ks})
+    subsscriptions_to_this = SubscriptionToThis.objects.filter()
+    events = Event.objects.filter(processed=False, type="New version")
+    notifications_to_be_sent = Notification.objects.filter(sent=False)
+    received_notifications = NotificationReceived.objects.filter(processed=False)
+    cont = RequestContext(request, {'received_notifications': received_notifications, 'notifications_to_be_sent': notifications_to_be_sent, 'events': events, 'subsscriptions_to_this': subsscriptions_to_this, 'this_ks': this_ks, 'this_ks_base64_url':this_ks.uri(True)})
+    
     return render_to_response('ks/subscriptions.html', context_instance=cont)
 
 def debug(request):

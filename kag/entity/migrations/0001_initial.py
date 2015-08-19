@@ -290,7 +290,7 @@ class Migration(migrations.Migration):
                 ('URI_previous_version', models.CharField(max_length=2000L, null=True, blank=True)),
                 ('root_URIInstance', models.CharField(max_length=2000L)),
                 ('remote_url', models.CharField(max_length=200L)),
-                ('first_notification_sent', models.BooleanField(default=False)),
+                ('first_notification_prepared', models.BooleanField(default=False)),
             ],
             options={
                 'abstract': False,

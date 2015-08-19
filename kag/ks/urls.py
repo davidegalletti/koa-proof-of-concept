@@ -16,7 +16,7 @@ urlpatterns = patterns('',
     url(r'^subscriptions/$', views.subscriptions, name="subscriptions"),
     url(r'^this_ks_subscribes_to/(?P<base64_URIInstance>[\w|=|%|.]+)/$', views.this_ks_subscribes_to, name='this_ks_subscribes_to'),
     url(r'^this_ks_unsubscribes_to/(?P<base64_URIInstance>[\w|=|%|.]+)/$', views.this_ks_unsubscribes_to, name='this_ks_unsubscribes_to'),
-    
+    url(r'^redirect_to_base64_oks_url/(?P<base64_oks_URIInstance>[\w|=|%|.]+)/$', views.redirect_to_base64_oks_url, name='redirect_to_base64_oks_url'),
                        ###################   API   ####################
     url(r'^api/root_uri/(?P<base64_URIInstance>[\w|=|%|.]+)/$', views.api_root_uri, name='api_root_uri'),
     #33:

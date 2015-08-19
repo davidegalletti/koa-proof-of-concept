@@ -9,7 +9,7 @@ register = template.Library()
 def ks_info(ks, *args, **kwargs):
     ret_html = "<p>" + ks.uri() + "<br><a href=\"" + ks.scheme + "://" + ks.netloc + "/\" target=\"_blank\">" + ks.name + "</a>"
     if hasattr(ks, "organization"):
-        ret_html += "<br>Organization: <a href=\"" + ks.organization.website + "\" target=\"_blank\">" + ks.organization.name + "</a></p>"
+        ret_html += "<br>Maintained by \"<a href=\"" + ks.organization.website + "\" target=\"_blank\">" + ks.organization.name + '</a>"</p>'
     else:
         ret_html += "</p>"
     return ret_html

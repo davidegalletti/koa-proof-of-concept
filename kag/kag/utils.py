@@ -1,6 +1,5 @@
 import importlib
 from datetime import datetime
-from urlparse import urlparse
 
 from django.conf import settings
 
