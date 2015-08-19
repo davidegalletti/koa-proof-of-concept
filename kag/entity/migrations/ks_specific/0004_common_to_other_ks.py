@@ -22,7 +22,7 @@ def forwards_func(apps, schema_editor):
     esLicense.save(using='default')
     m_es = EntityStructure.objects.using('ksm').get(name=EntityStructure.entity_structure_entity_structure_name)
     es = EntityStructure.objects.using('default').get(URIInstance=m_es.URIInstance)
-    ei = EntityInstance(owner_knowledge_server=this_ks,entity_structure=es, entry_point_instance_id=esLicense.id, version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(description='"License" data set structure',owner_knowledge_server=this_ks,entity_structure=es, entry_point_instance_id=esLicense.id, version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
     ei.set_released() #here materialization happens
     
@@ -35,7 +35,7 @@ def forwards_func(apps, schema_editor):
     esLicenseList.entry_point=en1;esLicenseList.name="List of licenses";esLicenseList.description="List of all released licenses";esLicenseList.namespace="license";
     esLicenseList.save(using='default')
     # EntityInstance of the above EntityStructure
-    ei = EntityInstance(owner_knowledge_server=this_ks,entity_structure=es, entry_point_instance_id=esLicenseList.id, version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(description='"List of licenses" data set structure',owner_knowledge_server=this_ks,entity_structure=es, entry_point_instance_id=esLicenseList.id, version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
     ei.set_released() #here materialization happens
 

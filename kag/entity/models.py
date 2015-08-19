@@ -940,10 +940,10 @@ class KnowledgeServer(SerializableSimpleEntity):
             notifications = Notification.objects.filter(sent=False)
             message += "found " + str(len(notifications)) + " Notification<br>"
             for notification in notifications:
-                message += "send_notifications, found a notification for URIInstance " + notification.event.entity_instance.entity_structure.URIInstance + "<br>"
+                message += "send_notifications, found a notification for URIInstance " + notification.event.entity_instance.URIInstance + "<br>"
                 message += "about to notify " + notification.remote_url + "<br>"
                 m_es = EntityStructure.objects.using('ksm').get(name = EntityStructure.organization_entity_structure_name)
-                es = EntityStructure.objects.get(URIInstance = m_es.URIInstance)
+                es = EntityStructure.objects.using('default').get(URIInstance = m_es.URIInstance)
                 this_es = EntityStructure.objects.get(URIInstance=notification.event.entity_instance.entity_structure.URIInstance)
                 ei_of_this_es = EntityInstance.objects.get(entry_point_instance_id=this_es.id, entity_structure=es)
                 values = { 'root_URIInstance' : notification.event.entity_instance.URIInstance,
