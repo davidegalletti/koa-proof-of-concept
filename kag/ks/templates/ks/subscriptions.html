@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 {% load staticfiles %}
 {% block content %}
-    <h3>Subscriptions</h3>
-    <h4>Click <a target="_blank" href="{% url 'cron' %}">here</a> to run cron and process incoming and outgoing notifications.</h4>
+    <h3>Subscriptions, events, notifications</h3>
     
 	{% if events %}
 	<h4>Events to be processed</h4>
@@ -30,6 +29,19 @@
 	<h4>No subscriptions to datasets in this OKS</h4>
 	{% endif %}
 	
+	{% if subscriptions_to_other %}
+	<h4>Subscriptions this OKS has to datasets in another OKS</h4>
+    <ul>
+    {% for subscription in subscriptions_to_other %}
+        <li>
+            {{ subscription.root_URIInstance }}
+        </li>
+    {% endfor %}
+    </ul>
+    {% else %}
+	<h4>No subscriptions to datasets in other OKSs</h4>
+	{% endif %}
+	
 	{% if notifications_to_be_sent %}
 	<h4>Notifications to be sent to other systems</h4>
     <ul>
@@ -54,6 +66,12 @@
     </ul>
     {% else %}
 	<h4>No notifications received</h4>
+	{% endif %}
+	<p/>
+	{% if events or notifications_to_be_sent or received_notifications %}
+		<h4>You should run <a target="_blank" href="{% url 'cron' %}">cron</a> to process incoming and outgoing notifications.</h4>
+    {% else %}
+		<h4>Nothing to process. If you still want to run cron click <a target="_blank" href="{% url 'cron' %}">here</a>.</h4>
 	{% endif %}
 {% endblock %}
 {% block message %}
