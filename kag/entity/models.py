@@ -876,6 +876,7 @@ class KnowledgeServer(SerializableSimpleEntity):
         response = self.process_events()
         response += self.send_notifications()
         response += self.process_received_notifications()
+        return response
         
     def process_events(self):
         '''
