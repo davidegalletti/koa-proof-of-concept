@@ -564,12 +564,12 @@ def subscriptions(request):
     '''
     '''
     this_ks = KnowledgeServer.this_knowledge_server()
-    subsscriptions_to_this = SubscriptionToThis.objects.all()
+    subscriptions_to_this = SubscriptionToThis.objects.all()
     events = Event.objects.filter(processed=False)
     notifications_to_be_sent = Notification.objects.filter(sent=False)
     received_notifications = NotificationReceived.objects.filter(processed=False)
-    subsscriptions_to_other = SubscriptionToOther.objects.all()
-    cont = RequestContext(request, {'received_notifications': received_notifications, 'notifications_to_be_sent': notifications_to_be_sent, 'events': events, 'subsscriptions_to_other': subsscriptions_to_other, 'subsscriptions_to_this': subsscriptions_to_this, 'this_ks': this_ks, 'this_ks_base64_url':this_ks.uri(True)})
+    subscriptions_to_other = SubscriptionToOther.objects.all()
+    cont = RequestContext(request, {'received_notifications': received_notifications, 'notifications_to_be_sent': notifications_to_be_sent, 'events': events, 'subscriptions_to_other': subscriptions_to_other, 'subscriptions_to_this': subscriptions_to_this, 'this_ks': this_ks, 'this_ks_base64_url':this_ks.uri(True)})
     
     return render_to_response('ks/subscriptions.html', context_instance=cont)
 
