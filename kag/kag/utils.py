@@ -38,11 +38,11 @@ def load_class(module_name, class_name):
     return getattr(module, class_name)
 
 class poor_mans_logger():
-    def __init__(self):
-        self.file = open('/tmp/' + settings.LOG_FILE_NAME + '.log', "a")
         
     def log(self, message):
-        self.file.write(str(datetime.now()) + " " + message + "\n")
+        logfile = open('/tmp/' + settings.LOG_FILE_NAME + '.log', "a")
+        logfile.write(str(datetime.now()) + " " + message + "\n")
+        logfile.close
         
     def debug(self, message):
         self.log("Debug: " + message)
