@@ -557,7 +557,7 @@ def debug(request):
     from django.db import models, migrations
     from entity.models import Organization, KnowledgeServer, EntityInstance, EntityStructure, SimpleEntity, EntityStructureNode
     from license.models import License
-    from ks.utils import KsUri
+    from ks.utils import KsUri, poor_mans_logger
     
     dataset_xml_stream='''<?xml version="1.0" ?>
 <Export ExportDateTime="2015-08-19 11:11:18.156712">
@@ -570,11 +570,11 @@ def debug(request):
         </ActualInstance>
     </EntityInstance>
 </Export>'''
-    ei = EntityInstance()
-    ei.from_xml_with_actual_instance(dataset_xml_stream)
-    k = KsUri("http://rootks.thekoa.org/entity/SimpleEntity/1/json/")
+#     ei = EntityInstance()
+#     ei.from_xml_with_actual_instance(dataset_xml_stream)
+#     k = KsUri("http://rootks.thekoa.org/entity/SimpleEntity/1/json/")
     
-    
+    logger = poor_mans_logger()
     try:
         logger.debug("debug")
         logger.info("info")

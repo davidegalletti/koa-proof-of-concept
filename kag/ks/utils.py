@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from entity.models import KnowledgeServer
 from urlparse import urlparse
+from datetime import datetime
 
 class KsUri(object):
     '''
@@ -84,3 +85,25 @@ class Choices():
     FORMAT = ['xml','json','html','browse']
     SCHEME = ['http','https']
 
+class poor_mans_logger():
+    def __init__(self):
+        this_ks = KnowledgeServer.this_knowledge_server()
+        self.file = open('/tmp/' + this_ks.netloc + '.log', "a")
+        
+    def log(self, message):
+        self.file.write(str(datetime.now()) + " " + message + "\n")
+        
+    def debug(self, message):
+        self.log("Debug: " + message)
+        
+    def info(self, message):
+        self.log("Info: " + message)
+        
+    def warning(self, message):
+        self.log("Warning: " + message)
+        
+    def error(self, message):
+        self.log("Error: " + message)
+
+    def critical(self, message):
+        self.log("Critical: " + message)

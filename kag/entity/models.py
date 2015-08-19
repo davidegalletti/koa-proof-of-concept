@@ -718,8 +718,7 @@ class SerializableSimpleEntity(models.Model):
                             instance.from_xml(xml_child_node, en_child_node, insert) #the fourth parameter, "parent" shouldn't be necessary in this case as this is a ForeignKey
                         setattr(self, en_child_node.attribute, instance)
                 except Exception as ex:
-                    print (ex.message)
-                    #raise Exception("### add relevant message: from_xml")
+                    raise Exception("from_xml: " + ex.message)
                  
         # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
         self.save()
