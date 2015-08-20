@@ -427,7 +427,6 @@ def this_ks_subscribes_to(request, base64_URIInstance):
     ks_info_xml_stream = response.read()
     # from_xml_with_actual_instance creates the entity instance and the actual instance
     ei = EntityInstance()
-    ei.dataset_date = None # it's nullable; otherwise it would be set to '' creating db issues
     local_ei = ei.from_xml_with_actual_instance(ks_info_xml_stream)
     # I have imported a KnowledgeServer with this_ks = True; must set it to False (see this_knowledge_server())
     external_org = local_ei.get_instance()

@@ -1196,7 +1196,7 @@ class EntityInstance(SerializableSimpleEntity):
     version_patch = models.IntegerField(null=True, blank=True)
     version_description = models.CharField(max_length=2000L, default = "")
     # dataset_date is the date of the release of the dataset; e.g. 
-    dataset_date = models.DateTimeField(null=True, blank=True)
+    dataset_date = models.DateTimeField(auto_now_add=True)
     # version_date is the date this version has been released in the OKS
     version_date = models.DateTimeField(auto_now_add=True)
     '''
