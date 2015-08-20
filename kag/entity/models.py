@@ -1060,10 +1060,10 @@ class EntityStructureNode(SerializableSimpleEntity):
     is_many = models.BooleanField(default=False, db_column='isMany')
 
 class EntityStructure(SerializableSimpleEntity):
-    entity_structure_entity_structure_name = "EntityStructure-EntityStructureNode"
-    simple_entity_entity_structure_name = "SimpleEntity-attributes"
-    workflow_entity_structure_name = "Workflow-statuses"
-    organization_entity_structure_name = "Organization-KnowledgeServer"
+    entity_structure_entity_structure_name = "Dataset structure"
+    simple_entity_entity_structure_name = "Entity"
+    workflow_entity_structure_name = "Workflow"
+    organization_entity_structure_name = "Organization and Open Knowledge Servers"
     '''
     Main idea behind the model: an Entity is not represented with a single class or a single 
     table in a database but it is usually represented using a collection of them: more than 
@@ -1203,6 +1203,8 @@ class EntityInstance(SerializableSimpleEntity):
     Assert: If self.entity_structure.multiple_releases==False: at most one instance with the same root_version_id has version_released = True
     '''
     version_released = models.BooleanField(default=False)
+    
+    license = models.ForeignKey('license.License', null=True, blank=True)
     
     def get_instance(self, db_alias='default'):
         '''
@@ -1517,9 +1519,6 @@ class Notification(SerializableSimpleEntity):
     sent = models.BooleanField(default=False)
     remote_url = models.CharField(max_length=200L)
 
-
-
-
 class SubscriptionToOther(SerializableSimpleEntity):
     '''
     The subscriptions I make to other systems' data
@@ -1527,7 +1526,6 @@ class SubscriptionToOther(SerializableSimpleEntity):
     # The URIInstance I am subscribing to 
     URI = models.CharField(max_length=200L)
     root_URIInstance = models.CharField(max_length=200L)
-    
 
 class NotificationReceived(SerializableSimpleEntity):
     '''

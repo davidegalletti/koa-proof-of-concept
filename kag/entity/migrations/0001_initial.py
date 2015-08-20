@@ -7,6 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
+        ('license', '0001_initial'),
     ]
 
     operations = [
@@ -80,6 +81,7 @@ class Migration(migrations.Migration):
                 ('version_released', models.BooleanField(default=False)),
                 ('entry_point_instance_id', models.IntegerField(null=True, blank=True)),
                 ('description', models.CharField(max_length=2000L, default=b'')),
+                ('license', models.ForeignKey(null=True, to='license.License', blank=True)),
             ],
             options={
                 'abstract': False,

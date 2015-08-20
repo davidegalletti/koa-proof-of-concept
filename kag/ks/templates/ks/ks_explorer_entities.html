@@ -4,8 +4,8 @@
 {% block content %}
     <div class="row-fluid">
         {% if this_ks.URIInstance == explored_ks.URIInstance %}
-        <h4>This OKS contains data sets of the following types/structures: </h4>
-        <p><h6>(<i>Follow the link to get a list</i>)</h6></p>
+        <h4>This OKS contains data sets of the following <strong>types/structures</strong>: </h4>
+        <h6>(<i>Follow the link to get a list</i>)</h6>
         {% else %}
     	<h3>Browsing an external Knowledge Server: </h3>
     	<p>Name: <a href="{{ explored_ks.scheme }}://{{ explored_ks.netloc }}/" target="_blank">{{ explored_ks.name }}</a><br>
