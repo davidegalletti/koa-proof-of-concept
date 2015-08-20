@@ -988,21 +988,23 @@ class KnowledgeServer(SerializableSimpleEntity):
         message += "Found " + str(len(notifications)) + " notifications<br>"
         for notification in notifications:
             try:
-                # We assume we have already all SimpleEntity and EntityStructure
-                # TODO: in the future we will retrieve it from notification.URL_structure
-                # now we assume that we find it in dataset_xml_stream like this:
-                # <Export  ....><EntityInstance ....><entity_structure URIInstance="http://rootks.thekoa.org/entity/EntityStructure/2"  
-                # http://127.0.0.1:8000/ks/api/entity_instance/aHR0cDovL3Jvb3Rrcy50aGVrb2Eub3JnL2VudGl0eS9FbnRpdHlJbnN0YW5jZS8xNg==/xml/
-                
-                # the dataset is retrieved with api #36 api_dataset that serializes
-                # the EntityInstance and also the complete actual instance 
-                # from_xml_with_actual_instance will create the EntityInstance and the actual instance
-                response = urllib2.urlopen(notification.URL_dataset)
-                dataset_xml_stream = response.read()
-                ei = EntityInstance()
-                ei.from_xml_with_actual_instance(dataset_xml_stream)
-                notification.processed = True
-                notification.save()
+                with transaction.atomic():
+                    # We assume we have already all SimpleEntity
+                    # Let's retrieve the structure
+                    response = urllib2.urlopen(notification.URL_structure)
+                    dataset_xml_stream = response.read()
+                    ei_structure = EntityInstance()
+                    ei_structure.from_xml_with_actual_instance(dataset_xml_stream)
+                    
+                    # the dataset is retrieved with api #36 api_dataset that serializes
+                    # the EntityInstance and also the complete actual instance 
+                    # from_xml_with_actual_instance will create the EntityInstance and the actual instance
+                    response = urllib2.urlopen(notification.URL_dataset)
+                    dataset_xml_stream = response.read()
+                    ei = EntityInstance()
+                    ei.from_xml_with_actual_instance(dataset_xml_stream)
+                    notification.processed = True
+                    notification.save()
             except Exception as ex:
                 message += "send_notifications error: " + ex.message
         return message + "<br>"

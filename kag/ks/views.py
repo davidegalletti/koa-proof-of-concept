@@ -568,6 +568,10 @@ def debug(request):
     from license.models import License
     from kag.utils import poor_mans_logger
     
+    response = urllib2.urlopen('http://licenses.thekoa.org/ks/api/dataset/aHR0cDovL3Jvb3Rrcy50aGVrb2Eub3JnL2VudGl0eS9FbnRpdHlJbnN0YW5jZS8yMA==/XML/')
+    dataset_xml_stream = response.read()
+    ei = EntityInstance()
+    ei.from_xml_with_actual_instance(dataset_xml_stream)
     dataset_xml_stream='''<?xml version="1.0" ?>
 <Export ExportDateTime="2015-08-19 11:11:18.156712">
     <EntityInstance URIInstance="http://licenses.thekoa.org/entity/EntityInstance/24" URI_imported_instance="" URI_previous_version="" description="" entry_point_instance_id="2" filter_text="" id="24" version_date="2015-08-19 07:36:30+00:00" version_description="" version_major="1" version_minor="0" version_patch="0" version_released="True">
