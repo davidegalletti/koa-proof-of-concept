@@ -22,7 +22,11 @@ def version_instance_info(entity_instance, instances, *args, **kwargs):
         ret_string +=  '<p>"' + instance.name + '" (<a href="' + reverse('api_dataset', args=(base64_EntityInstance_URIInstance,"html")) + '">browse</a> the data or'
         ret_string += ' get it in <a href="' + reverse('api_dataset', args=(base64_EntityInstance_URIInstance,"XML")) + '">XML</a> or '
         ret_string += '<a href="' + reverse('api_dataset', args=(base64_EntityInstance_URIInstance,"JSON")) + '">JSON</a>)<br>'
-        ret_string += 'Version ' + str(entity_instance.version_major) + '.' + str(entity_instance.version_minor) + '.' + str(entity_instance.version_patch) + ' - ' + str(entity_instance.version_date) + '</p>'
+        ret_string += 'Version ' + ('' if entity_instance.version_released else '(not released) ') + str(entity_instance.version_major) + '.' + str(entity_instance.version_minor) + '.' + str(entity_instance.version_patch) + ' - ' + str(entity_instance.version_date)
+        if entity_instance.version_released:
+            ret_string += '</p>'
+        else:  
+            ret_string += '<br>Click <a href="' + reverse('release_dataset', args=(base64_EntityInstance_URIInstance,)) + '" target="_blank">here</a> to release it.</p>'
     return ret_string
 
 @register.simple_tag

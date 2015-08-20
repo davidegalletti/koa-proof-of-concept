@@ -29,6 +29,7 @@ def forwards_func(apps, schema_editor):
     seEntityInstance=SimpleEntity();seEntityInstance.name="EntityInstance";seEntityInstance.module="entity";seEntityInstance.name_field="";seEntityInstance.description_field="";seEntityInstance.save(using=db_alias)
     seKnowledgeServer=SimpleEntity();seKnowledgeServer.name="KnowledgeServer";seKnowledgeServer.module="entity";seKnowledgeServer.save(using=db_alias)
     seDBConnection=SimpleEntity();seDBConnection.name="DBConnection";seDBConnection.module="entity";seDBConnection.save(using=db_alias)
+    seLicense=SimpleEntity();seLicense.name="License";seLicense.module="license";seLicense.save(using=db_alias)
  
     #AttributeType
     atText=AttributeType();atText.name="Text";atText.save(using=db_alias)
@@ -127,7 +128,7 @@ def forwards_func(apps, schema_editor):
     seKnowledgeServer.entity_structure = eOrganizationKS; seKnowledgeServer.save(using=db_alias)
      
     # EntityInstance
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seSimpleEntity.id,                                version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,entry_point_instance_id=seSimpleEntity.id,version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
     # EntityInstance has no EntityStructure, I create the shallow one so that I can set EntityStructure.namespace 
     # and hence generate the URIInstance for each instance of EntityInstance

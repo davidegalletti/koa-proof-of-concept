@@ -402,6 +402,17 @@ def this_ks_unsubscribes_to(request, base64_URIInstance):
     '''
     pass
 
+def release_dataset(request, base64_Dataset_URIInstance):
+    '''
+    '''
+    try:
+        dataset_URIInstance = base64.decodestring(base64_Dataset_URIInstance)
+        dataset = EntityInstance.objects.get(URIInstance = dataset_URIInstance)
+        dataset.set_released()
+        return render(request, 'entity/export.json', {'json': ApiReponse("success", dataset_URIInstance + " successfully released.").json()}, content_type="application/json")
+    except Exception as ex:
+        return render(request, 'entity/export.json', {'json': ApiReponse("failure", ex.message).json()}, content_type="application/json")
+        
 def redirect_to_base64_oks_url(request, base64_oks_URIInstance):
     '''
     Used in templates to redirect to a KS URIInstance when I have just the base64 encoding
@@ -580,5 +591,5 @@ def debug(request):
         logger.error("error")
         logger.critical("critical")
         return HttpResponse("OK")
-    except Exception as es:
-        return HttpResponse(es.message)
+    except Exception as ex:
+        return HttpResponse(ex.message)

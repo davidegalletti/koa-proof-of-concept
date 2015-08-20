@@ -129,11 +129,15 @@ class SerializableSimpleEntity(models.Model):
         *** method that works BY DEFAULT on the materialized database ***
         finds the instance of class SimpleEntity where the name corresponds to the name of the class of self
         '''
-        if class_name == "":
-            return SimpleEntity.objects.using(db_alias).get(name=self.__class__.__name__)
-        else:
-            return SimpleEntity.objects.using(db_alias).get(name=class_name)
-
+        logger = utils.poor_mans_logger()
+        try:
+            if class_name == "":
+                return SimpleEntity.objects.using(db_alias).get(name=self.__class__.__name__)
+            else:
+                return SimpleEntity.objects.using(db_alias).get(name=class_name)
+        except:
+            logger.error('get_simple_entity - db_alias = ' + db_alias + ' - class_name self.__class__.__name__= ' + class_name + " " + self.__class__.__name__)
+            
     def entities(self):
         '''
         Lists the entities associated whose entry point is the instance of class SimpleEntity corresponding to the class of self
@@ -221,7 +225,11 @@ class SerializableSimpleEntity(models.Model):
             if getattr(self, fk) is None:
                 # the attribute is not set so I can't get its __class__.__name__ and I take it from the model
                 class_name = self._meta.get_field(fk).rel.model.__name__
-                etn_fk.simple_entity = self.get_simple_entity(class_name)
+                try:
+                    etn_fk.simple_entity = self.get_simple_entity(class_name)
+                except Exception as ex:
+                    logger = utils.poor_mans_logger()
+                    logger.error("shallow_entity_structure_node class_name = " + class_name + " - " + ex.message)
             else:
                 etn_fk.simple_entity = getattr(self, fk).get_simple_entity()
             etn_fk.external_reference=True
@@ -245,8 +253,8 @@ class SerializableSimpleEntity(models.Model):
             If I have already exported this instance I don't want to duplicate all details hence I just export it's URIInstance, 
             name and SimpleEntity URI. Then I need to add an attribute so that when importing it I will recognize that its details
             are somewhere else in the file
-            <EntityStructureNode URISimpleEntity="....." URIInstance="...." attribute="...." KS_TAG_WITH_NO_DATA=""
-            the TAG "KS_TAG_WITH_NO_DATA" is used to mark the fact that the details of this SimpleEntity are somewhere else in the file
+            <EntityStructureNode URISimpleEntity="....." URIInstance="...." attribute="...." REFERENCE_IN_THIS_FILE=""
+            the TAG "REFERENCE_IN_THIS_FILE" is used to mark the fact that the details of this SimpleEntity are somewhere else in the file
         '''
         format = format.upper()
         serialized = ""
@@ -262,13 +270,13 @@ class SerializableSimpleEntity(models.Model):
         if self.URIInstance and self.URIInstance in exported_instances and etn.simple_entity.name_field:
             if format == 'XML':
                 xml_name = " " + etn.simple_entity.name_field + "=\"" + getattr(self, etn.simple_entity.name_field) + "\""
-                return '<' + tag_name + ' KS_TAG_WITH_NO_DATA=\"\"' + self.serialized_URI_SE(format) + xml_name + ' URIInstance="' + self.URIInstance + '"/>'  
+                return '<' + tag_name + ' REFERENCE_IN_THIS_FILE=\"\"' + self.serialized_URI_SE(format) + xml_name + ' URIInstance="' + self.URIInstance + '"/>'  
             if format == 'JSON':
                 xml_name = ' "' + etn.simple_entity.name_field + '" : "' + getattr(self, etn.simple_entity.name_field) + '"'
                 if etn.is_many:
-                    return ' { "KS_TAG_WITH_NO_DATA" : \"\", ' + self.serialized_URI_SE(format) + ", " + xml_name + ', "URIInstance": "' + self.URIInstance + '"} '
+                    return ' { "REFERENCE_IN_THIS_FILE" : \"\", ' + self.serialized_URI_SE(format) + ", " + xml_name + ', "URIInstance": "' + self.URIInstance + '"} '
                 else:
-                    return '"' + tag_name + '" : { "KS_TAG_WITH_NO_DATA" : \"\", ' + self.serialized_URI_SE(format) + ", " + xml_name + ', "URIInstance": "' + self.URIInstance + '"}'  
+                    return '"' + tag_name + '" : { "REFERENCE_IN_THIS_FILE" : \"\", ' + self.serialized_URI_SE(format) + ", " + xml_name + ', "URIInstance": "' + self.URIInstance + '"}'  
         
         exported_instances.append(self.URIInstance) 
         if not etn.external_reference:
@@ -621,14 +629,14 @@ class SerializableSimpleEntity(models.Model):
             if field_name:
                 setattr(self, field_name, parent)
         '''
-        Some TAGS have no data (attribute KS_TAG_WITH_NO_DATA is present) because the instance they describe
+        Some TAGS have no data (attribute REFERENCE_IN_THIS_FILE is present) because the instance they describe
         is present more than once in the XML file and the export doesn't replicate data; hence either
            I have it already in the database so I can load it
         or
            I have to save this instance but I will find its attribute later in the imported file
         '''
         try:
-            xmldoc.attributes["KS_TAG_WITH_NO_DATA"]
+            xmldoc.attributes["REFERENCE_IN_THIS_FILE"]
             # if the TAG is not there an exception will be raised and the method will continue and expect to find all data
             module_name = entity_structure_node.simple_entity.module
             actual_class = utils.load_class(module_name + ".models", entity_structure_node.simple_entity.name) 
@@ -648,12 +656,12 @@ class SerializableSimpleEntity(models.Model):
                         self.SetNotNullFields()
                         self.save()
                     except:
-                        logger.error("Error in KS_TAG_WITH_NO_DATA TAG setting attribute URIInstance for instance of class " + self.__class__.__name__)
-            #let's exit, nothing else to do, it's a KS_TAG_WITH_NO_DATA
+                        logger.error("Error in REFERENCE_IN_THIS_FILE TAG setting attribute URIInstance for instance of class " + self.__class__.__name__)
+            #let's exit, nothing else to do, it's a REFERENCE_IN_THIS_FILE
             return
              
         except:
-            #nothing to do, there is no KS_TAG_WITH_NO_DATA attribute
+            #nothing to do, there is no REFERENCE_IN_THIS_FILE attribute
             pass
         for key in self._meta.fields:
             '''
@@ -937,7 +945,6 @@ class KnowledgeServer(SerializableSimpleEntity):
                 message += "process_events, events error: " + e.message
                 print (str(e))
         return message + "<br>"
-    
     
     def send_notifications(self):
         '''

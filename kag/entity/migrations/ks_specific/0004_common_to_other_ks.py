@@ -7,14 +7,7 @@ from license.models import License
 
 def forwards_func(apps, schema_editor):
     this_ks = KnowledgeServer.this_knowledge_server('default')
-    seLicense=SimpleEntity();seLicense.name="License";seLicense.module="license";seLicense.save(using='default')
-    m_seLicense=seLicense
-    id_on_default_db = seLicense.id
-    m_seLicense.id=None
-    m_seLicense.save(using='ksm')
-    # The following line is needed to make sure that seLicense._state.db is 'default'; 
-    # before the following line it would be 'ksm'
-    seLicense = SimpleEntity.objects.using('default').get(pk=id_on_default_db)
+    seLicense = SimpleEntity.objects.using('default').get(name="License")
     
     en1=EntityStructureNode();en1.simple_entity=seLicense;en1.save(using='default')
     esLicense=EntityStructure();esLicense.multiple_releases=True;esLicense.is_shallow = True;
