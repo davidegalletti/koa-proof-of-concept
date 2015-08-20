@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+
+
+{% block content %}
+	<div class="row-fluid">
+		
+		<h2>{{ dataset.entity_structure.name }}{% if actual_instance %} - "{{ actual_instance.name }}"{% endif %} with URI {{ dataset.URIInstance }} </h2>
+    	<p> Get the data in <a href="{% url 'api_dataset' base64_dataset_URIInstance "XML" %}">XML</a> or <a href="{% url 'api_dataset' base64_dataset_URIInstance "JSON" %}">JSON</a>.<br>
+    	{% if actual_instance %}{% browse_json_data actual_instance actual_instance_json sn %}{% endif %}
+    </div>
+{% endblock %}

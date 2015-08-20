@@ -17,7 +17,7 @@
         <ul>
         {% for structure in owned_structures %}
             <li>
-                <a href="{% url 'browse_entity_instance' ks_url structure.URIInstance "browse" %}">{{ structure.actual_instance_name }}</a> ( <a href="{% url 'browse_entity_instance' ks_url structure.URIInstance "xml" %}">xml</a> | <a href="{% url 'browse_entity_instance' ks_url structure.URIInstance "json" %}">json</a> )
+                <a href="{% url 'browse_dataset' ks_url structure.URIInstance "browse" %}">{{ structure.actual_instance_name }}</a> ( <a href="{% url 'browse_dataset' ks_url structure.URIInstance "xml" %}">xml</a> | <a href="{% url 'browse_dataset' ks_url structure.URIInstance "json" %}">json</a> )
             </li>
         {% endfor %}
         </ul>
@@ -27,7 +27,7 @@
         <ul>
         {% for structure in other_structures %}
             <li>
-                <a href="{% url 'browse_entity_instance' ks_url structure.URIInstance "browse" %}">{{ structure.actual_instance_name }}</a> ( <a href="{% url 'browse_entity_instance' ks_url structure.URIInstance "xml" %}">xml</a> | <a href="{% url 'browse_entity_instance' ks_url structure.URIInstance "json" %}">json</a> ) - <a href="{% url 'redirect_to_base64_oks_url' structure.oks_URIInstance  %}" target="_blank">{{ structure.oks_name }}</a>
+                <a href="{% url 'browse_dataset' ks_url structure.URIInstance "browse" %}">{{ structure.actual_instance_name }}</a> ( <a href="{% url 'browse_dataset' ks_url structure.URIInstance "xml" %}">xml</a> | <a href="{% url 'browse_dataset' ks_url structure.URIInstance "json" %}">json</a> ) - <a href="{% url 'redirect_to_base64_oks_url' structure.oks_URIInstance  %}" target="_blank">{{ structure.oks_name }}</a>
             </li>
         {% endfor %}
         </ul>

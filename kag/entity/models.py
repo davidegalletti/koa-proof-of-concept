@@ -180,6 +180,9 @@ class SerializableSimpleEntity(models.Model):
                 if format == 'JSON':
                     attributes += comma + '"' + key.name + '" : "' + str(value) + '"'
                     comma = ", "
+                if format == 'HTML':
+                    attributes += comma + '"' + key.name + '" : "' + str(value) + '"'
+                    comma = "<br>"
         return attributes
 
     def shallow_entity_structure(self, db_alias = 'default'):
@@ -952,8 +955,8 @@ class KnowledgeServer(SerializableSimpleEntity):
                 this_es = EntityStructure.objects.get(URIInstance=notification.event.entity_instance.entity_structure.URIInstance)
                 ei_of_this_es = EntityInstance.objects.get(entry_point_instance_id=this_es.id, entity_structure=es)
                 values = { 'root_URIInstance' : notification.event.entity_instance.URIInstance,
-                           'URL_dataset' : this_ks.uri() + reverse('api_export_instance', args=(base64.encodestring(notification.event.entity_instance.URIInstance).replace('\n',''),"XML",)),
-                           'URL_structure' : this_ks.uri() + reverse('api_export_instance', args=(base64.encodestring(ei_of_this_es.URIInstance).replace('\n',''),"XML",)),
+                           'URL_dataset' : this_ks.uri() + reverse('api_dataset', args=(base64.encodestring(notification.event.entity_instance.URIInstance).replace('\n',''),"XML",)),
+                           'URL_structure' : this_ks.uri() + reverse('api_dataset', args=(base64.encodestring(ei_of_this_es.URIInstance).replace('\n',''),"XML",)),
                            'type' : notification.event.type,
                            'timestamp' : notification.event.timestamp, }
                 data = urllib.urlencode(values)
@@ -982,9 +985,9 @@ class KnowledgeServer(SerializableSimpleEntity):
                 # TODO: in the future we will retrieve it from notification.URL_structure
                 # now we assume that we find it in dataset_xml_stream like this:
                 # <Export  ....><EntityInstance ....><entity_structure URIInstance="http://rootks.thekoa.org/entity/EntityStructure/2"  
-                # http://127.0.0.1:8000/ks/api/export_instance/aHR0cDovL3Jvb3Rrcy50aGVrb2Eub3JnL2VudGl0eS9FbnRpdHlJbnN0YW5jZS8xNg==/xml/
+                # http://127.0.0.1:8000/ks/api/entity_instance/aHR0cDovL3Jvb3Rrcy50aGVrb2Eub3JnL2VudGl0eS9FbnRpdHlJbnN0YW5jZS8xNg==/xml/
                 
-                # the dataset is retrieved with api #36 api_entity_instance that serializes
+                # the dataset is retrieved with api #36 api_dataset that serializes
                 # the EntityInstance and also the complete actual instance 
                 # from_xml_with_actual_instance will create the EntityInstance and the actual instance
                 response = urllib2.urlopen(notification.URL_dataset)
@@ -1192,6 +1195,9 @@ class EntityInstance(SerializableSimpleEntity):
     version_minor = models.IntegerField(null=True, blank=True)
     version_patch = models.IntegerField(null=True, blank=True)
     version_description = models.CharField(max_length=2000L, default = "")
+    # dataset_date is the date of the release of the dataset; e.g. 
+    dataset_date = models.DateTimeField(null=True, blank=True)
+    # version_date is the date this version has been released in the OKS
     version_date = models.DateTimeField(auto_now_add=True)
     '''
     Assert: If self.entity_structure.multiple_releases==False: at most one instance with the same root_version_id has version_released = True
@@ -1456,7 +1462,10 @@ class EntityInstance(SerializableSimpleEntity):
         
     def get_latest(self, released = None):
         '''
-        gets the latest version starting from any EntityInstance in the version set 
+        gets the latest version starting from any EntityInstance in the version set
+        it can be either released or not    if released is None:
+        if released == True: the latest released one
+        if released == False: the latest unreleased one
         '''
         if released is None: # I take the latest regardless of the fact that it is released or not
             version_major__max = EntityInstance.objects.filter(root = self.root).aggregate(Max('version_major'))['version_major__max']
@@ -1605,6 +1614,9 @@ class KsUri(object):
                         self.pk_value = temp_path
                         self.is_sintactically_correct = True
 
+    def base64(self):
+        return base64.encodestring(self.uri).replace('\n','')
+        
     def search_on_db(self):
         '''
         Database check

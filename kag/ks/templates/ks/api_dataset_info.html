@@ -4,16 +4,13 @@
 
 {% block content %}
 	<div class="row-fluid">
-		<h2>The data set with URI<br>{{ entity_instance.URIInstance }} </h2>
-    	<h3>... is:</h3>
+		<h3>Dataset {{ entity_instance.URIInstance }} </h3>
     	{% version_instance_info entity_instance instances %}
-    	<h3>The owner is:</h3>
+    	<h4>Owned by:</h4>
     	{% ks_info ks %}
-        <h3>The structure (more info - XML - JSON) is:</h3>
+        <h3>The structure is:</h3>
          <p><strong>{{ entity_instance.entity_structure.name }}</strong> <br>
          <i>{{ entity_instance.entity_structure.description }}</i></p>
-         <h4>The structure is owned by:</h4>
-         <p>reperire il ks owner di una SerializableSimpleEntity</p>
          {% if all_versions_with_instances|length > 0 %}
 			<h3>... has the following versions:</h3> 
 			<ul>

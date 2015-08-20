@@ -7,11 +7,11 @@ register = template.Library()
 
 @register.simple_tag
 def ks_info(ks, *args, **kwargs):
-    ret_html = "<p>" + ks.uri() + "<br><a href=\"" + ks.scheme + "://" + ks.netloc + "/\" target=\"_blank\">" + ks.name + "</a>"
+    ret_html = "<p>" + ks.name
     if hasattr(ks, "organization"):
-        ret_html += "<br>Maintained by \"<a href=\"" + ks.organization.website + "\" target=\"_blank\">" + ks.organization.name + '</a>"</p>'
-    else:
-        ret_html += "</p>"
+        ret_html += '<br>Maintained by "<a href="' + ks.organization.website + '" target="_blank">' + ks.organization.name + '</a>"'
+    ret_html += '<br><a href="' + ks.uri() + '/" target="_blank">' + ks.uri() + '</a>'
+    
     return ret_html
 
 @register.simple_tag
@@ -19,24 +19,25 @@ def version_instance_info(entity_instance, instances, *args, **kwargs):
     base64_EntityInstance_URIInstance = base64.encodestring(entity_instance.URIInstance).replace('\n','')
     ret_string = ''
     for instance in instances:
-        ret_string +=  '<p>"' + instance.name + '" (<a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"html")) + '">browse</a> the data or'
-        ret_string += ' get it in <a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"XML")) + '">XML</a> or '
-        ret_string += '<a href="' + reverse('api_export_instance', args=(base64_EntityInstance_URIInstance,"JSON")) + '">JSON</a>)<br>'
+        ret_string +=  '<p>"' + instance.name + '" (<a href="' + reverse('api_dataset', args=(base64_EntityInstance_URIInstance,"html")) + '">browse</a> the data or'
+        ret_string += ' get it in <a href="' + reverse('api_dataset', args=(base64_EntityInstance_URIInstance,"XML")) + '">XML</a> or '
+        ret_string += '<a href="' + reverse('api_dataset', args=(base64_EntityInstance_URIInstance,"JSON")) + '">JSON</a>)<br>'
         ret_string += 'Version ' + str(entity_instance.version_major) + '.' + str(entity_instance.version_minor) + '.' + str(entity_instance.version_patch) + ' - ' + str(entity_instance.version_date) + '</p>'
     return ret_string
 
 @register.simple_tag
-def browse_json_data(exported_json, esn, *args, **kwargs):
-    json_data = json.loads(exported_json)['Export'][esn.simple_entity.name]
+def browse_json_data(actual_instance, exported_json, esn, *args, **kwargs):
+    json_data = json.loads(exported_json)[esn.simple_entity.name]
     
-    return json_to_html(json_data, esn)
+    return json_to_html(actual_instance, json_data, esn)
 
-def json_to_html(json_data, esn, indent_level=0):
+def json_to_html(actual_instance, json_data, esn, indent_level=0):
     try:
         ret_html = ""
         if esn.attribute == "":
             # no attribute, I am at the entry point
             ret_html = (indent_level * "--&nbsp;") + " " + esn.simple_entity.name + ': "<a href="' + json_data["URIInstance"] + '">' + json_data[esn.simple_entity.name_field] +'</a>"<br>'
+            ret_html += actual_instance.serialized_attributes(format = 'HTML')
         else:
             if esn.is_many:
                 json_children = json_data[esn.attribute]

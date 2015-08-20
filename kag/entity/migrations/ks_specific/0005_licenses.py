@@ -57,8 +57,7 @@ def forwards_func(apps, schema_editor):
     adrm.url_info = "http://opendefinition.org/licenses/against-drm"
     adrm.reccomended_by_opendefinition = False
     adrm.conformant_for_opendefinition = True
-    adrm.legalcode = '''
-    '''
+    adrm.legalcode = ''
     adrm.save(using='default')
     ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=adrm.id, version_major=2,version_minor=0,version_patch=0,version_description="",version_released=True)
     ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
@@ -73,8 +72,7 @@ def forwards_func(apps, schema_editor):
     ccby10.url_info = "http://creativecommons.org/licenses/by/1.0"
     ccby10.reccomended_by_opendefinition = False
     ccby10.conformant_for_opendefinition = True
-    ccby10.legalcode = '''
-    '''
+    ccby10.legalcode = ''
     ccby10.save(using='default')
     ei_ccby10 = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=ccby10.id, version_major=1,version_minor=0,version_patch=0,version_description="",version_released=True)
     ei_ccby10.save(using='default');ei_ccby10.root_id=ei_ccby10.id;ei_ccby10.save(using='default')
@@ -91,8 +89,7 @@ def forwards_func(apps, schema_editor):
     cczero.url_info = "http://opendefinition.org/licenses/cc-zero"
     cczero.reccomended_by_opendefinition = True
     cczero.conformant_for_opendefinition = True
-    cczero.legalcode = '''
-    '''
+    cczero.legalcode = ''
     cczero.save(using='default')
     ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=cczero.id, version_major=1,version_minor=0,version_patch=0,version_description="",version_released=True)
     ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
@@ -107,8 +104,7 @@ def forwards_func(apps, schema_editor):
     pddl.url_info = "http://opendefinition.org/licenses/odc-pddl"
     pddl.reccomended_by_opendefinition = True
     pddl.conformant_for_opendefinition = True
-    pddl.legalcode = '''
-    '''
+    pddl.legalcode = ''
     pddl.save(using='default')
     ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=pddl.id, version_major=1,version_minor=0,version_patch=0,version_description="",version_released=True)
     ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
@@ -123,8 +119,7 @@ def forwards_func(apps, schema_editor):
     ccby40.url_info = "http://creativecommons.org/licenses/by/4.0"
     ccby40.reccomended_by_opendefinition = True
     ccby40.conformant_for_opendefinition = True
-    ccby40.legalcode = '''
-    '''
+    ccby40.legalcode = ''
     ccby40.save(using='default')
     # note that version_released=False
     ei = EntityInstance(owner_knowledge_server=test_license_org_ks,root_id=ei_ccby10.id,entity_structure=esLicense, entry_point_instance_id=ccby40.id, version_major=4,version_minor=0,version_patch=0,version_description="",version_released=False)
@@ -141,8 +136,7 @@ def forwards_func(apps, schema_editor):
     odcby.url_info = "http://opendefinition.org/licenses/odc-by"
     odcby.reccomended_by_opendefinition = True
     odcby.conformant_for_opendefinition = True
-    odcby.legalcode = '''
-    '''
+    odcby.legalcode = ''
     odcby.save(using='default')
     ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=odcby.id, version_major=1,version_minor=0,version_patch=0,version_description="",version_released=True)
     ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
@@ -157,8 +151,7 @@ def forwards_func(apps, schema_editor):
     ccbysa40.url_info = "http://opendefinition.org/licenses/cc-by-sa"
     ccbysa40.reccomended_by_opendefinition = True
     ccbysa40.conformant_for_opendefinition = True
-    ccbysa40.legalcode = '''
-    '''
+    ccbysa40.legalcode = ''
     ccbysa40.save(using='default')
     ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=ccbysa40.id, version_major=4,version_minor=0,version_patch=0,version_description="",version_released=True)
     ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
@@ -173,8 +166,7 @@ def forwards_func(apps, schema_editor):
     odbl.url_info = "http://opendefinition.org/licenses/odc-odbl"
     odbl.reccomended_by_opendefinition = True
     odbl.conformant_for_opendefinition = True
-    odbl.legalcode = '''
-    '''
+    odbl.legalcode = ''
     odbl.save(using='default')
     ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entity_structure=esLicense, entry_point_instance_id=odbl.id, version_major=1,version_minor=0,version_patch=0,version_description="",version_released=True)
     ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')

@@ -44,10 +44,10 @@ def api_simple_entity_definition(request, base64_SimpleEntity_URIInstance, forma
         exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
         return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
 
-def api_entity_instance(request, base64_EntityInstance_URIInstance, format):
+def api_dataset(request, base64_EntityInstance_URIInstance, format):
     '''
         #36
-        It returns the EntityInstance with the URIInstance in the parameter 
+        It returns the dataset with the URIInstance in the parameter 
         
         parameter:
         * base64_EntityInstance_URIInstance: URIInstance of the EntityInstance base64 encoded
@@ -59,16 +59,28 @@ def api_entity_instance(request, base64_EntityInstance_URIInstance, format):
     '''
     format = format.upper()
     URIInstance = base64.decodestring(base64_EntityInstance_URIInstance)
-    ei = EntityInstance.retrieve(EntityInstance, URIInstance, False)
-
+    dataset = EntityInstance.retrieve(EntityInstance, URIInstance, False)
+    actual_instance = ""
+    actual_instance_json = ""
+    if not dataset.entity_structure.is_a_view:
+        actual_instance = dataset.get_instance()
+    base64_dataset_URIInstance = KsUri(dataset.URIInstance).base64()
+    
+    if format == 'HTML' or format == 'BROWSE':
+        actual_instance_json = '{' + actual_instance.serialize(dataset.entity_structure.entry_point, format='json', exported_instances = []) + '}'
     if format == 'JSON':
-        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstance" : ' + ei.serialize_with_actual_instance(format = format) + ' } }'
+        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstance" : ' + dataset.serialize_with_actual_instance(format = 'JSON') + ' } }'
         return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
     if format == 'XML':
-        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\">" + ei.serialize_with_actual_instance(format = format) + "</Export>"
+        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\">" + dataset.serialize_with_actual_instance(format = format) + "</Export>"
         xmldoc = minidom.parseString(exported_xml)
         exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
         return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
+    if format == 'HTML' or format == 'BROWSE':
+        this_ks = KnowledgeServer.this_knowledge_server()
+        cont = RequestContext(request, {'dataset': dataset, 'actual_instance': actual_instance, 'actual_instance_json': actual_instance_json, 'sn': dataset.entity_structure.entry_point, 'base64_dataset_URIInstance': base64_dataset_URIInstance, 'this_ks':this_ks, 'this_ks_base64_url':this_ks.uri(True)})
+        return render_to_response('ks/browse_dataset.html', context_instance=cont)
+        pass
 
 def api_catch_all(request, uri_instance):
     '''
@@ -128,7 +140,7 @@ def api_entity_structures(request, format):
             None
         
         Implementation:
-            Invoking api_entity_instances #64 with parameter "EntityStructure-EntityStructureNode-Application"
+            Invoking api_datasets #64 with parameter "EntityStructure-EntityStructureNode-Application"
             so that I get all the EntitieStructures in this_ks in a shallow export
     '''
     # Look for all EntityStructure of type "EntityStructure-EntityStructureNode-Application" ...
@@ -139,9 +151,9 @@ def api_entity_structures(request, format):
     ei = EntityInstance.objects.get(version_released=True, entry_point_instance_id__in=entities_id, entity_structure_id__in=entities_id)
     e = EntityStructure.objects.get(pk=ei.entry_point_instance_id)
     
-    return api_entity_instances(request, base64.encodestring(e.URIInstance).replace('\n',''), format)
+    return api_datasets(request, base64.encodestring(e.URIInstance).replace('\n',''), format)
 
-def api_entity_instance_info(request, base64_EntityInstance_URIInstance, format):
+def api_dataset_info(request, base64_EntityInstance_URIInstance, format):
     '''
         #52 
         
@@ -191,24 +203,27 @@ def api_entity_instance_info(request, base64_EntityInstance_URIInstance, format)
             if v.URIInstance != entity_instance.URIInstance:
                 version_with_instance = {}
                 version_with_instance['entity_instance'] = v
-                version_with_instance['simple_entity'] = v.get_instance()
+                version_with_instance['simple_entity'] = []
+                # views have no version by themselves; only their components have and they can be different
+                # so if we are here we are not in a view hence there is just one instance: 
+                #         I invoke .get_instance() and not .get_instances()
+                version_with_instance['simple_entity'].append(v.get_instance())
                 all_versions_with_instances.append(version_with_instance)
         cont = RequestContext(request, {'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'entity_instance': entity_instance, 'all_versions_with_instances': all_versions_with_instances, 'ks': entity_instance.owner_knowledge_server, 'instances': instances})
-        return render_to_response('ks/api_entity_instance_info.html', context_instance=cont)
+        return render_to_response('ks/api_dataset_info.html', context_instance=cont)
     
-def api_entity_instances(request, base64_EntityStructure_URIInstance, format):
+def api_datasets(request, base64_EntityStructure_URIInstance, format):
     '''
         http://redmine.davide.galletti.name/issues/64
-        all the instances of a given structure
+        all the released datasets of a given structure/type
         
         parameter:
         * format { 'XML' | 'JSON' }
         * base64_Entity_URIInstance: URIInstance of the EntityStructure base64 encoded
         
         Implementation:
-        # it fetches the EntityStructure from the DB, look for all the EntityInstance
-        # of that EntityStructure; it takes the latest version of each versionset
-        # and returns the list
+        # it fetches the structure from the DB, looks for all the datasets
+        # with that structure; if it is not a view only those that are released; 
     '''
     format = format.upper()
     URIInstance = base64.decodestring(base64_EntityStructure_URIInstance)
@@ -216,12 +231,13 @@ def api_entity_instances(request, base64_EntityStructure_URIInstance, format):
     
     # Now I need to get all the released EntityInstance of the EntityStructure passed as a parameter
     if e.is_a_view:
-        released_entity_instances = EntityInstance.objects.filter(entity_structure = e, version_released=False)
+        # version_released is not relevant for views
+        released_dataset = EntityInstance.objects.filter(entity_structure = e)
     else:
-        released_entity_instances = EntityInstance.objects.filter(entity_structure = e, version_released=True)
+        released_dataset = EntityInstance.objects.filter(entity_structure = e, version_released=True)
     serialized = ""
     comma = ""
-    for ei in released_entity_instances:
+    for ei in released_dataset:
         if format == 'JSON':
             serialized += comma
         serialized += ei.serialize_with_actual_instance(format = format, force_external_reference=True)
@@ -282,7 +298,7 @@ def ks_explorer_form(request):
     cont = RequestContext(request, {'form':form, 'this_ks':this_ks, 'this_ks_base64_url':this_ks.uri(True)})
     return render_to_response('ks/ks_explorer_form.html', context_instance=cont)
 
-def browse_entity_instance(request, ks_url, base64URIInstance, format):
+def browse_dataset(request, ks_url, base64URIInstance, format):
     ks_url = base64.decodestring(ks_url)
     this_ks = KnowledgeServer.this_knowledge_server()
     format = format.upper()
@@ -310,9 +326,9 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
     
     
     if format == 'XML':
-        local_url = reverse('api_entity_instances', args=(base64URIInstance,format))
+        local_url = reverse('api_datasets', args=(base64URIInstance,format))
     if format == 'JSON' or format == 'BROWSE':
-        local_url = reverse ('api_entity_instances', args=(base64URIInstance,'JSON'))
+        local_url = reverse ('api_datasets', args=(base64URIInstance,'JSON'))
     response = urllib2.urlopen(ks_url + local_url)
     entities = response.read()
     if format == 'XML':
@@ -344,7 +360,7 @@ def browse_entity_instance(request, ks_url, base64URIInstance, format):
                 entity['subscribed'] = True
             entities.append(entity)
         cont = RequestContext(request, {'entities':entities, 'organization': organization, 'this_ks': this_ks, 'external_ks': external_ks, 'es_info_json': es_info_json})
-        return render_to_response('ks/browse_entity_instance.html', context_instance=cont)
+        return render_to_response('ks/list_dataset.html', context_instance=cont)
     
 def home(request):
     this_ks = KnowledgeServer.this_knowledge_server()
@@ -367,48 +383,7 @@ def api_ks_info(request, format):
     es = EntityStructure.objects.get(name = EntityStructure.organization_entity_structure_name)
     ei = EntityInstance.objects.get(entity_structure=es, entry_point_instance_id=this_ks.organization.id)
     base64_EntityInstance_URIInstance = base64.encodestring(ei.URIInstance).replace('\n','')
-    return api_entity_instance(request, base64_EntityInstance_URIInstance, format)
-    if format == 'XML':
-        exported_xml = "<Export EntityStructureName=\"" + es.name + "\" EntityStructureURI=\"" + es.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + this_ks.organization.serialize(es.entry_point, exported_instances = []) + "</Export>"
-        xmldoc = minidom.parseString(exported_xml)
-        exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
-        return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
-    if format == 'JSON':
-        exported_json = '{ "Export" : { "EntityStructureName" : "' + es.name + '", "EntityStructureURI" : "' + es.URIInstance + '", "ExportDateTime" : "' + str(datetime.now()) + '", ' + this_ks.organization.serialize(es.entry_point, format=format, exported_instances = []) + ' } }'
-        return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
-
-def api_export_instance(request, base64_EntityInstance_URIInstance, format):
-    '''
-        #110 duplicates #36 = api_entity_instance
-        
-        Parameters:
-        * format { 'XML' | 'JSON' | 'HTML' = 'BROWSE' }
-        * base64_EntityInstance_URIInstance: URIInstance of the EntityInstance base64 encoded
-        
-        Implementation:
-        it fetches the EntityInstance, then the SimpleEntity
-        it returns SimpleEntity.serialize according to the EntityStructure and the format
-
-    '''
-    return api_entity_instance(request, base64_EntityInstance_URIInstance, format)
-
-    format = format.upper()
-    URIInstance = base64.decodestring(base64_EntityInstance_URIInstance)
-    entity_instance = EntityInstance.retrieve(EntityInstance, URIInstance, False)
-    simple_entity = entity_instance.get_instance()
-    entity_instance.ser
-    if format == 'XML':
-        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\" EntityStructureURI=\"" + entity_instance.entity_structure.URIInstance + "\">" + simple_entity.serialize(etn = entity_instance.entity_structure.entry_point, exported_instances = [], format = format) + "</Export>"
-        xmldoc = minidom.parseString(exported_xml)
-        exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
-        return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
-    if format == 'JSON' or format == 'HTML' or format == 'BROWSE':
-        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityStructureURI" : "' + entity_instance.entity_structure.URIInstance + '", ' + simple_entity.serialize(etn = entity_instance.entity_structure.entry_point, exported_instances = [], format = "JSON") + ' } }'
-        if format == 'JSON':
-            return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
-        else:
-            cont = RequestContext(request, {'etn': entity_instance.entity_structure.entry_point, 'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'entity_instance': entity_instance, 'exported_json': exported_json, 'simple_entity': simple_entity})
-            return render_to_response('ks/api_export_instance.html', context_instance=cont)
+    return api_dataset(request, base64_EntityInstance_URIInstance, format)
     
 def api_root_uri(request, base64_URIInstance):
     '''
