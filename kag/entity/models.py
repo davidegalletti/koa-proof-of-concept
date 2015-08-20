@@ -961,7 +961,7 @@ class KnowledgeServer(SerializableSimpleEntity):
                 es = EntityStructure.objects.using('default').get(URIInstance = m_es.URIInstance)
                 this_es = EntityStructure.objects.get(URIInstance=notification.event.entity_instance.entity_structure.URIInstance)
                 ei_of_this_es = EntityInstance.objects.get(entry_point_instance_id=this_es.id, entity_structure=es)
-                values = { 'root_URIInstance' : notification.event.entity_instance.URIInstance,
+                values = { 'root_URIInstance' : notification.event.entity_instance.root.URIInstance,
                            'URL_dataset' : this_ks.uri() + reverse('api_dataset', args=(base64.encodestring(notification.event.entity_instance.URIInstance).replace('\n',''),"XML",)),
                            'URL_structure' : this_ks.uri() + reverse('api_dataset', args=(base64.encodestring(ei_of_this_es.URIInstance).replace('\n',''),"XML",)),
                            'type' : notification.event.type,

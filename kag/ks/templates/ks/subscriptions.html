@@ -68,7 +68,7 @@
 	<h4>No notifications received</h4>
 	{% endif %}
 	<p/>
-	{% if events or notifications_to_be_sent or received_notifications %}
+	{% if events or notifications_to_be_sent or received_notifications or subscriptions_to_this %}
 		<h4>You should run <a target="_blank" href="{% url 'cron' %}">cron</a> to process incoming and outgoing notifications.</h4>
     {% else %}
 		<h4>Nothing to process. If you still want to run cron click <a target="_blank" href="{% url 'cron' %}">here</a>.</h4>
