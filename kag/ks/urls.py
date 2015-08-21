@@ -28,7 +28,7 @@ urlpatterns = patterns('',
     #64: 
     url(r'^api/datasets/(?P<base64_EntityStructure_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_datasets, name='api_datasets'),
     #46:
-    url(r'^api/entity_structures/(?P<format>.*)/$', views.api_entity_structures, name='api_entity_structures'), 
+    url(r'^api/dataset_types/(?P<format>.*)/$', views.api_dataset_types, name='api_dataset_types'), 
     #52
     url(r'^api/dataset_info/(?P<base64_EntityInstance_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_dataset_info, name='api_dataset_info'),
     #80:

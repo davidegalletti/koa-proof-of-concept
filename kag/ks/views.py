@@ -134,7 +134,7 @@ def api_catch_all(request, uri_instance):
             exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
             return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
 
-def api_entity_structures(request, format):
+def api_dataset_types(request, format):
     '''
         parameters:
             None
@@ -270,7 +270,7 @@ def ks_explorer(request):
                 explored_ks = ks
             
         # info about structures on the remote ks
-        local_url = reverse('api_entity_structures', args=("JSON",))
+        local_url = reverse('api_dataset_types', args=("JSON",))
         response = urllib2.urlopen(ks_url + local_url)
         entities_json = response.read()
         # parsing json
