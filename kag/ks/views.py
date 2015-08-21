@@ -209,7 +209,8 @@ def api_dataset_info(request, base64_EntityInstance_URIInstance, format):
                 #         I invoke .get_instance() and not .get_instances()
                 version_with_instance['simple_entity'].append(v.get_instance())
                 all_versions_with_instances.append(version_with_instance)
-        cont = RequestContext(request, {'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'entity_instance': entity_instance, 'all_versions_with_instances': all_versions_with_instances, 'ks': entity_instance.owner_knowledge_server, 'instances': instances})
+        this_ks = KnowledgeServer.this_knowledge_server()
+        cont = RequestContext(request, {'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'entity_instance': entity_instance, 'all_versions_with_instances': all_versions_with_instances, 'ks': entity_instance.owner_knowledge_server, 'instances': instances, 'this_ks':this_ks, 'this_ks_base64_url':this_ks.uri(True) })
         return render_to_response('ks/api_dataset_info.html', context_instance=cont)
     
 def api_datasets(request, base64_EntityStructure_URIInstance, format):
@@ -359,7 +360,7 @@ def browse_dataset(request, ks_url, base64URIInstance, format):
             if ei['root']['URIInstance'] in subscribed_root_URIInstances:
                 entity['subscribed'] = True
             entities.append(entity)
-        cont = RequestContext(request, {'entities':entities, 'organization': organization, 'this_ks': this_ks, 'external_ks': external_ks, 'es_info_json': es_info_json})
+        cont = RequestContext(request, {'entities':entities, 'organization': organization, 'this_ks':this_ks, 'this_ks_base64_url':this_ks.uri(True), 'external_ks': external_ks, 'es_info_json': es_info_json})
         return render_to_response('ks/list_dataset.html', context_instance=cont)
     
 def home(request):
