@@ -3,7 +3,7 @@
 import base64
 from datetime import datetime
 import json
-import urllib2
+import urllib, urllib2, urlparse
 from xml.dom import minidom
 
 from django.db import transaction
@@ -564,37 +564,8 @@ def debug(request):
     '''
     created to debug code
     '''
-    from django.db import models, migrations
-    from entity.models import KsUri, Organization, KnowledgeServer, EntityInstance, EntityStructure, SimpleEntity, EntityStructureNode
-    from license.models import License
-    from kag.utils import poor_mans_logger
-    
-    response = urllib2.urlopen('http://licenses.thekoa.org/ks/api/dataset/aHR0cDovL3Jvb3Rrcy50aGVrb2Eub3JnL2VudGl0eS9FbnRpdHlJbnN0YW5jZS8yMA==/XML/')
-    dataset_xml_stream = response.read()
-    ei = EntityInstance()
-    ei.from_xml_with_actual_instance(dataset_xml_stream)
-    dataset_xml_stream='''<?xml version="1.0" ?>
-<Export ExportDateTime="2015-08-19 11:11:18.156712">
-    <EntityInstance URIInstance="http://licenses.thekoa.org/entity/EntityInstance/24" URI_imported_instance="" URI_previous_version="" description="" entry_point_instance_id="2" filter_text="" id="24" version_date="2015-08-19 07:36:30+00:00" version_description="" version_major="1" version_minor="0" version_patch="0" version_released="True">
-        <entity_structure URIInstance="http://rootks.thekoa.org/entity/EntityStructure/6" URISimpleEntity="http://rootks.thekoa.org/entity/SimpleEntity/10" id="6" name="License"/>
-        <owner_knowledge_server URIInstance="http://licenses.thekoa.org/entity/KnowledgeServer/2" URISimpleEntity="http://rootks.thekoa.org/entity/SimpleEntity/14" id="2" name="A test Open Knowledge Server using some data from opendefinition.org."/>
-        <root URIInstance="http://licenses.thekoa.org/entity/EntityInstance/24" URISimpleEntity="http://rootks.thekoa.org/entity/SimpleEntity/13" id="24"/>
-        <ActualInstance>
-            <License URIInstance="http://licenses.thekoa.org/license/License/2" URISimpleEntity="http://rootks.thekoa.org/entity/SimpleEntity/16" URI_imported_instance="" URI_previous_version="" adaptation_shared="" attribution="True" commercial_use="" conformant_for_opendefinition="True" human_readable="" id="2" image="" image_small="" legalcode="     " name="Creative Commons Attribution 1.0" reccomended_by_opendefinition="False" share_alike="False" short_name="CC-BY-1.0" url_info="http://creativecommons.org/licenses/by/1.0"/>
-        </ActualInstance>
-    </EntityInstance>
-</Export>'''
-#     ei = EntityInstance()
-#     ei.from_xml_with_actual_instance(dataset_xml_stream)
-#     k = KsUri("http://rootks.thekoa.org/entity/SimpleEntity/1/json/")
-    
-    logger = poor_mans_logger()
     try:
-        logger.debug("debug")
-        logger.info("info")
-        logger.warning("warning")
-        logger.error("error")
-        logger.critical("critical")
-        return HttpResponse("OK")
+        return HttpResponse("OK ")
     except Exception as ex:
         return HttpResponse(ex.message)
+

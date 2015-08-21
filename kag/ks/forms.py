@@ -4,5 +4,5 @@
 from django import forms
 
 class ExploreOtherKSForm(forms.Form):
-    ks_complete_url = forms.CharField(required=True, label="KS complete URL", help_text='<protocol><domain><port><path> e.g. http://rootks.thekoa.org')
+    ks_complete_url = forms.CharField(required=True, label="KS complete URL", help_text='<protocol><domain><port><path> e.g. http://licenses.thekoa.org')
 

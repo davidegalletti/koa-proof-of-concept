@@ -13,7 +13,7 @@
 	            <li>
 	                {% if external_ks.scheme != this_ks.scheme or external_ks.netloc != this_ks.netloc %}
 	                	{% if entity.subscribed %}
-	                		<a href="{% url 'this_ks_unsubscribes_to' entity.base64URIInstance %}">Unsubscribe</a>&nbsp;
+	                		<a href="{% url 'this_ks_unsubscribes_to' entity.base64URIInstance %}"></a>&nbsp;
 	                	{% else %}
 	                		<a href="{% url 'this_ks_subscribes_to' entity.base64URIInstance %}">Subscribe</a>&nbsp;
 	                	{% endif %}
