@@ -248,3 +248,13 @@ Wide styles
 		border-bottom: 0;
 	}
 }
+
+
+/* -----------------------
+For jquery ui tooltip
+------------------------*/
+
+label {
+    display: inline-block;
+    width: 5em;
+}

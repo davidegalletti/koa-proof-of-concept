@@ -13,7 +13,11 @@
 		<!-- icons -->
 		<link rel="apple-touch-icon" href="{% static "img/apple-touch-icon.png" %}">
 		<link rel="shortcut icon" href="favicon.ico">
-
+		<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+  		<script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
+		<script src="//code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+		<script src="{% static "js/oks.js" %}"></script>
+		
 		<link rel="stylesheet" href="{% static "css/styles.css" %}">
 	</head>
 	<body>
@@ -26,16 +30,17 @@
 			<div class="container">
 				<ul class="nav">
 				    <li><a href="{% url 'home' %}">Home</a></li>
-					<li><a href="{% url 'ks_explorer' %}?ks_complete_url={{ this_ks_base64_url }}">Browse this OKS</a></li>
-					<li><a href="{% url 'ks_explorer_form' %}">Browse another OKS</a></li>
-					<li><a href="{% url 'subscriptions' %}">Subscriptions...</a></li>
-					<li><a href="http://www.c4k.it/oks" target="_blank">What is an OKS?</a></li>
+					<li><a href="{% url 'ks_explorer' %}?ks_complete_url={{ this_ks_base64_url }}" title="Browse the dataset types and actual datasets in this OKS">Browse this OKS</a></li>
+					<li><a href="{% url 'ks_explorer_form' %}" title="Browse the dataset types and actual datasets of another OKS with his homepage URL">Browse another OKS</a></li>
+					<li><a href="{% url 'subscriptions' %}" title="List of Events, Subscriptions to and from this OKS, Notifications to be sent and to be processed.">Subscriptions...</a></li>
+					<li><a href="http://www.c4k.it/oks" title="Documentation page describing an Open Knowledge Server." target="_blank">What is an OKS?</a></li>
 				</ul>
 			</div>
 		</div>
 		<div class="content">
 			<div class="container">
 				<div class="main">
+					<div id="time"></div>
 	                {% block content %}{% endblock %}
 	                {% block message %}{% endblock %}
 				</div>
@@ -43,7 +48,7 @@
 		</div>
 		<div class="footer">
 			<div class="container">
-				More info on <a href="http://www.thekoa.org" target="_blank">theKOA.org</a> - <a href="{% url 'disclaimer' %}">Please read the disclaimer</a> - 
+				More info on <a href="http://www.thekoa.org" target="_blank">theKOA.org</a> - <a href="{% url 'disclaimer' %}">Disclaimer</a> - 
 				&copy; Copyright 2015 <a href="http://www.c4k.it" target="_blank">C4K.it</a>
 			</div>
 		</div>
