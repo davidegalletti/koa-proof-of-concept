@@ -571,7 +571,7 @@ class SerializableSimpleEntity(models.Model):
         return se
 
     @classmethod
-    def retrieve(cls, URIInstance, retrieve_externally):
+    def retrieve(cls, URIInstance):
         '''
         It returns an instance of a SerializableSimpleEntity stored in this KS
         It searches first on the URIInstance field (e.g. is it already an instance of this KS? ) 
@@ -581,15 +581,11 @@ class SerializableSimpleEntity(models.Model):
         actual_instance = None
         try:
             actual_instance = cls.objects.get(URIInstance=URIInstance)
-        except:
+        except Exception as ex:
             try:
                 actual_instance = cls.objects.get(URI_imported_instance=URIInstance)
             except:
-                if retrieve_externally:
-                    #TODO: It fetches the instance from the source as it is not in this KS yet
-                    raise Exception("NOT IMPLEMENTED: It fetches the instance from the source as it is not in this KS yet")
-                else:
-                    raise Exception("Can't find instance with URI: " + URIInstance)
+                raise ex
         return actual_instance
 
     @staticmethod
@@ -641,7 +637,7 @@ class SerializableSimpleEntity(models.Model):
             module_name = entity_structure_node.simple_entity.module
             actual_class = utils.load_class(module_name + ".models", entity_structure_node.simple_entity.name) 
             try:
-                instance = actual_class.retrieve(xmldoc.attributes["URIInstance"].firstChild.data, False)
+                instance = actual_class.retrieve(xmldoc.attributes["URIInstance"].firstChild.data)
                 # It's in the database; I just need to set its parent; data is either already there or it will be updated later on
                 if parent:
                     field_name = SerializableSimpleEntity.get_parent_field_name(parent, entity_structure_node.attribute)
@@ -712,20 +708,20 @@ class SerializableSimpleEntity(models.Model):
                             else:
                                 try:
                                     # let's search it in the database
-                                    instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data, True)
+                                    instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data)
                                 except ObjectDoesNotExist:
                                     # TODO: if it is not there I fetch it using it's URI and then create it in the database
                                     pass
-                                except:
-                                    logger.error("\"" + module_name + ".models " + se.name + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data)
-                                    raise Exception("\"" + module_name + ".models " + se.name + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data)
+                                except Exception as ex:
+                                    logger.error("\"" + module_name + ".models " + se.name + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data + " " + ex.message)
+                                    raise Exception("\"" + module_name + ".models " + se.name + "\" has no instance with URIInstance \"" + xml_child_node.attributes["URIInstance"].firstChild.data + " " + ex.message)
                         else:
                             if insert:
                                 # the user asked to "always create", let's create the instance
                                 instance = actual_class()
                             else:
                                 try:
-                                    instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data, False)
+                                    instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data)
                                 except:
                                     # didn't find it; I create the instance anyway
                                     instance = actual_class()
@@ -738,9 +734,17 @@ class SerializableSimpleEntity(models.Model):
                  
         # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
         if insert:
+            #TODO: UGLY PATCH: see #143
+            if self.__class__.__name__ == 'EntityInstance':
+                self.root = None
             # but first I have reset the pk as it could exist in this database
             self.pk = None
         self.save()
+        if insert:
+            #TODO: UGLY PATCH: see #143
+            if self.__class__.__name__ == 'EntityInstance':
+                self.root = self
+                self.save()
         # from_xml can be invoked on an instance retrieved from the database (where URIInstance is set)
         # or created on the fly (and URIInstance is not set); in the latter case, only now I can generate URIInstance
         # as I have just saved it and I have a local ID
@@ -762,7 +766,7 @@ class SerializableSimpleEntity(models.Model):
                         assert (en_child_node.simple_entity.name == se.name), "en_child_node.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
                         actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
                         if en_child_node.external_reference:
-                            instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data, True)
+                            instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data)
                             # TODO: il test succesivo forse si fa meglio guardando il concrete_model - capire questo test e mettere un commento
                             if en_child_node.attribute in self._meta.fields:
                                 setattr(instance, en_child_node.attribute, self)
@@ -775,7 +779,7 @@ class SerializableSimpleEntity(models.Model):
                                 instance = actual_class()
                             else:
                                 try:
-                                    instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data, False)
+                                    instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data)
                                 except:
                                     instance = actual_class()
                             # is_many = True, I need to add this instance to self
@@ -795,7 +799,7 @@ class SerializableSimpleEntity(models.Model):
                     assert (en_child_node.simple_entity.name == se.name), "en_child_node.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
                     actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
                     if en_child_node.external_reference:
-                        instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data, True)
+                        instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data)
                         # TODO: il test succesivo forse si fa meglio guardando il concrete_model - capire questo test e mettere un commento
                         if en_child_node.attribute in self._meta.fields:
                             setattr(instance, en_child_node.attribute, self)
@@ -808,7 +812,7 @@ class SerializableSimpleEntity(models.Model):
                             instance = actual_class()
                         else:
                             try:
-                                instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data, False)
+                                instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data)
                             except:
                                 instance = actual_class()
                         instance.from_xml(xml_child_node, en_child_node, insert, self)
@@ -1313,7 +1317,7 @@ class EntityInstance(SerializableSimpleEntity):
         entity_instance_xml = xmldoc.childNodes[0].childNodes[0]
         EntityStructureURI = entity_instance_xml.getElementsByTagName("entity_structure")[0].attributes["URIInstance"].firstChild.data
         # Will be created dynamically in the future, now we get it locally
-        es = EntityStructure.retrieve(EntityStructureURI, False)
+        es = EntityStructure.retrieve(EntityStructureURI)
         
         try:
             with transaction.atomic():
@@ -1322,10 +1326,12 @@ class EntityInstance(SerializableSimpleEntity):
                 actual_class = utils.load_class(es.entry_point.simple_entity.module + ".models", es.entry_point.simple_entity.name)
                 # already imported ?
                 actual_instance_URIInstance = actual_instance_xml.attributes["URIInstance"].firstChild.data
-                actual_instance_on_db = actual_class.objects.filter(URIInstance=actual_instance_URIInstance)
-                if len(actual_instance_on_db) > 0:
+                try:
+                    actual_instance_on_db = actual_class.retrieve(actual_instance_URIInstance)
                     # it is already in this database; I return the corresponding EntityInstance
                     return EntityInstance.objects.get(entity_structure=es, entry_point_instance_id=actual_instance_on_db[0].pk)
+                except: # I didn't find it on this db, no problem
+                    pass
                 actual_instance = actual_class()
                 logger.debug("from_xml_with_actual_instance before actual_instance.from_xml")
                 actual_instance.from_xml(actual_instance_xml, es.entry_point, insert = True)
@@ -1423,6 +1429,7 @@ class EntityInstance(SerializableSimpleEntity):
         '''
         try:
             with transaction.atomic():
+                currently_released = None
                 if not self.entity_structure.multiple_releases:
                     # There cannot be more than one released? I set the others to False
                     try:
@@ -1452,7 +1459,7 @@ class EntityInstance(SerializableSimpleEntity):
                         materialized_self.root = materialized_self
                         materialized_self.save()
                         # now I can delete the old data set
-                        if currently_released.pk != self.pk:
+                        if currently_released and currently_released.pk != self.pk:
                             materialized_previously_released = EntityInstance.objects.using('ksm').get(URIInstance=previously_released.URIInstance)
                             materialized_previously_released.delete_entire_dataset()
                     
