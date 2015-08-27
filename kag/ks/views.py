@@ -31,7 +31,7 @@ def api_simple_entity_definition(request, base64_SimpleEntity_URIInstance, forma
     URISimpleEntity = base64.decodestring(base64_SimpleEntity_URIInstance)
     actual_class = SimpleEntity
 
-    se = SimpleEntity.retrieve(actual_class, URISimpleEntity, False)
+    se = actual_class.retrieve(URISimpleEntity, False)
     
     instance = get_object_or_404(actual_class, pk=se.id)
     e = EntityStructure.objects.get(name = EntityStructure.simple_entity_entity_structure_name)
@@ -59,7 +59,7 @@ def api_dataset(request, base64_EntityInstance_URIInstance, format):
     '''
     format = format.upper()
     URIInstance = base64.decodestring(base64_EntityInstance_URIInstance)
-    dataset = EntityInstance.retrieve(EntityInstance, URIInstance, False)
+    dataset = EntityInstance.retrieve(URIInstance, False)
     actual_instance = ""
     actual_instance_json = ""
     if not dataset.entity_structure.is_a_view:
@@ -113,7 +113,7 @@ def api_catch_all(request, uri_instance):
             simple_entity_name = split_path[1]
             actual_class = utils.load_class(module_name + ".models", simple_entity_name)
             this_ks = KnowledgeServer.this_knowledge_server()
-            instance = SerializableSimpleEntity.retrieve(actual_class, this_ks.uri() + "/" + uri_instance, False)
+            instance = actual_class.retrieve(this_ks.uri() + "/" + uri_instance, False)
             if format == 'JSON':
                 exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", ' + instance.serialize(format='JSON', exported_instances = []) + ' } }'
                 return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
@@ -174,7 +174,7 @@ def api_dataset_info(request, base64_EntityInstance_URIInstance, format):
     '''
     format = format.upper()
     URIInstance = base64.decodestring(base64_EntityInstance_URIInstance)
-    entity_instance = EntityInstance.retrieve(EntityInstance, URIInstance, False)
+    entity_instance = EntityInstance.retrieve(URIInstance, False)
     all_versions = EntityInstance.objects.filter(root = entity_instance.root)
     all_versions_serialized = ""
     comma = ""
@@ -228,7 +228,7 @@ def api_datasets(request, base64_EntityStructure_URIInstance, format):
     '''
     format = format.upper()
     URIInstance = base64.decodestring(base64_EntityStructure_URIInstance)
-    e = EntityStructure.retrieve(EntityStructure, URIInstance, False)
+    e = EntityStructure.retrieve(URIInstance, False)
     
     # Now I need to get all the released EntityInstance of the EntityStructure passed as a parameter
     if e.is_a_view:

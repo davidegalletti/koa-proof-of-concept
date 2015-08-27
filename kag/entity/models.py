@@ -570,8 +570,8 @@ class SerializableSimpleEntity(models.Model):
             raise Exception("NOT IMPLEMENTED in simple_entity_from_xml_tag: get SimpleEntity from appropriate KS.")
         return se
 
-    @staticmethod
-    def retrieve(actual_class, URIInstance, retrieve_externally):
+    @classmethod
+    def retrieve(cls, URIInstance, retrieve_externally):
         '''
         It returns an instance of a SerializableSimpleEntity stored in this KS
         It searches first on the URIInstance field (e.g. is it already an instance of this KS? ) 
@@ -580,10 +580,10 @@ class SerializableSimpleEntity(models.Model):
         '''
         actual_instance = None
         try:
-            actual_instance = actual_class.objects.get(URIInstance=URIInstance)
+            actual_instance = cls.objects.get(URIInstance=URIInstance)
         except:
             try:
-                actual_instance = actual_class.objects.get(URI_imported_instance=URIInstance)
+                actual_instance = cls.objects.get(URI_imported_instance=URIInstance)
             except:
                 if retrieve_externally:
                     #TODO: It fetches the instance from the source as it is not in this KS yet
@@ -641,7 +641,7 @@ class SerializableSimpleEntity(models.Model):
             module_name = entity_structure_node.simple_entity.module
             actual_class = utils.load_class(module_name + ".models", entity_structure_node.simple_entity.name) 
             try:
-                instance = SerializableSimpleEntity.retrieve(actual_class, xmldoc.attributes["URIInstance"].firstChild.data, False)
+                instance = actual_class.retrieve(xmldoc.attributes["URIInstance"].firstChild.data, False)
                 # It's in the database; I just need to set its parent; data is either already there or it will be updated later on
                 if parent:
                     field_name = SerializableSimpleEntity.get_parent_field_name(parent, entity_structure_node.attribute)
@@ -712,7 +712,7 @@ class SerializableSimpleEntity(models.Model):
                             else:
                                 try:
                                     # let's search it in the database
-                                    instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
+                                    instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data, True)
                                 except ObjectDoesNotExist:
                                     # TODO: if it is not there I fetch it using it's URI and then create it in the database
                                     pass
@@ -725,7 +725,7 @@ class SerializableSimpleEntity(models.Model):
                                 instance = actual_class()
                             else:
                                 try:
-                                    instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, False)
+                                    instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data, False)
                                 except:
                                     # didn't find it; I create the instance anyway
                                     instance = actual_class()
@@ -762,7 +762,7 @@ class SerializableSimpleEntity(models.Model):
                         assert (en_child_node.simple_entity.name == se.name), "en_child_node.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
                         actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
                         if en_child_node.external_reference:
-                            instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
+                            instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data, True)
                             # TODO: il test succesivo forse si fa meglio guardando il concrete_model - capire questo test e mettere un commento
                             if en_child_node.attribute in self._meta.fields:
                                 setattr(instance, en_child_node.attribute, self)
@@ -775,7 +775,7 @@ class SerializableSimpleEntity(models.Model):
                                 instance = actual_class()
                             else:
                                 try:
-                                    instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, False)
+                                    instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data, False)
                                 except:
                                     instance = actual_class()
                             # is_many = True, I need to add this instance to self
@@ -795,7 +795,7 @@ class SerializableSimpleEntity(models.Model):
                     assert (en_child_node.simple_entity.name == se.name), "en_child_node.name - se.name: " + en_child_node.simple_entity.name + ' - ' + se.name
                     actual_class = utils.load_class(module_name + ".models", en_child_node.simple_entity.name)
                     if en_child_node.external_reference:
-                        instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, True)
+                        instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data, True)
                         # TODO: il test succesivo forse si fa meglio guardando il concrete_model - capire questo test e mettere un commento
                         if en_child_node.attribute in self._meta.fields:
                             setattr(instance, en_child_node.attribute, self)
@@ -808,7 +808,7 @@ class SerializableSimpleEntity(models.Model):
                             instance = actual_class()
                         else:
                             try:
-                                instance = SerializableSimpleEntity.retrieve(actual_class, xml_child_node.attributes["URIInstance"].firstChild.data, False)
+                                instance = actual_class.retrieve(xml_child_node.attributes["URIInstance"].firstChild.data, False)
                             except:
                                 instance = actual_class()
                         instance.from_xml(xml_child_node, en_child_node, insert, self)
@@ -1313,7 +1313,7 @@ class EntityInstance(SerializableSimpleEntity):
         entity_instance_xml = xmldoc.childNodes[0].childNodes[0]
         EntityStructureURI = entity_instance_xml.getElementsByTagName("entity_structure")[0].attributes["URIInstance"].firstChild.data
         # Will be created dynamically in the future, now we get it locally
-        es = EntityStructure.objects.get(URIInstance = EntityStructureURI)
+        es = EntityStructure.retrieve(EntityStructureURI, False)
         
         try:
             with transaction.atomic():

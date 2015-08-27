@@ -156,7 +156,7 @@ def upload_page(request):
                         will tell you where the record comes from via import or fetch (fetch not implemented yet) 
                         '''
                         if not simple_entity_uri_instance is None:
-                            simple_entity_on_db = SerializableSimpleEntity.retrieve(actual_class, simple_entity_uri_instance, False)
+                            simple_entity_on_db = actual_class.retrieve(simple_entity_uri_instance, False)
                             initial_data['simple_entity_on_db'] = simple_entity_on_db
                             initial_data['simple_entity_on_db_name'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.name_field) if e.entry_point.simple_entity.name_field else ""
                             initial_data['simple_entity_on_db_description'] = getattr(simple_entity_on_db, e.entry_point.simple_entity.description_field) if e.entry_point.simple_entity.description_field else ""
@@ -235,7 +235,7 @@ def perform_import(request):
     if always_insert or (simple_entity_uri_instance is None):
         instance = actual_class()
     else:
-        instance = SerializableSimpleEntity.retrieve(actual_class, simple_entity_uri_instance, False)
+        instance = actual_class.retrieve(simple_entity_uri_instance, False)
     #At least the first node has full export = True otherwise I would not import anything but just load something from the db 
     instance.from_xml(child_node, et.entry_point, always_insert)
     return HttpResponse("OK")
