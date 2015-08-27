@@ -668,6 +668,7 @@ class SerializableSimpleEntity(models.Model):
               let's setattr the other attributes
               that are not ForeignKey as those are treated separately
               and is not the field_name pointing at the parent as it has been already set
+              TODO: if insert: I shouldn't set the pk; I set it to None later but it should be done here
             '''
             if key.__class__.__name__ != "ForeignKey" and (not parent or key.name != field_name):
                 try:
@@ -678,7 +679,7 @@ class SerializableSimpleEntity(models.Model):
                     else:
                         setattr(self, key.name, xmldoc.attributes[key.name].firstChild.data)
                 except:
-                    logger.error("Error extracting from xml \"" + key.name + "\" for object of class \"" + self.__class__.__name__ + "\" with ID " + str(self.id))
+                    logger.error("Error extracting from xml \"" + key.name + "\" for object of class \"" + self.__class__.__name__ + "\" with PK " + str(self.pk))
         try:
             # URI_imported_instance stores the URIInstance from the XML
             self.URI_imported_instance = xmldoc.attributes["URIInstance"].firstChild.data
@@ -736,6 +737,9 @@ class SerializableSimpleEntity(models.Model):
                     raise Exception("from_xml: " + ex.message)
                  
         # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
+        if insert:
+            # but first I have reset the pk as it could exist in this database
+            self.pk = None
         self.save()
         # from_xml can be invoked on an instance retrieved from the database (where URIInstance is set)
         # or created on the fly (and URIInstance is not set); in the latter case, only now I can generate URIInstance
