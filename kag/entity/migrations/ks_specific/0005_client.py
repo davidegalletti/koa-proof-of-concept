@@ -9,7 +9,7 @@ def forwards_func(apps, schema_editor):
     test_client_org.save(using='default')
     id_on_default_db = test_client_org.id
     test_client_org.id = None
-    test_client_org.save(using='ksm')client
+    test_client_org.save(using='ksm')
     m_test_client_org = test_client_org
     test_client_org = Organization.objects.get(pk=id_on_default_db)
     
