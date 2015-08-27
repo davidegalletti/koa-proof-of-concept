@@ -14,9 +14,9 @@
         {% endif %}
 		{% if owned_structures %}
           {% if this_ks.URIInstance == explored_ks.URIInstance %}
-            <h4>Owned by this OKS</h4>
+            <h5>Owned by this OKS:</h5>
           {% else %}
-            <h4>Owned by "{{ explored_ks.name }}"</h4>
+            <h5>Owned by the OKS you are browsing:</h5>
           {% endif %}
           <ul>
           {% for structure in owned_structures %}
@@ -27,7 +27,7 @@
           </ul>
 		{% endif %}
 		{% if other_structures %}
-		  <h4>Owned by other OKSs</h4>
+		  <h5>Owned by other OKSs:</h5>
           <ul>
           {% for structure in other_structures %}
             <li>
