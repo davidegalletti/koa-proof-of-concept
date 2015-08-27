@@ -1339,6 +1339,9 @@ class EntityInstance(SerializableSimpleEntity):
                 logger.debug("from_xml_with_actual_instance before self.from_xml")
                 self.from_xml(entity_instance_xml, self.shallow_entity_structure().entry_point, insert = True)
                 logger.debug("from_xml_with_actual_instance after self.from_xml")
+                # actual_instance.pk changes during import as we have "insert = True" and the pk is set to None
+                self.entry_point_instance_id = actual_instance.pk
+                self.save()
         except Exception as ex:
             print (ex.message)
             raise ex
