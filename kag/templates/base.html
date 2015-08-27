@@ -23,7 +23,7 @@
 	<body>
 		<div class="header">
 			<div class="container">
-				<h1 class="header-heading">{{ this_ks.name }}</h1>
+				<h1 class="header-heading">{{ this_ks.netloc }}</h1>
 			</div>
 		</div>
 		<div class="nav-bar">
@@ -48,7 +48,7 @@
 		</div>
 		<div class="footer">
 			<div class="container">
-				More info on <a href="http://www.thekoa.org" target="_blank">theKOA.org</a> - <a href="{% url 'disclaimer' %}">Disclaimer</a> - 
+				More info on <a href="http://www.thekoa.org" target="_blank">theKOA.org</a> - <a href="{% url 'disclaimer' %}" title="Please read the disclaimer.">Disclaimer</a> - 
 				&copy; Copyright 2015 <a href="http://www.c4k.it" target="_blank">C4K.it</a>
 			</div>
 		</div>
