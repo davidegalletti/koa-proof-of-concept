@@ -584,7 +584,7 @@ class SerializableSimpleEntity(models.Model):
         except Exception as ex:
             try:
                 actual_instance = cls.objects.get(URI_imported_instance=URIInstance)
-            except:
+            except Exception as ex:
                 raise ex
         return actual_instance
 
@@ -1000,9 +1000,9 @@ class KnowledgeServer(SerializableSimpleEntity):
                     # We assume we have already all SimpleEntity
                     # Let's retrieve the structure
                     response = urllib2.urlopen(notification.URL_structure)
-                    dataset_xml_stream = response.read()
+                    structure_xml_stream = response.read()
                     ei_structure = EntityInstance()
-                    ei_structure.from_xml_with_actual_instance(dataset_xml_stream)
+                    ei_structure.from_xml_with_actual_instance(structure_xml_stream)
                     
                     # the dataset is retrieved with api #36 api_dataset that serializes
                     # the EntityInstance and also the complete actual instance 
@@ -1329,7 +1329,7 @@ class EntityInstance(SerializableSimpleEntity):
                 try:
                     actual_instance_on_db = actual_class.retrieve(actual_instance_URIInstance)
                     # it is already in this database; I return the corresponding EntityInstance
-                    return EntityInstance.objects.get(entity_structure=es, entry_point_instance_id=actual_instance_on_db[0].pk)
+                    return EntityInstance.objects.get(entity_structure=es, entry_point_instance_id=actual_instance_on_db.pk)
                 except: # I didn't find it on this db, no problem
                     pass
                 actual_instance = actual_class()
