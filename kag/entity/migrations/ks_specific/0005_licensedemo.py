@@ -36,6 +36,14 @@ def forwards_func(apps, schema_editor):
     test_license_org.save()
     
     
+    m_es = EntityStructure.objects.using('ksm').get(name = EntityStructure.organization_entity_structure_name)
+    es = EntityStructure.objects.get(URIInstance = m_es.URIInstance)
+    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entry_point_instance_id=test_license_org.id,entity_structure=es,description="A test Organization and their KSs",version_major=0,version_minor=1,version_patch=0)
+    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+    # let's materialize the ei; I cannot release it as I saved manually the ks in ksm (I cannot do otherwise as it 
+    # is needed to generateURIInstance every time something is saved)
+    ei.materialize(ei.shallow_entity_structure().entry_point, processed_instances = [])
+    
     
     
     #it was in 0004_common
@@ -68,14 +76,6 @@ def forwards_func(apps, schema_editor):
     
     
     
-    
-    m_es = EntityStructure.objects.using('ksm').get(name = EntityStructure.organization_entity_structure_name)
-    es = EntityStructure.objects.get(URIInstance = m_es.URIInstance)
-    ei = EntityInstance(owner_knowledge_server=test_license_org_ks,entry_point_instance_id=test_license_org.id,entity_structure=es,description="A test Organization and their KSs",version_major=0,version_minor=1,version_patch=0)
-    ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
-    # let's materialize the ei; I cannot release it as I saved manually the ks in ksm (I cannot do otherwise as it 
-    # is needed to generateURIInstance every time something is saved)
-    ei.materialize(ei.shallow_entity_structure().entry_point, processed_instances = [])
     
     # temporarily created in 0004
     esLicense=EntityStructure.objects.get(name="License") 

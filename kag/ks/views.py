@@ -288,8 +288,8 @@ def ks_explorer(request):
                 owned_structures.append(entity)
             else:
                 other_structures.append(entity)
-    except Exception as es:
-        pass #TODO: view.ks_explorer manage exception
+    except Exception as ex:
+        return HttpResponse(ex.message)
     cont = RequestContext(request, {'owned_structures':owned_structures, 'other_structures':other_structures, 'this_ks':this_ks, 'this_ks_base64_url':this_ks.uri(True), 'organization': organization, 'explored_ks': explored_ks, 'ks_url':base64.encodestring(ks_url).replace('\n','')})
     return render_to_response('ks/ks_explorer_entities.html', context_instance=cont)
 
