@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from django.db import migrations
 from entity.models import Organization, KnowledgeServer, SimpleEntity, AttributeType, Attribute, EntityStructureNode, EntityStructure, Workflow, WorkflowStatus, DataSet
 
-def forwards_func0(apps, schema_editor):
+def forwards_func(apps, schema_editor):
     
     db_alias = schema_editor.connection.alias
     
@@ -12,13 +12,6 @@ def forwards_func0(apps, schema_editor):
     
     the_koa_org_ks = KnowledgeServer(pk=1, name="theKOA.org root Open Knowledge Server", scheme="http", netloc="rootks.thekoa.org", URIInstance="http://rootks.thekoa.org/entity/KnowledgeServer/1", description="The main OKS, defining the main structures and datasets used by any other Knowledge Server.", organization=the_koa_org, this_ks=True,html_home="<i><strong>rootks html_home</strong></i>", html_disclaimer="<i><strong>rootks html_disclaimer</strong></i>")
     the_koa_org_ks.save(using=db_alias)
-
-def forwards_func(apps, schema_editor):
-    
-    db_alias = schema_editor.connection.alias
-    
-    the_koa_org = Organization.objects.get(pk=1)
-    the_koa_org_ks = KnowledgeServer.objects.get(pk=1)
     
     #SimpleEntity
     seSimpleEntity=SimpleEntity();seSimpleEntity.name="SimpleEntity";seSimpleEntity.module="entity";seSimpleEntity.save(using=db_alias)
@@ -193,7 +186,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            forwards_func0,
             forwards_func,
         ),
     ]
