@@ -2,9 +2,9 @@
 from __future__ import unicode_literals
 
 from django.db import migrations
-from entity.models import Organization, KnowledgeServer, SimpleEntity, AttributeType, Attribute, EntityStructureNode, EntityStructure, Workflow, WorkflowStatus, EntityInstance
+from entity.models import Organization, KnowledgeServer, SimpleEntity, AttributeType, Attribute, EntityStructureNode, EntityStructure, Workflow, WorkflowStatus, DataSet
 
-def forwards_func(apps, schema_editor):
+def forwards_func0(apps, schema_editor):
     
     db_alias = schema_editor.connection.alias
     
@@ -12,6 +12,13 @@ def forwards_func(apps, schema_editor):
     
     the_koa_org_ks = KnowledgeServer(pk=1, name="theKOA.org root Open Knowledge Server", scheme="http", netloc="rootks.thekoa.org", URIInstance="http://rootks.thekoa.org/entity/KnowledgeServer/1", description="The main OKS, defining the main structures and datasets used by any other Knowledge Server.", organization=the_koa_org, this_ks=True,html_home="<i><strong>rootks html_home</strong></i>", html_disclaimer="<i><strong>rootks html_disclaimer</strong></i>")
     the_koa_org_ks.save(using=db_alias)
+
+def forwards_func(apps, schema_editor):
+    
+    db_alias = schema_editor.connection.alias
+    
+    the_koa_org = Organization.objects.get(pk=1)
+    the_koa_org_ks = KnowledgeServer.objects.get(pk=1)
     
     #SimpleEntity
     seSimpleEntity=SimpleEntity();seSimpleEntity.name="SimpleEntity";seSimpleEntity.module="entity";seSimpleEntity.save(using=db_alias)
@@ -26,7 +33,7 @@ def forwards_func(apps, schema_editor):
     seEntityStructure=SimpleEntity();seEntityStructure.name="EntityStructure";seEntityStructure.module="entity";seEntityStructure.description_field;seEntityStructure.save(using=db_alias)
     seAttributeInAMethod=SimpleEntity();seAttributeInAMethod.name="AttributeInAMethod";seAttributeInAMethod.module="application";seAttributeInAMethod.description_field="";seAttributeInAMethod.save(using=db_alias)
     seOrganization=SimpleEntity();seOrganization.name="Organization";seOrganization.module="entity";seOrganization.save(using=db_alias)
-    seEntityInstance=SimpleEntity();seEntityInstance.name="EntityInstance";seEntityInstance.module="entity";seEntityInstance.name_field="";seEntityInstance.description_field="";seEntityInstance.save(using=db_alias)
+    seEntityInstance=SimpleEntity();seEntityInstance.name="DataSet";seEntityInstance.module="entity";seEntityInstance.name_field="";seEntityInstance.description_field="";seEntityInstance.save(using=db_alias)
     seKnowledgeServer=SimpleEntity();seKnowledgeServer.name="KnowledgeServer";seKnowledgeServer.module="entity";seKnowledgeServer.save(using=db_alias)
     seDBConnection=SimpleEntity();seDBConnection.name="DBConnection";seDBConnection.module="entity";seDBConnection.save(using=db_alias)
     seLicense=SimpleEntity();seLicense.name="License";seLicense.module="license";seLicense.save(using=db_alias)
@@ -54,7 +61,7 @@ def forwards_func(apps, schema_editor):
     #     EntityStructure
     #     Workflow
     #     WorkflowStatus
-    #     EntityInstance
+    #     DataSet
      
     # EntityStructureNode for "SimpleEntity-attributes"     entry_point=en1
     en1=EntityStructureNode();en1.simple_entity=seSimpleEntity;en1.save(using=db_alias) 
@@ -127,11 +134,11 @@ def forwards_func(apps, schema_editor):
     seOrganization.entity_structure = eOrganizationKS; seOrganization.save(using=db_alias)
     seKnowledgeServer.entity_structure = eOrganizationKS; seKnowledgeServer.save(using=db_alias)
      
-    # EntityInstance
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,entry_point_instance_id=seSimpleEntity.id,version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    # DataSet
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,entry_point_instance_id=seSimpleEntity.id,version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    # EntityInstance has no EntityStructure, I create the shallow one so that I can set EntityStructure.namespace 
-    # and hence generate the URIInstance for each instance of EntityInstance
+    # DataSet has no EntityStructure, I create the shallow one so that I can set EntityStructure.namespace 
+    # and hence generate the URIInstance for each instance of DataSet
     es = ei.shallow_entity_structure(db_alias)
     es.namespace = "entity"
     es.save(using=db_alias)
@@ -139,41 +146,41 @@ def forwards_func(apps, schema_editor):
     seEntityInstance.save(using=db_alias)
     ei.save(using=db_alias)
      
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seAttribute.id,                                   version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seAttribute.id,                                   version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seApplication.id,                                 version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seApplication.id,                                 version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seWorkflow.id,                                    version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seWorkflow.id,                                    version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seWorkflowStatus.id,                              version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seWorkflowStatus.id,                              version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seMethod.id,                                      version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seMethod.id,                                      version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seAttributeType.id,                               version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seAttributeType.id,                               version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seWidget.id,                                      version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seWidget.id,                                      version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seEntityStructureNode.id,                         version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seEntityStructureNode.id,                         version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seEntityStructure.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seEntityStructure.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seAttributeInAMethod.id,                          version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seAttributeInAMethod.id,                          version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seOrganization.id,                                version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seOrganization.id,                                version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seEntityInstance.id,                              version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seEntityInstance.id,                              version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seKnowledgeServer.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seKnowledgeServer.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, entry_point_instance_id=esSimpleEntityAttributes.id,                       version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, entry_point_instance_id=esSimpleEntityAttributes.id,                       version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, entry_point_instance_id=esEntityStructureEntityStructureNodeApplication.id,version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, entry_point_instance_id=esEntityStructureEntityStructureNodeApplication.id,version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, entry_point_instance_id=esWorkflowStatuses.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, entry_point_instance_id=esWorkflowStatuses.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, entry_point_instance_id=eOrganizationKS.id,                               version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, entry_point_instance_id=eOrganizationKS.id,                               version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = EntityInstance(owner_knowledge_server=the_koa_org_ks,entity_structure=eOrganizationKS,                                 entry_point_instance_id=the_koa_org.id,                                   version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=eOrganizationKS,                                 entry_point_instance_id=the_koa_org.id,                                   version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
 
 
@@ -186,6 +193,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
+            forwards_func0,
             forwards_func,
         ),
     ]

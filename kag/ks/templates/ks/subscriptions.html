@@ -8,7 +8,7 @@
     <ul>
     {% for event in events %}
         <li>
-            "{{ event.type }}" for {{ event.entity_instance.URIInstance }}
+            "{{ event.type }}" for {{ event.dataset.URIInstance }}
         </li>
     {% endfor %}
     </ul>
@@ -47,7 +47,7 @@
     <ul>
     {% for notification in notifications_to_be_sent %}
         <li>
-            "{{ notification.event.type }}" for {{ notification.event.entity_instance.URIInstance }} must be sent to {{ notification.remote_url }}
+            "{{ notification.event.type }}" for {{ notification.event.dataset.URIInstance }} must be sent to {{ notification.remote_url }}
         </li>
     {% endfor %}
     </ul>

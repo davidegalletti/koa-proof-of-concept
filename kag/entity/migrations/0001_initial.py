@@ -65,7 +65,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='EntityInstance',
+            name='DataSet',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('URIInstance', models.CharField(max_length=2000L)),
@@ -217,7 +217,7 @@ class Migration(migrations.Migration):
                 ('URI_previous_version', models.CharField(max_length=2000L, null=True, blank=True)),
                 ('notes', models.TextField()),
                 ('timestamp', models.DateTimeField(auto_now_add=True)),
-                ('instance', models.ForeignKey(to='entity.EntityInstance')),
+                ('dataset', models.ForeignKey(to='entity.DataSet')),
                 ('status_from', models.ForeignKey(related_name='+', to='entity.WorkflowStatus')),
                 ('workflow_method', models.ForeignKey(to='entity.WorkflowMethod')),
             ],
@@ -235,7 +235,7 @@ class Migration(migrations.Migration):
                 ('type', models.CharField(default=b'New version', max_length=50)),
                 ('timestamp', models.DateTimeField(auto_now_add=True)),
                 ('processed', models.BooleanField(default=False)),
-                ('entity_instance', models.ForeignKey(to='entity.EntityInstance')),
+                ('dataset', models.ForeignKey(to='entity.DataSet')),
             ],
             options={
                 'abstract': False,
@@ -322,24 +322,24 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(to='entity.SimpleEntity'),
         ),
         migrations.AddField(
-            model_name='entityinstance',
+            model_name='dataset',
             name='entity_structure',
             field=models.ForeignKey(to='entity.EntityStructure'),
         ),
         migrations.AddField(
-            model_name='entityinstance',
+            model_name='dataset',
             name='owner_knowledge_server',
             field=models.ForeignKey(to='entity.KnowledgeServer'),
         ),
         migrations.AddField(
-            model_name='entityinstance',
+            model_name='dataset',
             name='root',
-            field=models.ForeignKey(related_name='versions', blank=True, to='entity.EntityInstance', null=True),
+            field=models.ForeignKey(related_name='versions', blank=True, to='entity.DataSet', null=True),
         ),
         migrations.AddField(
-            model_name='entityinstance',
-            name='filter_entity_instance',
-            field=models.ForeignKey(blank=True, to='entity.EntityInstance', null=True),
+            model_name='dataset',
+            name='filter_dataset',
+            field=models.ForeignKey(blank=True, to='entity.DataSet', null=True),
         ),
         migrations.AddField(
             model_name='entitystructure',

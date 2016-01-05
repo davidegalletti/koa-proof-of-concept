@@ -15,7 +15,7 @@ from django.shortcuts import render, get_object_or_404, render_to_response, redi
 from django.template import RequestContext
 from django.views.decorators.csrf import csrf_exempt
 
-from entity.models import SimpleEntity, EntityStructure, EntityInstance, SerializableSimpleEntity, KnowledgeServer
+from entity.models import SimpleEntity, EntityStructure, DataSet, SerializableSimpleEntity, KnowledgeServer
 from entity.models import SubscriptionToOther, SubscriptionToThis, ApiReponse, NotificationReceived, KsUri, Notification, Event
 import kag.utils as utils
 import logging
@@ -50,16 +50,16 @@ def api_dataset(request, base64_EntityInstance_URIInstance, format):
         It returns the dataset with the URIInstance in the parameter 
         
         parameter:
-        * base64_EntityInstance_URIInstance: URIInstance of the EntityInstance base64 encoded
+        * base64_EntityInstance_URIInstance: URIInstance of the DataSet base64 encoded
         
         Implementation:
         # it creates the SimpleEntity class, 
-        # fetches from the DB the one with pk = EntityInstance.entry_point_instance_id
-        # it runs to_xml of the SimpleEntity using EntityInstance.entity.entry_point
+        # fetches from the DB the one with pk = DataSet.entry_point_instance_id
+        # it runs to_xml of the SimpleEntity using DataSet.entity.entry_point
     '''
     format = format.upper()
     URIInstance = base64.decodestring(base64_EntityInstance_URIInstance)
-    dataset = EntityInstance.retrieve(URIInstance)
+    dataset = DataSet.retrieve(URIInstance)
     actual_instance = ""
     actual_instance_json = ""
     if not dataset.entity_structure.is_a_view:
@@ -69,7 +69,7 @@ def api_dataset(request, base64_EntityInstance_URIInstance, format):
     if format == 'HTML' or format == 'BROWSE':
         actual_instance_json = '{' + actual_instance.serialize(dataset.entity_structure.entry_point, format='json', exported_instances = []) + '}'
     if format == 'JSON':
-        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstance" : ' + dataset.serialize_with_actual_instance(format = 'JSON') + ' } }'
+        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "DataSet" : ' + dataset.serialize_with_actual_instance(format = 'JSON') + ' } }'
         return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
     if format == 'XML':
         exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\">" + dataset.serialize_with_actual_instance(format = format) + "</Export>"
@@ -145,10 +145,10 @@ def api_dataset_types(request, format):
     '''
     # Look for all EntityStructure of type "EntityStructure-EntityStructureNode-Application" ...
     entities_id = EntityStructure.objects.filter(name=EntityStructure.dataset_structure_name).values("id")
-    # Look for the only EntityInstance whose EntityStructure is *incidentally* of the above type (entity_id__in=entities_id)
+    # Look for the only DataSet whose EntityStructure is *incidentally* of the above type (entity_id__in=entities_id)
     # whose instance is ov the above type entry_point_instance_id__in=entities_id
     # and it is released (there must be exactly one!
-    ei = EntityInstance.objects.get(version_released=True, entry_point_instance_id__in=entities_id, entity_structure_id__in=entities_id)
+    ei = DataSet.objects.get(version_released=True, entry_point_instance_id__in=entities_id, entity_structure_id__in=entities_id)
     e = EntityStructure.objects.get(pk=ei.entry_point_instance_id)
     
     return api_datasets(request, base64.encodestring(e.URIInstance).replace('\n',''), format)
@@ -159,11 +159,11 @@ def api_dataset_info(request, base64_EntityInstance_URIInstance, format):
         
         Parameters:
         * format { 'XML' | 'JSON' | 'HTML' = 'BROWSE' }
-        * base64_EntityInstance_URIInstance: URIInstance of the EntityInstance base64 encoded
+        * base64_EntityInstance_URIInstance: URIInstance of the DataSet base64 encoded
         
         Implementation:
-        it fetches the EntityInstance, then the list of all that share the same root
-        it returns EntityInstance.serialize_with_actual_instance(format) and for each on the above list:
+        it fetches the DataSet, then the list of all that share the same root
+        it returns DataSet.serialize_with_actual_instance(format) and for each on the above list:
             the URIInstance of the ErtityInstance
             the version status {working | released | obsolete}
             the version number (e.g. 0.1.0)
@@ -174,8 +174,8 @@ def api_dataset_info(request, base64_EntityInstance_URIInstance, format):
     '''
     format = format.upper()
     URIInstance = base64.decodestring(base64_EntityInstance_URIInstance)
-    entity_instance = EntityInstance.retrieve(URIInstance)
-    all_versions = EntityInstance.objects.filter(root = entity_instance.root)
+    dataset = DataSet.retrieve(URIInstance)
+    all_versions = DataSet.objects.filter(root = dataset.root)
     all_versions_serialized = ""
     comma = ""
     if format != 'HTML' and format != 'BROWSE':
@@ -185,24 +185,24 @@ def api_dataset_info(request, base64_EntityInstance_URIInstance, format):
             all_versions_serialized += v.serialize_with_actual_instance(format = format, force_external_reference=True)
             comma = ", "
     if format == 'XML':
-        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\"><EntityInstance>" + entity_instance.serialize_with_actual_instance(format = format, force_external_reference=True) + "</EntityInstance><Versions>" + all_versions_serialized + "</Versions></Export>"
+        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\"><DataSet>" + dataset.serialize_with_actual_instance(format = format, force_external_reference=True) + "</DataSet><Versions>" + all_versions_serialized + "</Versions></Export>"
         xmldoc = minidom.parseString(exported_xml)
         exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
         return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
     if format == 'JSON':
-        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstance" : ' + entity_instance.serialize_with_actual_instance(format = format, force_external_reference=True) + ', "Versions" : [' + all_versions_serialized + '] } }'
+        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "DataSet" : ' + dataset.serialize_with_actual_instance(format = format, force_external_reference=True) + ', "Versions" : [' + all_versions_serialized + '] } }'
         return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
     if format == 'HTML' or format == 'BROWSE':
-        if entity_instance.entity_structure.is_a_view:
-            instances = entity_instance.get_instances()
+        if dataset.entity_structure.is_a_view:
+            instances = dataset.get_instances()
         else:
             instances = []
-            instances.append(entity_instance.get_instance())
+            instances.append(dataset.get_instance())
         all_versions_with_instances = []
         for v in all_versions:
-            if v.URIInstance != entity_instance.URIInstance:
+            if v.URIInstance != dataset.URIInstance:
                 version_with_instance = {}
-                version_with_instance['entity_instance'] = v
+                version_with_instance['dataset'] = v
                 version_with_instance['simple_entity'] = []
                 # views have no version by themselves; only their components have and they can be different
                 # so if we are here we are not in a view hence there is just one instance: 
@@ -210,7 +210,7 @@ def api_dataset_info(request, base64_EntityInstance_URIInstance, format):
                 version_with_instance['simple_entity'].append(v.get_instance())
                 all_versions_with_instances.append(version_with_instance)
         this_ks = KnowledgeServer.this_knowledge_server()
-        cont = RequestContext(request, {'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'entity_instance': entity_instance, 'all_versions_with_instances': all_versions_with_instances, 'ks': entity_instance.owner_knowledge_server, 'instances': instances, 'this_ks':this_ks, 'this_ks_base64_url':this_ks.uri(True) })
+        cont = RequestContext(request, {'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'dataset': dataset, 'all_versions_with_instances': all_versions_with_instances, 'ks': dataset.owner_knowledge_server, 'instances': instances, 'this_ks':this_ks, 'this_ks_base64_url':this_ks.uri(True) })
         return render_to_response('ks/api_dataset_info.html', context_instance=cont)
     
 def api_datasets(request, base64_EntityStructure_URIInstance, format):
@@ -230,12 +230,12 @@ def api_datasets(request, base64_EntityStructure_URIInstance, format):
     URIInstance = base64.decodestring(base64_EntityStructure_URIInstance)
     e = EntityStructure.retrieve(URIInstance)
     
-    # Now I need to get all the released EntityInstance of the EntityStructure passed as a parameter
+    # Now I need to get all the released DataSet of the EntityStructure passed as a parameter
     if e.is_a_view:
         # version_released is not relevant for views
-        released_dataset = EntityInstance.objects.filter(entity_structure = e)
+        released_dataset = DataSet.objects.filter(entity_structure = e)
     else:
-        released_dataset = EntityInstance.objects.filter(entity_structure = e, version_released=True)
+        released_dataset = DataSet.objects.filter(entity_structure = e, version_released=True)
     serialized = ""
     comma = ""
     for ei in released_dataset:
@@ -265,7 +265,7 @@ def ks_explorer(request):
         ks_info_json_stream = response.read()
         # parsing json
         ks_info_json = json.loads(ks_info_json_stream)
-        organization = ks_info_json['Export']['EntityInstance']['ActualInstance']['Organization']
+        organization = ks_info_json['Export']['DataSet']['ActualInstance']['Organization']
         for ks in organization['knowledgeserver_set']:
             if ks['this_ks'] == 'True':
                 explored_ks = ks
@@ -310,7 +310,7 @@ def browse_dataset(request, ks_url, base64URIInstance, format):
     ks_info_json_stream = response.read()
     # parsing json
     ks_info_json = json.loads(ks_info_json_stream)
-    organization = ks_info_json['Export']['EntityInstance']['ActualInstance']['Organization']
+    organization = ks_info_json['Export']['DataSet']['ActualInstance']['Organization']
     for ks in organization['knowledgeserver_set']:
         if ks['this_ks'] == 'True':
             external_ks_json = ks
@@ -382,18 +382,18 @@ def api_ks_info(request, format):
     format = format.upper()
     this_ks = KnowledgeServer.this_knowledge_server()    
     es = EntityStructure.objects.get(name = EntityStructure.organization_entity_structure_name)
-    ei = EntityInstance.objects.get(entity_structure=es, entry_point_instance_id=this_ks.organization.id)
+    ei = DataSet.objects.get(entity_structure=es, entry_point_instance_id=this_ks.organization.id)
     base64_EntityInstance_URIInstance = base64.encodestring(ei.URIInstance).replace('\n','')
     return api_dataset(request, base64_EntityInstance_URIInstance, format)
     
 def api_root_uri(request, base64_URIInstance):
     '''
-    base64_URIInstance is the URI of an EntityInstance
+    base64_URIInstance is the URI of an DataSet
     Simply return the URIinstance of the root
     '''
     try:
         URIInstance = base64.decodestring(base64_URIInstance)
-        ei = EntityInstance.objects.get(URIInstance=URIInstance)
+        ei = DataSet.objects.get(URIInstance=URIInstance)
         return HttpResponse('{ "URI" : "' + ei.root.URIInstance + '" }')
     except:
         return HttpResponse('{ "URI" : "" }')
@@ -408,7 +408,7 @@ def release_dataset(request, base64_Dataset_URIInstance):
     '''
     try:
         dataset_URIInstance = base64.decodestring(base64_Dataset_URIInstance)
-        dataset = EntityInstance.objects.get(URIInstance = dataset_URIInstance)
+        dataset = DataSet.objects.get(URIInstance = dataset_URIInstance)
         dataset.set_released()
         return render(request, 'entity/export.json', {'json': ApiReponse("success", dataset_URIInstance + " successfully released.").json()}, content_type="application/json")
     except Exception as ex:
@@ -438,14 +438,14 @@ def this_ks_subscribes_to(request, base64_URIInstance):
     response = urllib2.urlopen(other_ks_uri + local_url)
     ks_info_xml_stream = response.read()
     # from_xml_with_actual_instance creates the entity instance and the actual instance
-    ei = EntityInstance()
+    ei = DataSet()
     local_ei = ei.from_xml_with_actual_instance(ks_info_xml_stream)
     # I have imported a KnowledgeServer with this_ks = True; must set it to False (see this_knowledge_server())
     external_org = local_ei.get_instance()
     for ks in external_org.knowledgeserver_set.all():
         ks.this_ks = False
         ks.save()
-    # Now I can materialize it; I can use set released as I have certainly retrieved a released EntityInstance
+    # Now I can materialize it; I can use set released as I have certainly retrieved a released DataSet
     local_ei.set_released()
     
     try:
@@ -482,7 +482,7 @@ def api_subscribe(request, base64_URIInstance, base64_remote_url):
     '''
     # check the client KS has already subscribed
     URIInstance = base64.decodestring(base64_URIInstance)
-    ei = EntityInstance.objects.get(URIInstance=URIInstance)
+    ei = DataSet.objects.get(URIInstance=URIInstance)
     root_URIInstance = ei.root.URIInstance
     remote_url = base64.decodestring(base64_remote_url)
     existing_subscriptions = SubscriptionToThis.objects.filter(root_URIInstance=root_URIInstance, remote_url=remote_url)
@@ -507,7 +507,7 @@ def api_notify(request):
     '''
         #35 it receives a notification; the verb is POST
         parameters:
-        URIInstance: the base64 encoded URIInstance of the EntityInstance for which the event has happened
+        URIInstance: the base64 encoded URIInstance of the DataSet for which the event has happened
         event_type: the URInstance of the EventType
         extra_info_json: a JSON structure with info specific to an EventType (optional)
     '''

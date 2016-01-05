@@ -75,7 +75,7 @@ class SerializableSimpleEntity(models.Model):
     this record has been created with the new_version method.
     It is used when materializing to update the relationships from old to new records
     '''
-    URI_previous_version = models.CharField(max_length=2000L, null = True, blank=True)
+    URI_previous_version = models.CharField(max_length=2000L, null=True, blank=True)
     objects = CustomModelManager()
     def SetNotNullFields(self):
         '''
@@ -124,7 +124,7 @@ class SerializableSimpleEntity(models.Model):
             print ("Exception 'generate_URIInstance' " + self.__class__.__name__ + "." + str(self.pk) + ":" + es.message)
             return ""
     
-    def get_simple_entity(self, class_name = "", db_alias = 'ksm'):
+    def get_simple_entity(self, class_name="", db_alias='ksm'):
         '''
         *** method that works BY DEFAULT on the materialized database ***
         finds the instance of class SimpleEntity where the name corresponds to the name of the class of self
@@ -165,13 +165,13 @@ class SerializableSimpleEntity(models.Model):
                 attributes += ' ' + key.name + '="' + str(getattr(self, key.name)) + '"'
         return attributes
      
-    def serialized_URI_SE(self, format = 'XML'):
+    def serialized_URI_SE(self, format='XML'):
         if format == 'XML':
             return ' URISimpleEntity="' + self.get_simple_entity().URIInstance + '" '  
         if format == 'JSON':
             return ' "URISimpleEntity" : "' + self.get_simple_entity().URIInstance + '" '
         
-    def serialized_attributes(self, format = 'XML'):
+    def serialized_attributes(self, format='XML'):
         attributes = ""
         comma = ""
         for key in self._meta.fields:
@@ -189,7 +189,7 @@ class SerializableSimpleEntity(models.Model):
                     comma = "<br>"
         return attributes
 
-    def shallow_entity_structure(self, db_alias = 'default'):
+    def shallow_entity_structure(self, db_alias='default'):
         '''
         It creates an EntityStructure, saves it on the database and returns it.
         if a user wants to serialize a SerializableSimpleEntity without passing an EntityStructure
@@ -197,7 +197,7 @@ class SerializableSimpleEntity(models.Model):
         for future use
         '''
         try:
-            se = EntityStructure.objects.using(db_alias).get(entry_point__simple_entity = self.get_simple_entity(), is_shallow = True)
+            se = EntityStructure.objects.using(db_alias).get(entry_point__simple_entity=self.get_simple_entity(), is_shallow=True)
         except:
             se = EntityStructure()
             se.is_shallow = True
@@ -209,15 +209,15 @@ class SerializableSimpleEntity(models.Model):
             se.save(using=db_alias)
         return se 
         
-    def shallow_entity_structure_node(self, db_alias = 'default'):
+    def shallow_entity_structure_node(self, db_alias='default'):
         '''
         it creates an EntityStructureNode used to serialize (to_xml) self. It has the SimpleEntity 
         and references to ForeignKeys and ManyToMany
         '''
         etn = EntityStructureNode()
         etn.simple_entity = self.get_simple_entity() 
-        etn.external_reference=False
-        etn.is_many=False
+        etn.external_reference = False
+        etn.is_many = False
         etn.save(using=db_alias)
         etn.child_nodes = []
         for fk in self.foreign_key_attributes():
@@ -232,21 +232,21 @@ class SerializableSimpleEntity(models.Model):
                     logger.error("shallow_entity_structure_node class_name = " + class_name + " - " + ex.message)
             else:
                 etn_fk.simple_entity = getattr(self, fk).get_simple_entity()
-            etn_fk.external_reference=True
+            etn_fk.external_reference = True
             etn_fk.attribute = fk
-            etn_fk.is_many=False
+            etn_fk.is_many = False
             etn_fk.save(using=db_alias)
             etn.child_nodes.add(etn_fk)
         for rm in self.related_manager_attributes():
-            #TODO: shallow_entity_structure_node: implement self.related_manager_attributes case
+            # TODO: shallow_entity_structure_node: implement self.related_manager_attributes case
             pass
         for mrm in self.many_related_manager_attributes():
-            #TODO: shallow_entity_structure_node: implement self.many_related_manager_attributes case
+            # TODO: shallow_entity_structure_node: implement self.many_related_manager_attributes case
             pass
         etn.save(using=db_alias)
         return etn
 
-    def serialize(self, etn = None, exported_instances = [], format = 'XML'):
+    def serialize(self, etn=None, exported_instances=[], format='XML'):
         '''
         format: {'XML' | 'JSON'}
 
@@ -333,9 +333,9 @@ class SerializableSimpleEntity(models.Model):
                 else:
                     return '"' + tag_name + '" :  { ' + self.serialized_URI_SE(format) + ', "URIInstance" : "' + self.URIInstance + '", "' + self._meta.pk.attname + '" : "' + str(self.pk) + '"' + json_name + ' }'
             
-    def new_version(self, etn, processed_instances, parent = None):
+    def new_version(self, etn, processed_instances, parent=None):
         '''
-        invoked by EntityInstance.new_version that wraps it in a transaction
+        invoked by DataSet.new_version that wraps it in a transaction
         it recursively invokes itself to create a new version of the full structure
         
         processed_instances is a dictionary where the key is the old URIInstance and 
@@ -350,7 +350,7 @@ class SerializableSimpleEntity(models.Model):
 
         if self.URIInstance and str(self.URIInstance) in processed_instances.keys():
             # already created, I return that one 
-            return self.__class__.objects.get(URIInstance = processed_instances[str(self.URIInstance)])
+            return self.__class__.objects.get(URIInstance=processed_instances[str(self.URIInstance)])
         
         new_instance = self.__class__()
         if parent:
@@ -361,10 +361,10 @@ class SerializableSimpleEntity(models.Model):
                 
         for en_child_node in etn.child_nodes.all():
             if en_child_node.attribute in self.foreign_key_attributes():
-                #not is_many
+                # not is_many
                 child_instance = eval("self." + en_child_node.attribute)
                 new_child_instance = child_instance.new_version(en_child_node, processed_instances)
-                setattr(new_instance, en_child_node.attribute, new_child_instance) #the parameter "parent" shouldn't be necessary in this case as this is a ForeignKey
+                setattr(new_instance, en_child_node.attribute, new_child_instance)  # the parameter "parent" shouldn't be necessary in this case as this is a ForeignKey
                 
         # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
         new_instance.save()
@@ -379,7 +379,7 @@ class SerializableSimpleEntity(models.Model):
                     else:
                         new_child_instance = child_instance.new_version(en_child_node, processed_instances, new_instance)
             else:
-                #not is_many
+                # not is_many
                 child_instance = eval("self." + en_child_node.attribute)
                 new_child_instance = child_instance.new_version(en_child_node, processed_instances, self)
                 setattr(new_instance, en_child_node.attribute, new_child_instance)
@@ -394,9 +394,9 @@ class SerializableSimpleEntity(models.Model):
         processed_instances[str(self.URIInstance)] = new_instance.URIInstance
         return new_instance
         
-    def materialize(self, etn, processed_instances, parent = None):
+    def materialize(self, etn, processed_instances, parent=None):
         '''
-        invoked by EntityInstance.set_released that wraps it in a transaction
+        invoked by DataSet.set_released that wraps it in a transaction
         it recursively invokes itself to copy the full structure to the materialized DB
         
         ASSERTION: URIInstance remains the same on the materialized database
@@ -414,7 +414,7 @@ class SerializableSimpleEntity(models.Model):
 
         if self.URIInstance and str(self.URIInstance) in processed_instances:
             # already materialized it, I return that one 
-            return self.__class__.objects.using('ksm').get(URIInstance = self.URIInstance)
+            return self.__class__.objects.using('ksm').get(URIInstance=self.URIInstance)
         
         new_instance = self.__class__()
         if parent:
@@ -426,12 +426,12 @@ class SerializableSimpleEntity(models.Model):
         list_of_self_relationships_pointing_to_self = []      
         for en_child_node in etn.child_nodes.all():
             if en_child_node.attribute in self.foreign_key_attributes():
-                #not is_many
+                # not is_many
                 # if they are nullable I do nothing
                 try:
                     child_instance = getattr(self, en_child_node.attribute)
                     
-                    # e.g. EntityInstance.root is a self relationship often set to self; I am materializing self
+                    # e.g. DataSet.root is a self relationship often set to self; I am materializing self
                     # so I don't have it; I return self; I could probably do the same also in the other case
                     # because what actually counts for Django is the pk
                     if self == child_instance:
@@ -441,7 +441,7 @@ class SerializableSimpleEntity(models.Model):
                         list_of_self_relationships_pointing_to_self.append(en_child_node.attribute)
                     else:
                         new_child_instance = child_instance.materialize(en_child_node, processed_instances)
-                        setattr(new_instance, en_child_node.attribute, new_child_instance) #the parameter "parent" shouldn't be necessary in this case as this is a ForeignKey
+                        setattr(new_instance, en_child_node.attribute, new_child_instance)  # the parameter "parent" shouldn't be necessary in this case as this is a ForeignKey
                 except Exception as ex:
 #                     print("SerializableSimpleEntity.materialize: " + self.__class__.__name__ + " " + str(self.pk) + " attribute \"" + en_child_node.attribute + "\" " + ex.message)
                     pass
@@ -451,7 +451,7 @@ class SerializableSimpleEntity(models.Model):
         
         # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
         new_instance.save(using='ksm')
-        if len(list_of_self_relationships_pointing_to_self)>0:
+        if len(list_of_self_relationships_pointing_to_self) > 0:
             for attribute in list_of_self_relationships_pointing_to_self:
                 setattr(new_instance, attribute, new_instance)
             new_instance.save(using='ksm')
@@ -467,7 +467,7 @@ class SerializableSimpleEntity(models.Model):
                         else:
                             new_child_instance = child_instance.materialize(en_child_node, processed_instances, new_instance)
                 else:
-                    #not is_many
+                    # not is_many
                     child_instance = eval("self." + en_child_node.attribute)
                     new_child_instance = child_instance.materialize(en_child_node, processed_instances, self)
                     setattr(new_instance, en_child_node.attribute, new_child_instance)
@@ -477,13 +477,13 @@ class SerializableSimpleEntity(models.Model):
         processed_instances.append(new_instance.URIInstance)
         return new_instance
         
-    def delete_children(self, etn, parent = None):
+    def delete_children(self, etn, parent=None):
         '''
-        invoked by EntityInstance.delete_entire_dataset that wraps it in a transaction
+        invoked by DataSet.delete_entire_dataset that wraps it in a transaction
         it recursively invokes itself to delete children's children; self is in the 
         materialized database
         
-        It is invoked only if EntityInstance.entity_structure.multiple_releases = False
+        It is invoked only if DataSet.entity_structure.multiple_releases = False
         Then I also have to remap foreign keys pointing to it in the materialized DB and
         in default DB
         '''
@@ -499,7 +499,7 @@ class SerializableSimpleEntity(models.Model):
                             child_instance.delete_children(en_child_node, self)
                             child_instance.delete()
                 else:
-                    #not is_many
+                    # not is_many
                     child_instance = eval("self." + en_child_node.attribute)
                     child_instance.delete_children(en_child_node, self)
                     child_instance.delete()
@@ -521,11 +521,11 @@ class SerializableSimpleEntity(models.Model):
             if len(new_materialized_instances) == 1:
                 new_materialized_instance = new_materialized_instances[0]
                 new_instance = new_instances[0]
-                #I NEED TO LIST TODO:ALL THE RELATIONSHIPS POINTING AT THIS MODEL
+                # I NEED TO LIST TODO:ALL THE RELATIONSHIPS POINTING AT THIS MODEL
                 for rel_key in self._meta.fields_map.keys():
                     rel = self._meta.fields_map[rel_key]
                     if rel.__class__.__name__ == 'ManyToOneRel':
-                        related_name =rel.related_name
+                        related_name = rel.related_name
                         if related_name is None:
                             related_name = rel_key + "_set"
                         related_materialized_instances_manager = getattr(self, related_name)
@@ -537,7 +537,7 @@ class SerializableSimpleEntity(models.Model):
                         # update relationship on default DB
                         eval('related_instances_manager.update(' + rel.field.name + '=new_instance)')
             else:
-                raise Exception('NOT IMPLEMENTED in SerializableSimpleEntity.delete_children: mapping between different versions: URIInstance "' + self.URIInstance + '" has ' +str(len(new_instances)) + ' materialized records that have this as URI_previous_version.') 
+                raise Exception('NOT IMPLEMENTED in SerializableSimpleEntity.delete_children: mapping between different versions: URIInstance "' + self.URIInstance + '" has ' + str(len(new_instances)) + ' materialized records that have this as URI_previous_version.') 
         except Exception as e:
             print(e.message)
             
@@ -545,7 +545,7 @@ class SerializableSimpleEntity(models.Model):
     def simple_entity_from_xml_tag(xml_child_node):
         URIInstance = xml_child_node.attributes["URISimpleEntity"].firstChild.data
         try:
-            se = SimpleEntity.objects.get(URIInstance = URIInstance)
+            se = SimpleEntity.objects.get(URIInstance=URIInstance)
         except:
             '''
             I go get it from the appropriate KS
@@ -557,16 +557,16 @@ class SerializableSimpleEntity(models.Model):
             SimpleEntity URI 1: "http://finanze.it/KS/fattura"
             SimpleEntity URI 2: "http://finanze.it/KS/sanzione"
             
-            TODO: When importing an EntityInstance from another KS, its root will point to either self or to an EntityInstance
-            that is on the other KS; in the latter case I search for this root EntityInstance using the field 
+            TODO: When importing an DataSet from another KS, its root will point to either self or to an DataSet
+            that is on the other KS; in the latter case I search for this root DataSet using the field 
             SerializableSimpleEntity.URI_imported_instance; if I find it I set root to point to it otherwise
             I set it to self.
             '''
-            #estrarre l'url del KS
+            # estrarre l'url del KS
             ks_url = ""
-            #encode di URIInstance
+            # encode di URIInstance
             URIInstance_base64 = ""
-            #wget ks_url + "/ks/api/simple_entity_definition/" + URIInstance_base64
+            # wget ks_url + "/ks/api/simple_entity_definition/" + URIInstance_base64
             raise Exception("NOT IMPLEMENTED in simple_entity_from_xml_tag: get SimpleEntity from appropriate KS.")
         return se
 
@@ -653,11 +653,11 @@ class SerializableSimpleEntity(models.Model):
                         self.save()
                     except:
                         logger.error("Error in REFERENCE_IN_THIS_FILE TAG setting attribute URIInstance for instance of class " + self.__class__.__name__)
-            #let's exit, nothing else to do, it's a REFERENCE_IN_THIS_FILE
+            # let's exit, nothing else to do, it's a REFERENCE_IN_THIS_FILE
             return
              
         except:
-            #nothing to do, there is no REFERENCE_IN_THIS_FILE attribute
+            # nothing to do, there is no REFERENCE_IN_THIS_FILE attribute
             pass
         for key in self._meta.fields:
             '''
@@ -726,7 +726,7 @@ class SerializableSimpleEntity(models.Model):
                                     # didn't find it; I create the instance anyway
                                     instance = actual_class()
                             # from_xml takes care of saving instance with a self.save() at the end
-                            instance.from_xml(xml_child_node, en_child_node, insert) #the fourth parameter, "parent" shouldn't be necessary in this case as this is a ForeignKey
+                            instance.from_xml(xml_child_node, en_child_node, insert)  # the fourth parameter, "parent" shouldn't be necessary in this case as this is a ForeignKey
                         setattr(self, en_child_node.attribute, instance)
                 except Exception as ex:
                     logger.error("from_xml: " + ex.message)
@@ -734,15 +734,15 @@ class SerializableSimpleEntity(models.Model):
                  
         # I have added all attributes corresponding to ForeignKey, I can save it so that I can use it as a parent for the other attributes
         if insert:
-            #TODO: UGLY PATCH: see #143
-            if self.__class__.__name__ == 'EntityInstance':
+            # TODO: UGLY PATCH: see #143
+            if self.__class__.__name__ == 'DataSet':
                 self.root = None
             # but first I have reset the pk as it could exist in this database
             self.pk = None
         self.save()
         if insert:
-            #TODO: UGLY PATCH: see #143
-            if self.__class__.__name__ == 'EntityInstance':
+            # TODO: UGLY PATCH: see #143
+            if self.__class__.__name__ == 'DataSet':
                 self.root = self
                 self.save()
         # from_xml can be invoked on an instance retrieved from the database (where URIInstance is set)
@@ -822,8 +822,8 @@ class SerializableSimpleEntity(models.Model):
 
 class DBConnection(models.Model):
     connection_string = models.CharField(max_length=255L)
-    name = models.CharField(max_length=100L, null = True, blank=True)
-    description = models.CharField(max_length=2000L, null = True, blank=True)
+    name = models.CharField(max_length=100L, null=True, blank=True)
+    description = models.CharField(max_length=2000L, null=True, blank=True)
 
 class Workflow(SerializableSimpleEntity):
     '''
@@ -832,7 +832,7 @@ class Workflow(SerializableSimpleEntity):
     '''
     name = models.CharField(max_length=100L)
     description = models.CharField(max_length=2000L, blank=True)
-    entity_structure = models.ForeignKey('EntityStructure', null = True, blank=True)
+    entity_structure = models.ForeignKey('EntityStructure', null=True, blank=True)
 #     ASSERT: I metodi di un wf devono avere impatto solo su SimpleEntity contenute nell'EntityStructure
 
 class WorkflowMethod(SerializableSimpleEntity):
@@ -860,10 +860,10 @@ class WorkflowEntityInstance(models.Model):
         abstract = True
 
 class WorkflowTransition(SerializableSimpleEntity):
-    instance = models.ForeignKey("EntityInstance")
+    instance = models.ForeignKey("DataSet")
     workflow_method = models.ForeignKey('WorkflowMethod')
     notes = models.TextField()
-    #TODO: non voglio null=True ma non so come gestire la migration nella quale mi chiede un default value 
+    # TODO: non voglio null=True ma non so come gestire la migration nella quale mi chiede un default value 
     user = models.ForeignKey(KUser, null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     status_from = models.ForeignKey(WorkflowStatus, related_name="+")
@@ -878,7 +878,7 @@ class KnowledgeServer(SerializableSimpleEntity):
     description = models.CharField(max_length=2000L, blank=True)
     # ASSERT: only one KnowledgeServer in each KS has this_ks = True; I use it to know in which KS I am
     this_ks = models.BooleanField(default=False)
-    #urlparse terminology https://docs.python.org/2/library/urlparse.html
+    # urlparse terminology https://docs.python.org/2/library/urlparse.html
 #     scheme e.g. { "http" | "https" }
     scheme = models.CharField(max_length=50L)
 #     netloc e.g. "ks.thekoa.org"
@@ -889,11 +889,11 @@ class KnowledgeServer(SerializableSimpleEntity):
     html_disclaimer = models.CharField(max_length=4000L, default="")
     
     organization = models.ForeignKey(Organization)
-    def uri(self, encode_base64 = False):
+    def uri(self, encode_base64=False):
         # "http://rootks.thekoa.org/"
         uri = self.scheme + "://" + self.netloc
         if encode_base64:
-            uri = base64.encodestring(uri).replace('\n','')
+            uri = base64.encodestring(uri).replace('\n', '')
         return uri
     
     def run_cron(self):
@@ -915,15 +915,15 @@ class KnowledgeServer(SerializableSimpleEntity):
         '''
         message = "Processing events that could generate notifications<br>"
         # subscriptions
-        subs_first_time = SubscriptionToThis.objects.filter(first_notification_prepared = False)
+        subs_first_time = SubscriptionToThis.objects.filter(first_notification_prepared=False)
         message += "Found " + str(len(subs_first_time)) + " subscriptions to data in this OKS<br>"
         for sub in subs_first_time:
             try:
                 with transaction.atomic():
-                    # I get the EntityInstance from the subscription (it is the root)
+                    # I get the DataSet from the subscription (it is the root)
                     root_ei = EntityInstance.objects.get(URIInstance=sub.root_URIInstance)
                     event = Event()
-                    event.entity_instance = root_ei.get_latest(True)
+                    event.dataset = root_ei.get_latest(True)
                     event.type = "First notification"
                     event.processed = True
                     event.save()
@@ -941,7 +941,7 @@ class KnowledgeServer(SerializableSimpleEntity):
         events = Event.objects.filter(processed=False, type="New version")
         message += "Found " + str(len(events)) + " events<br>"
         for event in events:
-            subs = SubscriptionToThis.objects.filter(root_URIInstance = event.entity_instance.root.URIInstance)
+            subs = SubscriptionToThis.objects.filter(root_URIInstance=event.dataset.root.URIInstance)
             try:
                 with transaction.atomic():
                     for sub in subs:
@@ -967,15 +967,15 @@ class KnowledgeServer(SerializableSimpleEntity):
             notifications = Notification.objects.filter(sent=False)
             message += "Found " + str(len(notifications)) + " notifications<br>"
             for notification in notifications:
-                message += "send_notifications, found a notification for URIInstance " + notification.event.entity_instance.URIInstance + "<br>"
+                message += "send_notifications, found a notification for URIInstance " + notification.event.dataset.URIInstance + "<br>"
                 message += "about to notify " + notification.remote_url + "<br>"
-                m_es = EntityStructure.objects.using('ksm').get(name = EntityStructure.dataset_structure_name)
-                es = EntityStructure.objects.using('default').get(URIInstance = m_es.URIInstance)
-                this_es = EntityStructure.objects.get(URIInstance=notification.event.entity_instance.entity_structure.URIInstance)
+                m_es = EntityStructure.objects.using('ksm').get(name=EntityStructure.dataset_structure_name)
+                es = EntityStructure.objects.using('default').get(URIInstance=m_es.URIInstance)
+                this_es = EntityStructure.objects.get(URIInstance=notification.event.dataset.entity_structure.URIInstance)
                 ei_of_this_es = EntityInstance.objects.get(entry_point_instance_id=this_es.id, entity_structure=es)
-                values = { 'root_URIInstance' : notification.event.entity_instance.root.URIInstance,
-                           'URL_dataset' : this_ks.uri() + reverse('api_dataset', args=(base64.encodestring(notification.event.entity_instance.URIInstance).replace('\n',''),"XML",)),
-                           'URL_structure' : this_ks.uri() + reverse('api_dataset', args=(base64.encodestring(ei_of_this_es.URIInstance).replace('\n',''),"XML",)),
+                values = { 'root_URIInstance' : notification.event.dataset.root.URIInstance,
+                           'URL_dataset' : this_ks.uri() + reverse('api_dataset', args=(base64.encodestring(notification.event.dataset.URIInstance).replace('\n', ''), "XML",)),
+                           'URL_structure' : this_ks.uri() + reverse('api_dataset', args=(base64.encodestring(ei_of_this_es.URIInstance).replace('\n', ''), "XML",)),
                            'type' : notification.event.type,
                            'timestamp' : notification.event.timestamp, }
                 data = urllib.urlencode(values)
@@ -1005,15 +1005,15 @@ class KnowledgeServer(SerializableSimpleEntity):
                     # Let's retrieve the structure
                     response = urllib2.urlopen(notification.URL_structure)
                     structure_xml_stream = response.read()
-                    ei_structure = EntityInstance()
+                    ei_structure = DataSet()
                     ei_structure.from_xml_with_actual_instance(structure_xml_stream)
                     
                     # the dataset is retrieved with api #36 api_dataset that serializes
-                    # the EntityInstance and also the complete actual instance 
-                    # from_xml_with_actual_instance will create the EntityInstance and the actual instance
+                    # the DataSet and also the complete actual instance 
+                    # from_xml_with_actual_instance will create the DataSet and the actual instance
                     response = urllib2.urlopen(notification.URL_dataset)
                     dataset_xml_stream = response.read()
-                    ei = EntityInstance()
+                    ei = DataSet()
                     ei.from_xml_with_actual_instance(dataset_xml_stream)
                     notification.processed = True
                     notification.save()
@@ -1022,7 +1022,7 @@ class KnowledgeServer(SerializableSimpleEntity):
         return message + "<br>"
         
     @staticmethod
-    def this_knowledge_server(db_alias = 'ksm'):
+    def this_knowledge_server(db_alias='ksm'):
         '''
         *** method that works BY DEFAULT on the materialized database ***
         *** the reason being that only there "get(this_ks = True)" is ***
@@ -1031,9 +1031,9 @@ class KnowledgeServer(SerializableSimpleEntity):
         materialized; then, using the URIInstance we search it on the default
         because the URIInstance will be unique there
         '''
-        materialized_ks = KnowledgeServer.objects.using('ksm').get(this_ks = True)
+        materialized_ks = KnowledgeServer.objects.using('ksm').get(this_ks=True)
         if db_alias == 'default':
-            return KnowledgeServer.objects.using('default').get(URIInstance = materialized_ks.URIInstance)
+            return KnowledgeServer.objects.using('default').get(URIInstance=materialized_ks.URIInstance)
         else:
             return materialized_ks
     
@@ -1045,11 +1045,11 @@ class SimpleEntity(SerializableSimpleEntity):
     name = models.CharField(max_length=100L)
     # for Django it corresponds to the module which contains the class 
     module = models.CharField(max_length=100L)
-    description = models.CharField(max_length=2000L, default = "")
-    table_name = models.CharField(max_length=255L, db_column='tableName', default = "")
-    id_field = models.CharField(max_length=255L, db_column='idField', default = "id")
-    name_field = models.CharField(max_length=255L, db_column='nameField', default = "name")
-    description_field = models.CharField(max_length=255L, db_column='descriptionField', default = "description")
+    description = models.CharField(max_length=2000L, default="")
+    table_name = models.CharField(max_length=255L, db_column='tableName', default="")
+    id_field = models.CharField(max_length=255L, db_column='idField', default="id")
+    name_field = models.CharField(max_length=255L, db_column='nameField', default="name")
+    description_field = models.CharField(max_length=255L, db_column='descriptionField', default="description")
     connection = models.ForeignKey(DBConnection, null=True, blank=True)
     '''
     entity_structure attribute is not in NORMAL FORM! When not null it tells in which EntityStructure is this 
@@ -1070,7 +1070,7 @@ class SimpleEntity(SerializableSimpleEntity):
             while len(entry_node.parent.all()) == 1:
                 entry_node = entry_node.parent.all()[0]
             dataset_type = entry_node.dataset_type.all()[0]
-            if (not dataset_type in types) and dataset_type.is_shallow==is_shallow and dataset_type.is_a_view==is_a_view:
+            if (not dataset_type in types) and dataset_type.is_shallow == is_shallow and dataset_type.is_a_view == is_a_view:
                 types.append(dataset_type)
         return types
 
@@ -1114,14 +1114,14 @@ class EntityStructure(SerializableSimpleEntity):
     more direct correspondence with a database table, SimpleEntity in our model). A simple
     entity can be in more than one EntityStructure; because, for instance, we might like to render/...
     .../export/... a subset of the simple entities of a complex entity.
-    When we get to EntityInstance (which inherits from VersionableEntityInstance and 
+    When we get to DataSet (which inherits from VersionableEntityInstance and 
     WorkflowEntityInstance) we must add a constraint because we want a unique way
     to know the version and the status of a simple instance: take the set of entities
-    in the EntityStructure attribute of all instances of EntityInstance. In the graph of each
+    in the EntityStructure attribute of all instances of DataSet. In the graph of each
     EntityStructure, consider only the simple entities that are not references; the constraint
     is that each SimpleEntity must not be in the graph of more than one EntityStructure; otherwise
     it would be impossible to determine its version and status. In other words the entities
-    used by EntityInstance must partition the E/R diagram of our database in graphs without
+    used by DataSet must partition the E/R diagram of our database in graphs without
     any intersection. 
      
     An EntityStructure is a graph that defines a set of simple entities on which we can perform a task; 
@@ -1133,7 +1133,7 @@ class EntityStructure(SerializableSimpleEntity):
     The name should describe its use ?????????????????
     
     Types of EntityStructure
-    standard ones: used to define the structure of an EntityInstance
+    standard ones: used to define the structure of an DataSet
                    if a SimpleEntity is in one of them it cannot be in another one of them
     shallow      : created automatically to export a SimpleEntity
     view         : used for example to export a structure different from one of the above; it has no version information
@@ -1146,7 +1146,7 @@ class EntityStructure(SerializableSimpleEntity):
     '''
     is_shallow = models.BooleanField(default=False)
     '''
-    an EntityStructure is a view if it is not used to determine the structure of an EntityInstance
+    an EntityStructure is a view if it is not used to determine the structure of an DataSet
     hence it is used for example to export some data
     '''
     is_a_view = models.BooleanField(default=False)
@@ -1181,14 +1181,14 @@ class EntityStructure(SerializableSimpleEntity):
     '''
     namespace = models.CharField(max_length=500L, blank=True)
 
-class EntityInstance(SerializableSimpleEntity):
+class DataSet(SerializableSimpleEntity):
     '''
     A data set / chunk of knowledge; its data structure is described by self.entity_structure
     The only Versionable object so far
     Serializable like many others 
     It has an owner KS which can be inferred by the URIInstance but it is explicitly linked 
 
-    An EntityInstance is Versionable
+    An DataSet is Versionable
     an Instance belongs to a set of instances which are basically the same but with a different version
     
     It will inherit from WorkflowEntityInstance when we will implement workflow features
@@ -1204,7 +1204,7 @@ class EntityInstance(SerializableSimpleEntity):
     entity_structure = models.ForeignKey(EntityStructure)
 
     # if it is a view a description might be useful
-    description = models.CharField(max_length=2000L, default = "")
+    description = models.CharField(max_length=2000L, default="")
     
     # we have the ID of the instance because we do not know its class so we can't have a ForeignKey to an unknown class
     entry_point_instance_id = models.IntegerField(null=True, blank=True)
@@ -1218,11 +1218,11 @@ class EntityInstance(SerializableSimpleEntity):
 
     # when the entry_point_instance_id is None (hence the structure is a view) I still might want to refer to a version for the data
     # that will be in my view; there might be data belonging to different versions matching the criteria in the filter text; to prevent
-    # this I specify an EntityInstance (that has its own version) so that I will put in the view only those belonging to that version
-    filter_entity_instance = models.ForeignKey('self', null=True, blank=True)
-    # if filter_entity_instance is None then the view will filter on the materialized DB
+    # this I specify an DataSet (that has its own version) so that I will put in the view only those belonging to that version
+    filter_dataset = models.ForeignKey('self', null=True, blank=True)
+    # if filter_dataset is None then the view will filter on the materialized DB
 
-    #following attributes used to be in a separate class VersionableEntityInstance
+    # following attributes used to be in a separate class VersionableEntityInstance
     '''
     an Instance belongs to a set of instances which are basically the same but with a different version
     root is the first instance of this set; root has root=self so that if I filter for root=smthng
@@ -1234,7 +1234,7 @@ class EntityInstance(SerializableSimpleEntity):
     version_major = models.IntegerField(null=True, blank=True)
     version_minor = models.IntegerField(null=True, blank=True)
     version_patch = models.IntegerField(null=True, blank=True)
-    version_description = models.CharField(max_length=2000L, default = "")
+    version_description = models.CharField(max_length=2000L, default="")
     # dataset_date is the date of the release of the dataset; e.g. 
     dataset_date = models.DateTimeField(auto_now_add=True)
     # version_date is the date this version has been released in the OKS
@@ -1263,9 +1263,9 @@ class EntityInstance(SerializableSimpleEntity):
         q = eval("Q(" + self.filter_text + ")")
         return actual_class.objects.using(db_alias).filter(q)
     
-    def serialize_with_actual_instance(self, format = 'XML', force_external_reference=False):
+    def serialize_with_actual_instance(self, format='XML', force_external_reference=False):
         '''
-        EntityInstance should use GenericForeignKey https://docs.djangoproject.com/en/1.8/ref/contrib/contenttypes/
+        DataSet should use GenericForeignKey https://docs.djangoproject.com/en/1.8/ref/contrib/contenttypes/
         instead of entry_point_instance_id; then serialize_with_actual_instance will be done with normal serialize
 
         parameters:
@@ -1274,7 +1274,7 @@ class EntityInstance(SerializableSimpleEntity):
         serialized_head = ''
         format = format.upper()
         if format == 'XML':
-            serialized_head = "<EntityInstance " + self.serialized_attributes(format) + " >"
+            serialized_head = "<DataSet " + self.serialized_attributes(format) + " >"
         if format == 'JSON':
             serialized_head = ' { ' + self.serialized_attributes(format)
         comma = ""    
@@ -1282,16 +1282,16 @@ class EntityInstance(SerializableSimpleEntity):
             comma = ", "
 
         e_simple_entity = SimpleEntity.objects.get(name="EntityStructure")
-        temp_etn = EntityStructureNode(simple_entity=e_simple_entity, external_reference=True, is_many=False, attribute = "entity_structure")
-        serialized_head += comma + self.entity_structure.serialize(temp_etn, format = format)
+        temp_etn = EntityStructureNode(simple_entity=e_simple_entity, external_reference=True, is_many=False, attribute="entity_structure")
+        serialized_head += comma + self.entity_structure.serialize(temp_etn, format=format)
         
         ks_simple_entity = SimpleEntity.objects.get(name="KnowledgeServer")
-        temp_etn = EntityStructureNode(simple_entity=ks_simple_entity, external_reference=True, is_many=False, attribute = "owner_knowledge_server")
-        serialized_head += comma + self.owner_knowledge_server.serialize(temp_etn, format = format)
+        temp_etn = EntityStructureNode(simple_entity=ks_simple_entity, external_reference=True, is_many=False, attribute="owner_knowledge_server")
+        serialized_head += comma + self.owner_knowledge_server.serialize(temp_etn, format=format)
         
-        ei_simple_entity = SimpleEntity.objects.get(name="EntityInstance")
-        temp_etn = EntityStructureNode(simple_entity=ei_simple_entity, external_reference=True, is_many=False, attribute = "root")
-        serialized_head += comma + self.root.serialize(temp_etn, format = format)
+        ei_simple_entity = SimpleEntity.objects.get(name="DataSet")
+        temp_etn = EntityStructureNode(simple_entity=ei_simple_entity, external_reference=True, is_many=False, attribute="root")
+        serialized_head += comma + self.root.serialize(temp_etn, format=format)
 
         if force_external_reference:
             self.entity_structure.entry_point.external_reference = True
@@ -1299,9 +1299,9 @@ class EntityInstance(SerializableSimpleEntity):
         if self.entry_point_instance_id:
             instance = self.get_instance()
             if format == 'XML':
-                serialized_head += "<ActualInstance>" + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + "</ActualInstance>"
+                serialized_head += "<ActualInstance>" + instance.serialize(self.entity_structure.entry_point, exported_instances=[], format=format) + "</ActualInstance>"
             if format == 'JSON':
-                serialized_head += ', "ActualInstance" : { ' + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + " } "
+                serialized_head += ', "ActualInstance" : { ' + instance.serialize(self.entity_structure.entry_point, exported_instances=[], format=format) + " } "
         elif self.filter_text:
             instances = self.get_instances()
             if format == 'XML':
@@ -1311,23 +1311,23 @@ class EntityInstance(SerializableSimpleEntity):
             comma = ""
             for instance in instances:
                 if format == 'XML':
-                    serialized_head += "<ActualInstance>" + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + "</ActualInstance>"
+                    serialized_head += "<ActualInstance>" + instance.serialize(self.entity_structure.entry_point, exported_instances=[], format=format) + "</ActualInstance>"
                 if format == 'JSON':
-                    serialized_head += comma + ' { ' + instance.serialize(self.entity_structure.entry_point, exported_instances = [], format = format) + " } "
+                    serialized_head += comma + ' { ' + instance.serialize(self.entity_structure.entry_point, exported_instances=[], format=format) + " } "
                     comma = ', '
             if format == 'XML':
                 serialized_head += "</ActualInstances>"
             if format == 'JSON':
                 serialized_head += ' ] '
         if format == 'XML':
-            serialized_tail = "</EntityInstance>"
+            serialized_tail = "</DataSet>"
         if format == 'JSON':
             serialized_tail = " }"
         return serialized_head + serialized_tail
 
     def from_xml_with_actual_instance(self, dataset_xml_stream):
         '''
-        EntityInstance should use GenericForeignKey https://docs.djangoproject.com/en/1.8/ref/contrib/contenttypes/
+        DataSet should use GenericForeignKey https://docs.djangoproject.com/en/1.8/ref/contrib/contenttypes/
         instead of entry_point_instance_id; then from_xml_with_actual_instance will be done with normal from_xml
         '''
         logger = utils.poor_mans_logger()
@@ -1337,36 +1337,36 @@ class EntityInstance(SerializableSimpleEntity):
         dataset_xml_stream = etree.tostring(elem)
         xmldoc = minidom.parseString(dataset_xml_stream)
         
-        entity_instance_xml = xmldoc.childNodes[0].childNodes[0]
-        EntityStructureURI = entity_instance_xml.getElementsByTagName("entity_structure")[0].attributes["URIInstance"].firstChild.data
+        dataset_xml = xmldoc.childNodes[0].childNodes[0]
+        EntityStructureURI = dataset_xml.getElementsByTagName("entity_structure")[0].attributes["URIInstance"].firstChild.data
         # Will be created dynamically in the future, now we get it locally
         es = EntityStructure.retrieve(EntityStructureURI)
         
         try:
             with transaction.atomic():
                 # I create the actual instance
-                actual_instance_xml = entity_instance_xml.getElementsByTagName("ActualInstance")[0].childNodes[0]
+                actual_instance_xml = dataset_xml.getElementsByTagName("ActualInstance")[0].childNodes[0]
                 actual_class = utils.load_class(es.entry_point.simple_entity.module + ".models", es.entry_point.simple_entity.name)
                 # already imported ?
                 actual_instance_URIInstance = actual_instance_xml.attributes["URIInstance"].firstChild.data
                 try:
                     actual_instance_on_db = actual_class.retrieve(actual_instance_URIInstance)
-                    # it is already in this database; I return the corresponding EntityInstance
+                    # it is already in this database; I return the corresponding DataSet
                     return EntityInstance.objects.get(entity_structure=es, entry_point_instance_id=actual_instance_on_db.pk)
-                except: # I didn't find it on this db, no problem
+                except:  # I didn't find it on this db, no problem
                     pass
                 actual_instance = actual_class()
                 logger.debug("from_xml_with_actual_instance before actual_instance.from_xml")
-                actual_instance.from_xml(actual_instance_xml, es.entry_point, insert = True)
+                actual_instance.from_xml(actual_instance_xml, es.entry_point, insert=True)
                 logger.debug("from_xml_with_actual_instance after actual_instance.from_xml")
                 # from_xml saves actual_instance on the database
                 
-                # I create the EntityInstance
-                # In the next call the KnowledgeServer owner of this EntityInstance must exist
+                # I create the DataSet
+                # In the next call the KnowledgeServer owner of this DataSet must exist
                 # So it must be imported while subscribing; it is imported by this very same method
                 # Since it is in the actual instance the next method will find it
                 logger.debug("from_xml_with_actual_instance before self.from_xml")
-                self.from_xml(entity_instance_xml, self.shallow_entity_structure().entry_point, insert = True)
+                self.from_xml(dataset_xml, self.shallow_entity_structure().entry_point, insert=True)
                 logger.debug("from_xml_with_actual_instance after self.from_xml")
                 # actual_instance.pk changes during import as we have "insert = True" and the pk is set to None
                 self.entry_point_instance_id = actual_instance.pk
@@ -1376,13 +1376,13 @@ class EntityInstance(SerializableSimpleEntity):
             raise ex
         return self
 
-    def new_version(self, version_major=None, version_minor=None, version_patch=None, version_description = "", version_date = None):
+    def new_version(self, version_major=None, version_minor=None, version_patch=None, version_description="", version_date=None):
         '''
         DATABASE: it is invoked only on default database as record go to the materialized one only
                   via the set_released method
         It creates new records for each record in the whole structure excluding extenal references
         version_released is set to False
-        It creates a new EntityInstance and returns it
+        It creates a new DataSet and returns it
         
         '''
         if version_major == None or version_minor == None or version_patch == None:
@@ -1403,8 +1403,8 @@ class EntityInstance(SerializableSimpleEntity):
                         raise Exception(message)
         try:
             with transaction.atomic():
-                instance = self.get_instance().new_version(self.entity_structure.entry_point, processed_instances = {})
-                new_ei = EntityInstance()
+                instance = self.get_instance().new_version(self.entity_structure.entry_point, processed_instances={})
+                new_ei = DataSet()
                 new_ei.version_major = version_major
                 new_ei.version_minor = version_minor
                 new_ei.version_patch = version_patch
@@ -1448,7 +1448,7 @@ class EntityInstance(SerializableSimpleEntity):
     def set_released(self):
         '''
         Sets this version as the only released one 
-        It materializes data and the EntityInstance itself
+        It materializes data and the DataSet itself
         '''
         try:
             with transaction.atomic():
@@ -1462,9 +1462,9 @@ class EntityInstance(SerializableSimpleEntity):
                             currently_released.save()
                         previously_released = currently_released
                     except:
-                        print("EntityInstance.set_released couldn't find a released version.")
-                        pass #not found
-                #this one is released now
+                        print("DataSet.set_released couldn't find a released version.")
+                        pass  # not found
+                # this one is released now
                 self.version_released = True
                 self.save()
                 # MATERIALIZATION Now we must copy newly released self to the materialized database
@@ -1472,8 +1472,8 @@ class EntityInstance(SerializableSimpleEntity):
                 m_existing = EntityInstance.objects.using('ksm').filter(URIInstance=self.URIInstance)
                 if len(m_existing) == 0:
                     instance = self.get_instance()
-                    materialized_instance = instance.materialize(self.entity_structure.entry_point, processed_instances = [])
-                    materialized_self = self.materialize(self.shallow_entity_structure().entry_point, processed_instances = [])
+                    materialized_instance = instance.materialize(self.entity_structure.entry_point, processed_instances=[])
+                    materialized_self = self.materialize(self.shallow_entity_structure().entry_point, processed_instances=[])
                     # the id should already be the same; maybe autogeneration strategies on different dbms could ... 
                     materialized_self.entry_point_instance_id = materialized_instance.id
                     materialized_self.save()
@@ -1486,14 +1486,14 @@ class EntityInstance(SerializableSimpleEntity):
                             materialized_previously_released = EntityInstance.objects.using('ksm').get(URIInstance=previously_released.URIInstance)
                             materialized_previously_released.delete_entire_dataset()
                     
-                    # If I own this EntityInstance then I create the event for notifications
+                    # If I own this DataSet then I create the event for notifications
                     this_ks = KnowledgeServer.this_knowledge_server()
                     if self.owner_knowledge_server.URIInstance == this_ks.URIInstance:
                         e = Event()
-                        e.entity_instance = self
+                        e.dataset = self
                         e.type = "New version"
                         e.save()
-                    #end of transaction
+                    # end of transaction
         except Exception as ex:
             print (str(ex))
     
@@ -1508,22 +1508,22 @@ class EntityInstance(SerializableSimpleEntity):
         instance.delete()
         self.delete()
         
-    def get_latest(self, released = None):
+    def get_latest(self, released=None):
         '''
-        gets the latest version starting from any EntityInstance in the version set
+        gets the latest version starting from any DataSet in the version set
         it can be either released or not    if released is None:
         if released == True: the latest released one
         if released == False: the latest unreleased one
         '''
-        if released is None: # I take the latest regardless of the fact that it is released or not
-            version_major__max = EntityInstance.objects.filter(root = self.root).aggregate(Max('version_major'))['version_major__max']
-            version_minor__max = EntityInstance.objects.filter(root = self.root, version_major = version_major__max).aggregate(Max('version_minor'))['version_minor__max']
-            version_patch__max = EntityInstance.objects.filter(root = self.root, version_major = version_major__max, version_minor = version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
-        else: # I filter according to released
-            version_major__max = EntityInstance.objects.filter(version_released = released, root = self.root).aggregate(Max('version_major'))['version_major__max']
-            version_minor__max = EntityInstance.objects.filter(version_released = released, root = self.root, version_major = version_major__max).aggregate(Max('version_minor'))['version_minor__max']
-            version_patch__max = EntityInstance.objects.filter(version_released = released, root = self.root, version_major = version_major__max, version_minor = version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
-        return EntityInstance.objects.get(root = self.root, version_major = version_major__max, version_minor = version_minor__max, version_patch = version_patch__max)
+        if released is None:  # I take the latest regardless of the fact that it is released or not
+            version_major__max = EntityInstance.objects.filter(root=self.root).aggregate(Max('version_major'))['version_major__max']
+            version_minor__max = EntityInstance.objects.filter(root=self.root, version_major=version_major__max).aggregate(Max('version_minor'))['version_minor__max']
+            version_patch__max = EntityInstance.objects.filter(root=self.root, version_major=version_major__max, version_minor=version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
+        else:  # I filter according to released
+            version_major__max = EntityInstance.objects.filter(version_released=released, root=self.root).aggregate(Max('version_major'))['version_major__max']
+            version_minor__max = EntityInstance.objects.filter(version_released=released, root=self.root, version_major=version_major__max).aggregate(Max('version_minor'))['version_minor__max']
+            version_patch__max = EntityInstance.objects.filter(version_released=released, root=self.root, version_major=version_major__max, version_minor=version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
+        return EntityInstance.objects.get(root=self.root, version_major=version_major__max, version_minor=version_minor__max, version_patch=version_patch__max)
    
 class UploadedFile(models.Model):
     '''
@@ -1534,10 +1534,10 @@ class UploadedFile(models.Model):
 class Event(SerializableSimpleEntity):
     '''
     Something that has happened to a specific instance and you want to get notified about; 
-    so you can subscribe to a type of event for a specific data set / EntityInstance
+    so you can subscribe to a type of event for a specific data set / DataSet
     '''
-    # The EntityInstance
-    entity_instance = models.ForeignKey(EntityInstance)
+    # The DataSet
+    dataset = models.ForeignKey(DataSet)
     # the event type
     type = models.CharField(max_length=50, default="New version")
     # when it was fired
@@ -1551,7 +1551,7 @@ class SubscriptionToThis(SerializableSimpleEntity):
     '''
     root_URIInstance = models.CharField(max_length=2000L)
     # where to send the notification; remote_url, in the case of a KS, will be something like http://rootks.thekoa.org/notify
-    # the actual notification will have the URIInstance of the EntityInstance and the URIInstance of the EventType
+    # the actual notification will have the URIInstance of the DataSet and the URIInstance of the EventType
     remote_url = models.CharField(max_length=200L)
     # I send a first notification that can be used to get the data the first time
     first_notification_prepared = models.BooleanField(default=False)
@@ -1587,7 +1587,7 @@ class ApiReponse():
     '''
     
     '''
-    def __init__(self, status = "", message = ""):
+    def __init__(self, status="", message=""):
         self.status = status
         self.message = message
         
@@ -1625,8 +1625,8 @@ class KsUri(object):
         # remove the format the slash before it and set self.format
         self.format = ""
         for format in utils.Choices.FORMAT:
-            if self.clean_uri[-(len(format)+1):].lower() == "/" + format:
-                self.clean_uri = self.clean_uri[:-(len(format)+1)]
+            if self.clean_uri[-(len(format) + 1):].lower() == "/" + format:
+                self.clean_uri = self.clean_uri[:-(len(format) + 1)]
                 self.format = format
 
         # I check whether it's structure i well formed according to the GenerateURIInstance method
@@ -1648,18 +1648,18 @@ class KsUri(object):
             # "entity/SimpleEntity/1"
             if temp_path.find('/'):
                 self.namespace = temp_path[:temp_path.find('/')]
-                temp_path = temp_path[temp_path.find('/')+1:]
+                temp_path = temp_path[temp_path.find('/') + 1:]
                 # 'SimpleEntity/1'
                 if temp_path.find('/'):
                     self.class_name = temp_path[:temp_path.find('/')]
-                    temp_path = temp_path[temp_path.find('/')+1:]
+                    temp_path = temp_path[temp_path.find('/') + 1:]
                     print(temp_path)
                     if temp_path.find('/') < 0:
                         self.pk_value = temp_path
                         self.is_sintactically_correct = True
 
     def base64(self):
-        return base64.encodestring(self.uri).replace('\n','')
+        return base64.encodestring(self.uri).replace('\n', '')
         
     def search_on_db(self):
         '''
@@ -1677,6 +1677,6 @@ class KsUri(object):
                 # I search for its module and class and set relevant flags
                 pass
         self.is_present = False
-        #I search on this database
+        # I search on this database
         #  on URIInstance
             

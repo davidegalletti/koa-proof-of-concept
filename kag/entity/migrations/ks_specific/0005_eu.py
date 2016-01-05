@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import models, migrations
-from entity.models import Organization, KnowledgeServer, EntityInstance, EntityStructure, SimpleEntity, EntityStructureNode
+from entity.models import Organization, KnowledgeServer, DataSet, EntityStructure, SimpleEntity, EntityStructureNode
 
 def forwards_func(apps, schema_editor):
     test_eu_projects_org = Organization();test_eu_projects_org.name = "A test Organization hosting EU funded projects information";test_eu_projects_org.website = 'http://eu_projects_org.example.com';test_eu_projects_org.description = "This is just a test Organization.";
@@ -36,7 +36,7 @@ def forwards_func(apps, schema_editor):
     
     m_es = EntityStructure.objects.using('ksm').get(name=EntityStructure.organization_entity_structure_name)
     es = EntityStructure.objects.get(URIInstance=m_es.URIInstance)
-    ei = EntityInstance(owner_knowledge_server=test_eu_projects_org_ks, entry_point_instance_id=test_eu_projects_org.id, entity_structure=es, description="A test Organization and their KSs", version_major=0, version_minor=1, version_patch=0)
+    ei = DataSet(owner_knowledge_server=test_eu_projects_org_ks, entry_point_instance_id=test_eu_projects_org.id, entity_structure=es, description="A test Organization and their KSs", version_major=0, version_minor=1, version_patch=0)
     ei.save(using='default');ei.root_id = ei.id;ei.save(using='default')
     # let's materialize the ei; I cannot release it as I saved manually the ks in ksm (I cannot do otherwise as it 
     # is needed to generateURIInstance every time something is saved)

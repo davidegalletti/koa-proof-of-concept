@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import models, migrations
-from entity.models import Organization, KnowledgeServer, EntityInstance, EntityStructure, SimpleEntity, EntityStructureNode
+from entity.models import Organization, KnowledgeServer, DataSet, EntityStructure, SimpleEntity, EntityStructureNode
 from license.models import License
 
 def forwards_func(apps, schema_editor):
