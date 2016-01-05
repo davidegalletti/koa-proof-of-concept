@@ -9,8 +9,8 @@
     	<h4>Owned by:</h4>
     	{% ks_info ks %}
         <h3>The structure is:</h3>
-         <p><strong>{{ dataset.entity_structure.name }}</strong> <br>
-         <i>{{ dataset.entity_structure.description }}</i></p>
+         <p><strong>{{ dataset.dataset_structure.name }}</strong> <br>
+         <i>{{ dataset.dataset_structure.description }}</i></p>
          {% if all_versions_with_instances|length > 0 %}
 			<h3>... has the following versions:</h3> 
 			<ul>

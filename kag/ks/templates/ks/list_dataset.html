@@ -6,7 +6,7 @@
     <div class="row-fluid">
     	<h3>Browsing: </h3>
     	{% ks_info external_ks %}
-        <h4>The type/structure "<strong>{{ es_info_json.Export.EntityStructure.name }}</strong>" (<i>{{ es_info_json.Export.EntityStructure.description }}</i>) {% if entities %}has the following data sets:{% else %}has no data sets of this type.{% endif %}</h4>
+        <h4>The type/structure "<strong>{{ es_info_json.Export.DataSetStructure.name }}</strong>" (<i>{{ es_info_json.Export.DataSetStructure.description }}</i>) {% if entities %}has the following data sets:{% else %}has no data sets of this type.{% endif %}</h4>
         {% if entities %}
 	        <ul>
 	        {% for entity in entities %}

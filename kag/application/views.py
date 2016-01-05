@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate, login
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
 
-from entity.models import SimpleEntity, EntityStructure, StructureNode
+from entity.models import SimpleEntity, DataSetStructure, StructureNode
 from application.models import Method, Application
 from userauthorization.models import KUser, PermissionHolder
 
@@ -15,23 +15,23 @@ def index(request):
     kuser_list = KUser.objects.all()
     application_list = Application.objects.order_by('name')[:5]
     e = SimpleEntity.objects.get(name="Application")
-    entities = EntityStructure.objects.filter(entry_point__entity_structure = e)
+    entities = DataSetStructure.objects.filter(entry_point__dataset_structure = e)
     context = {'application_list': application_list, 'kuser_list': kuser_list, 'authenticated_user':authenticated_user, entities: entities }
     return render(request, 'application/index.html', context)
 
 def detail(request, application_id):
     application =  get_object_or_404(Application, pk=application_id)
-    entity_structure_list = []
+    dataset_structure_list = []
     initial_methods = []
     
     for wf in application.workflows.all():
-        entity_structure_list.append(wf.entity_structure)
+        dataset_structure_list.append(wf.dataset_structure)
         for m in wf.method_set.all().filter(create_instance=1):
             initial_methods.append(m)
     # following lines makes entries unique
-    entity_structure_list = list(set(entity_structure_list))
+    dataset_structure_list = list(set(dataset_structure_list))
     initial_methods = list(set(initial_methods))
-    return render(request, 'application/detail.html', {'application': application, 'entity_structure_list': entity_structure_list, 'initial_methods': initial_methods})
+    return render(request, 'application/detail.html', {'application': application, 'dataset_structure_list': dataset_structure_list, 'initial_methods': initial_methods})
 
 def klogin(request, username, password):
     user = authenticate(username=username, password=password)

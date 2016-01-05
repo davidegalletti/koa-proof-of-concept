@@ -9,7 +9,7 @@ from django.shortcuts import render, get_object_or_404, redirect, render_to_resp
 from django.template import RequestContext
 
 from application.models import Application, Method
-from entity.models import SimpleEntity, EntityStructure, KnowledgeServer, DataSet, StructureNode, UploadedFile, SerializableSimpleEntity
+from entity.models import SimpleEntity, DataSetStructure, KnowledgeServer, DataSet, StructureNode, UploadedFile, SerializableSimpleEntity
 from forms import UploadFileForm, ImportChoice, ImportChoiceNothingOnDB
 from lxml import etree
 from userauthorization.models import KUser, PermissionHolder
@@ -23,7 +23,7 @@ def index(request):
 #     entities_and_trees = []
 #     for dataset in entity_list:
 #         e = SimpleEntity.objects.get(name=dataset.__class__.__name__)
-#         entities = EntityStructure.objects.filter(entry_point__entity = e)
+#         entities = DataSetStructure.objects.filter(entry_point__entity = e)
 #         entities_and_trees.append([dataset, entities])
     context = {'instance_list': instance_list, "class_name": "SimpleEntity"}
     
@@ -86,12 +86,12 @@ def method(request, simple_entity_id, application_id, method_id):
     attrib_form = getForm(method)
     return render(request, 'entity/method.html', {'entity': entity, 'application': application, 'authenticated_user': authenticated_user, 'method': method, 'form': attrib_form})
 
-def export(request, entity_structure_id, simple_entity_instance_id, simple_entity_id):
+def export(request, dataset_structure_id, simple_entity_instance_id, simple_entity_id):
     se = SimpleEntity.objects.get(pk = simple_entity_id)
     actual_class = utils.load_class(se.module + ".models", se.name)
     instance = get_object_or_404(actual_class, pk=simple_entity_instance_id)
-    e = EntityStructure.objects.get(pk = entity_structure_id)
-    exported_xml = "<Export EntityStructureName=\"" + e.name + "\" EntityStructureURI=\"" + e.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + instance.serialize(e.entry_point, exported_instances = []) + "</Export>"
+    e = DataSetStructure.objects.get(pk = dataset_structure_id)
+    exported_xml = "<Export DataSetStructureName=\"" + e.name + "\" DataSetStructureURI=\"" + e.URIInstance + "\" ExportDateTime=\"" + str(datetime.now()) + "\">" + instance.serialize(e.entry_point, exported_instances = []) + "</Export>"
     xmldoc = minidom.parseString(exported_xml)
     exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
     return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
@@ -119,11 +119,11 @@ def upload_page(request):
                 initial_data['uploaded_file_id'] = new_uploaded_file.id
                 initial_data['new_uploaded_file_relpath'] = new_uploaded_file.docfile.url
                 xmldoc = minidom.parseString(xml_uploaded)
-                URI = xmldoc.childNodes[0].attributes["EntityStructureURI"].firstChild.data
-                e = EntityStructure.objects.get(URIInstance=URI)
-                # I check that the first SimpleEntity is the same simple_entity of the EntityStructure's entry_point
+                URI = xmldoc.childNodes[0].attributes["DataSetStructureURI"].firstChild.data
+                e = DataSetStructure.objects.get(URIInstance=URI)
+                # I check that the first SimpleEntity is the same simple_entity of the DataSetStructure's entry_point
                 if e.entry_point.simple_entity.name != xmldoc.childNodes[0].childNodes[0].tagName:
-                    message = "The EntityStructure structure tells that the first SimpleEntity should be " + e.entry_point.simple_entity.name + " but the first TAG in the file is " + xmldoc.childNodes[0].childNodes[0].tagName
+                    message = "The DataSetStructure structure tells that the first SimpleEntity should be " + e.entry_point.simple_entity.name + " but the first TAG in the file is " + xmldoc.childNodes[0].childNodes[0].tagName
                     raise Exception(message) 
                 else:
                     # Is there a URIInstance of the first SimpleEntity;
@@ -187,7 +187,7 @@ def upload_page(request):
 
 def perform_import(request):
     '''
-    Import is performed according to an EntityStructure i.e. a structure of SimpleEntity(s)
+    Import is performed according to an DataSetStructure i.e. a structure of SimpleEntity(s)
     The structure allows to have references to a SimpleEntity; use a reference
     when you need to associate to that SimpleEntity but do not want to import/export that
     SimpleEntity. When a SimpleEntity is a reference its ID does not matter; its URI is 
@@ -212,10 +212,10 @@ def perform_import(request):
     xml_uploaded = etree.tostring(elem)
     xmldoc = minidom.parseString(xml_uploaded)
     try:
-        URIInstance = xmldoc.childNodes[0].attributes["EntityStructureURI"].firstChild.data
-        et = EntityStructure.objects.get(URIInstance=URIInstance)
+        URIInstance = xmldoc.childNodes[0].attributes["DataSetStructureURI"].firstChild.data
+        et = DataSetStructure.objects.get(URIInstance=URIInstance)
     except Exception as ex:
-        raise Exception("I cannot find the EntityStructure in my database or it's EntityStructureURI in the file you submitted: " + str(ex))
+        raise Exception("I cannot find the DataSetStructure in my database or it's DataSetStructureURI in the file you submitted: " + str(ex))
     child_node = xmldoc.childNodes[0].childNodes[0]
 
     try:

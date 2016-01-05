@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import models, migrations
-from entity.models import Organization, KnowledgeServer, DataSet, EntityStructure
+from entity.models import Organization, KnowledgeServer, DataSet, DataSetStructure
 
 def forwards_func(apps, schema_editor):
     test_eu_projects_org = Organization();test_eu_projects_org.name = "A test Organization hosting EU funded projects information";test_eu_projects_org.website = 'http://eu_projects_org.example.com';test_eu_projects_org.description = "This is just a test Organization.";
@@ -34,13 +34,13 @@ def forwards_func(apps, schema_editor):
     test_eu_projects_org.URIInstance = ""
     test_eu_projects_org.save()
     
-    m_es = EntityStructure.objects.using('ksm').get(name=EntityStructure.organization_entity_structure_name)
-    es = EntityStructure.objects.get(URIInstance=m_es.URIInstance)
-    ei = DataSet(owner_knowledge_server=test_eu_projects_org_ks, entry_point_instance_id=test_eu_projects_org.id, entity_structure=es, description="A test Organization and their KSs", version_major=0, version_minor=1, version_patch=0)
+    m_es = DataSetStructure.objects.using('ksm').get(name=DataSetStructure.organization_dataset_structure_name)
+    es = DataSetStructure.objects.get(URIInstance=m_es.URIInstance)
+    ei = DataSet(owner_knowledge_server=test_eu_projects_org_ks, entry_point_instance_id=test_eu_projects_org.id, dataset_structure=es, description="A test Organization and their KSs", version_major=0, version_minor=1, version_patch=0)
     ei.save(using='default');ei.root_id = ei.id;ei.save(using='default')
     # let's materialize the ei; I cannot release it as I saved manually the ks in ksm (I cannot do otherwise as it 
     # is needed to generateURIInstance every time something is saved)
-    ei.materialize(ei.shallow_entity_structure().entry_point, processed_instances=[])
+    ei.materialize(ei.shallow_dataset_structure().entry_point, processed_instances=[])
     
 
 

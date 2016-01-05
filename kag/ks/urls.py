@@ -26,7 +26,7 @@ urlpatterns = patterns('',
     #36:
     url(r'^api/dataset/(?P<base64_DataSet_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_dataset, name='api_dataset'),
     #64: 
-    url(r'^api/datasets/(?P<base64_EntityStructure_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_datasets, name='api_datasets'),
+    url(r'^api/datasets/(?P<base64_DataSetStructure_URIInstance>[\w|=|%|.]+)/(?P<format>.*)/$', views.api_datasets, name='api_datasets'),
     #46:
     url(r'^api/dataset_types/(?P<format>.*)/$', views.api_dataset_types, name='api_dataset_types'), 
     #52

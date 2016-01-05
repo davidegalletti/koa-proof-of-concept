@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                 ('name_field', models.CharField(max_length=255L, db_column=b'nameField', blank=True)),
                 ('label', models.CharField(max_length=255L, blank=True)),
                 ('default', models.BooleanField(default=True)),
-                ('entity_structure', models.ForeignKey(to='entity.Entity', blank=True)),
+                ('dataset_structure', models.ForeignKey(to='entity.Entity', blank=True)),
             ],
         ),
         migrations.CreateModel(

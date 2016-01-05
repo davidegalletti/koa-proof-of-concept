@@ -4,14 +4,14 @@
 <ul>
 {% for method in initial_methods %}
      
-    <li><a href="{ url 'method' 0 application.id method.id }">"{{ method.name }}" creates "{{ method.workflow.entity_structure.name }}" whose main SimpleEntity is "{{ method.workflow.entity_structure.entry_point.simple_entity.name }}"<a></li>
+    <li><a href="{ url 'method' 0 application.id method.id }">"{{ method.name }}" creates "{{ method.workflow.dataset_structure.name }}" whose main SimpleEntity is "{{ method.workflow.dataset_structure.entry_point.simple_entity.name }}"<a></li>
 {% endfor %}
 </ul>
 
 <h3>Entities</h3>
 <ul>
-{% for entity_structure in entity_structure_list %}
-    <li><a href="/entity/{{ entity_structure.id }}/{{ application.id }}/">"{{ entity_structure.name }}" whose main SimpleEntity is "{{ entity_structure.entry_point.simple_entity.name }}"</a></li>
+{% for dataset_structure in dataset_structure_list %}
+    <li><a href="/entity/{{ dataset_structure.id }}/{{ application.id }}/">"{{ dataset_structure.name }}" whose main SimpleEntity is "{{ dataset_structure.entry_point.simple_entity.name }}"</a></li>
 {% endfor %}
 </ul>
 

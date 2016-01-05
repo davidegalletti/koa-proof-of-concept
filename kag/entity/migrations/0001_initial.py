@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name='EntityStructure',
+            name='DataSetStructure',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('URIInstance', models.CharField(max_length=2000L)),
@@ -153,7 +153,7 @@ class Migration(migrations.Migration):
                 ('name_field', models.CharField(max_length=255L, db_column=b'nameField', default=b'name')),
                 ('description_field', models.CharField(max_length=255L, db_column=b'descriptionField', default=b'description')),
                 ('connection', models.ForeignKey(blank=True, to='entity.DBConnection', null=True)),
-                ('entity_structure', models.ForeignKey(blank=True, to='entity.EntityStructure', null=True)),
+                ('dataset_structure', models.ForeignKey(blank=True, to='entity.DataSetStructure', null=True)),
             ],
             options={
                 'abstract': False,
@@ -175,7 +175,7 @@ class Migration(migrations.Migration):
                 ('URI_previous_version', models.CharField(max_length=2000L, null=True, blank=True)),
                 ('name', models.CharField(max_length=100L)),
                 ('description', models.CharField(max_length=2000L, blank=True)),
-                ('entity_structure', models.ForeignKey(blank=True, to='entity.EntityStructure', null=True)),
+                ('dataset_structure', models.ForeignKey(blank=True, to='entity.DataSetStructure', null=True)),
             ],
             options={
                 'abstract': False,
@@ -323,8 +323,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='dataset',
-            name='entity_structure',
-            field=models.ForeignKey(to='entity.EntityStructure'),
+            name='dataset_structure',
+            field=models.ForeignKey(to='entity.DataSetStructure'),
         ),
         migrations.AddField(
             model_name='dataset',
@@ -342,7 +342,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(blank=True, to='entity.DataSet', null=True),
         ),
         migrations.AddField(
-            model_name='entitystructure',
+            model_name='DataSetStructure',
             name='entry_point',
             field=models.ForeignKey(related_name='dataset_type', to='entity.StructureNode'),
         ),
