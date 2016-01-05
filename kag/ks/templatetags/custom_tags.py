@@ -16,19 +16,19 @@ def ks_info(ks, *args, **kwargs):
 
 @register.simple_tag
 def version_instance_info(dataset, instances, *args, **kwargs):
-    base64_EntityInstance_URIInstance = base64.encodestring(dataset.URIInstance).replace('\n','')
+    base64_DataSet_URIInstance = base64.encodestring(dataset.URIInstance).replace('\n','')
     ret_string = ''
     for instance in instances:
-        ret_string +=  '<p>"' + instance.name + '" (<a href="' + reverse('api_dataset', args=(base64_EntityInstance_URIInstance,"html")) + '">browse the data</a> or'
-        ret_string += ' get it in <a href="' + reverse('api_dataset', args=(base64_EntityInstance_URIInstance,"XML")) + '">XML</a> or '
-        ret_string += '<a href="' + reverse('api_dataset', args=(base64_EntityInstance_URIInstance,"JSON")) + '">JSON</a>)<br>'
+        ret_string +=  '<p>"' + instance.name + '" (<a href="' + reverse('api_dataset', args=(base64_DataSet_URIInstance,"html")) + '">browse the data</a> or'
+        ret_string += ' get it in <a href="' + reverse('api_dataset', args=(base64_DataSet_URIInstance,"XML")) + '">XML</a> or '
+        ret_string += '<a href="' + reverse('api_dataset', args=(base64_DataSet_URIInstance,"JSON")) + '">JSON</a>)<br>'
         ret_string += 'Version ' + ('' if dataset.version_released else '(<font color="red">not released</font>) ') + str(dataset.version_major) + '.' + str(dataset.version_minor) + '.' + str(dataset.version_patch) + ' - ' + str(dataset.version_date)
         if not dataset.license is None:
             ret_string += '<br>License: ' + dataset.license.name
         if dataset.version_released:
             ret_string += '</p>'
         else:  
-            ret_string += '<br>Click <a href="' + reverse('release_dataset', args=(base64_EntityInstance_URIInstance,)) + '" target="_blank">here</a> to release it.</p>'
+            ret_string += '<br>Click <a href="' + reverse('release_dataset', args=(base64_DataSet_URIInstance,)) + '" target="_blank">here</a> to release it.</p>'
     return ret_string
 
 @register.simple_tag

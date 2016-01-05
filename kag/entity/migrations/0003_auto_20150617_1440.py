@@ -26,7 +26,7 @@ def forwards_func(apps, schema_editor):
     seEntityStructure=SimpleEntity();seEntityStructure.name="EntityStructure";seEntityStructure.module="entity";seEntityStructure.description_field;seEntityStructure.save(using=db_alias)
     seAttributeInAMethod=SimpleEntity();seAttributeInAMethod.name="AttributeInAMethod";seAttributeInAMethod.module="application";seAttributeInAMethod.description_field="";seAttributeInAMethod.save(using=db_alias)
     seOrganization=SimpleEntity();seOrganization.name="Organization";seOrganization.module="entity";seOrganization.save(using=db_alias)
-    seEntityInstance=SimpleEntity();seEntityInstance.name="DataSet";seEntityInstance.module="entity";seEntityInstance.name_field="";seEntityInstance.description_field="";seEntityInstance.save(using=db_alias)
+    seDataSet=SimpleEntity();seDataSet.name="DataSet";seDataSet.module="entity";seDataSet.name_field="";seDataSet.description_field="";seDataSet.save(using=db_alias)
     seKnowledgeServer=SimpleEntity();seKnowledgeServer.name="KnowledgeServer";seKnowledgeServer.module="entity";seKnowledgeServer.save(using=db_alias)
     seDBConnection=SimpleEntity();seDBConnection.name="DBConnection";seDBConnection.module="entity";seDBConnection.save(using=db_alias)
     seLicense=SimpleEntity();seLicense.name="License";seLicense.module="license";seLicense.save(using=db_alias)
@@ -135,8 +135,8 @@ def forwards_func(apps, schema_editor):
     es = ei.shallow_entity_structure(db_alias)
     es.namespace = "entity"
     es.save(using=db_alias)
-    seEntityInstance.entity_structure = es
-    seEntityInstance.save(using=db_alias)
+    seDataSet.entity_structure = es
+    seDataSet.save(using=db_alias)
     ei.save(using=db_alias)
      
     ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seAttribute.id,                                   version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
@@ -161,7 +161,7 @@ def forwards_func(apps, schema_editor):
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
     ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seOrganization.id,                                version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seEntityInstance.id,                              version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seDataSet.id,                              version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
     ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seKnowledgeServer.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)

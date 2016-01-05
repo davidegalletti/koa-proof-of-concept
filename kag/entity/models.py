@@ -850,9 +850,9 @@ class WorkflowStatus(SerializableSimpleEntity):
     workflow = models.ForeignKey(Workflow, null=True, blank=True)
     description = models.CharField(max_length=2000L, blank=True)
 
-class WorkflowEntityInstance(models.Model):
+class WorkflowDataSet(models.Model):
     '''
-    WorkflowEntityInstance
+    WorkflowDataSet
     '''
     workflow = models.ForeignKey(Workflow)
     current_status = models.ForeignKey(WorkflowStatus)
@@ -921,7 +921,7 @@ class KnowledgeServer(SerializableSimpleEntity):
             try:
                 with transaction.atomic():
                     # I get the DataSet from the subscription (it is the root)
-                    root_ei = EntityInstance.objects.get(URIInstance=sub.root_URIInstance)
+                    root_ei = DataSet.objects.get(URIInstance=sub.root_URIInstance)
                     event = Event()
                     event.dataset = root_ei.get_latest(True)
                     event.type = "First notification"
@@ -972,7 +972,7 @@ class KnowledgeServer(SerializableSimpleEntity):
                 m_es = EntityStructure.objects.using('ksm').get(name=EntityStructure.dataset_structure_name)
                 es = EntityStructure.objects.using('default').get(URIInstance=m_es.URIInstance)
                 this_es = EntityStructure.objects.get(URIInstance=notification.event.dataset.entity_structure.URIInstance)
-                ei_of_this_es = EntityInstance.objects.get(entry_point_instance_id=this_es.id, entity_structure=es)
+                ei_of_this_es = DataSet.objects.get(entry_point_instance_id=this_es.id, entity_structure=es)
                 values = { 'root_URIInstance' : notification.event.dataset.root.URIInstance,
                            'URL_dataset' : this_ks.uri() + reverse('api_dataset', args=(base64.encodestring(notification.event.dataset.URIInstance).replace('\n', ''), "XML",)),
                            'URL_structure' : this_ks.uri() + reverse('api_dataset', args=(base64.encodestring(ei_of_this_es.URIInstance).replace('\n', ''), "XML",)),
@@ -1114,8 +1114,8 @@ class EntityStructure(SerializableSimpleEntity):
     more direct correspondence with a database table, SimpleEntity in our model). A simple
     entity can be in more than one EntityStructure; because, for instance, we might like to render/...
     .../export/... a subset of the simple entities of a complex entity.
-    When we get to DataSet (which inherits from VersionableEntityInstance and 
-    WorkflowEntityInstance) we must add a constraint because we want a unique way
+    When we get to DataSet (which inherits from VersionableDataSet and 
+    WorkflowDataSet) we must add a constraint because we want a unique way
     to know the version and the status of a simple instance: take the set of entities
     in the EntityStructure attribute of all instances of DataSet. In the graph of each
     EntityStructure, consider only the simple entities that are not references; the constraint
@@ -1129,7 +1129,7 @@ class EntityStructure(SerializableSimpleEntity):
     the "attribute" attribute from the corresponding EntityStructureNode to get the instances of
     the entities related to each of the child_nodes. An EntityStructure could, for example, tell
     us what to export to xml/json, ???????????????? what to consider as a "VersionableMultiEntity" (e.g. an
-    instance of VersionableEntityInstance + an EntityStructure where the entry_point points to that instance)
+    instance of VersionableDataSet + an EntityStructure where the entry_point points to that instance)
     The name should describe its use ?????????????????
     
     Types of EntityStructure
@@ -1191,7 +1191,7 @@ class DataSet(SerializableSimpleEntity):
     An DataSet is Versionable
     an Instance belongs to a set of instances which are basically the same but with a different version
     
-    It will inherit from WorkflowEntityInstance when we will implement workflow features
+    It will inherit from WorkflowDataSet when we will implement workflow features
     
     Relevant methods:
         new version: create new instances starting from entry point, following the nodes but those with external_reference=True
@@ -1222,7 +1222,7 @@ class DataSet(SerializableSimpleEntity):
     filter_dataset = models.ForeignKey('self', null=True, blank=True)
     # if filter_dataset is None then the view will filter on the materialized DB
 
-    # following attributes used to be in a separate class VersionableEntityInstance
+    # following attributes used to be in a separate class VersionableDataSet
     '''
     an Instance belongs to a set of instances which are basically the same but with a different version
     root is the first instance of this set; root has root=self so that if I filter for root=smthng
@@ -1352,7 +1352,7 @@ class DataSet(SerializableSimpleEntity):
                 try:
                     actual_instance_on_db = actual_class.retrieve(actual_instance_URIInstance)
                     # it is already in this database; I return the corresponding DataSet
-                    return EntityInstance.objects.get(entity_structure=es, entry_point_instance_id=actual_instance_on_db.pk)
+                    return DataSet.objects.get(entity_structure=es, entry_point_instance_id=actual_instance_on_db.pk)
                 except:  # I didn't find it on this db, no problem
                     pass
                 actual_instance = actual_class()
@@ -1469,7 +1469,7 @@ class DataSet(SerializableSimpleEntity):
                 self.save()
                 # MATERIALIZATION Now we must copy newly released self to the materialized database
                 # I must check whether it is already materialized so that I don't do it twice
-                m_existing = EntityInstance.objects.using('ksm').filter(URIInstance=self.URIInstance)
+                m_existing = DataSet.objects.using('ksm').filter(URIInstance=self.URIInstance)
                 if len(m_existing) == 0:
                     instance = self.get_instance()
                     materialized_instance = instance.materialize(self.entity_structure.entry_point, processed_instances=[])
@@ -1483,7 +1483,7 @@ class DataSet(SerializableSimpleEntity):
                         materialized_self.save()
                         # now I can delete the old data set
                         if currently_released and currently_released.pk != self.pk:
-                            materialized_previously_released = EntityInstance.objects.using('ksm').get(URIInstance=previously_released.URIInstance)
+                            materialized_previously_released = DataSet.objects.using('ksm').get(URIInstance=previously_released.URIInstance)
                             materialized_previously_released.delete_entire_dataset()
                     
                     # If I own this DataSet then I create the event for notifications
@@ -1516,14 +1516,14 @@ class DataSet(SerializableSimpleEntity):
         if released == False: the latest unreleased one
         '''
         if released is None:  # I take the latest regardless of the fact that it is released or not
-            version_major__max = EntityInstance.objects.filter(root=self.root).aggregate(Max('version_major'))['version_major__max']
-            version_minor__max = EntityInstance.objects.filter(root=self.root, version_major=version_major__max).aggregate(Max('version_minor'))['version_minor__max']
-            version_patch__max = EntityInstance.objects.filter(root=self.root, version_major=version_major__max, version_minor=version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
+            version_major__max = DataSet.objects.filter(root=self.root).aggregate(Max('version_major'))['version_major__max']
+            version_minor__max = DataSet.objects.filter(root=self.root, version_major=version_major__max).aggregate(Max('version_minor'))['version_minor__max']
+            version_patch__max = DataSet.objects.filter(root=self.root, version_major=version_major__max, version_minor=version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
         else:  # I filter according to released
-            version_major__max = EntityInstance.objects.filter(version_released=released, root=self.root).aggregate(Max('version_major'))['version_major__max']
-            version_minor__max = EntityInstance.objects.filter(version_released=released, root=self.root, version_major=version_major__max).aggregate(Max('version_minor'))['version_minor__max']
-            version_patch__max = EntityInstance.objects.filter(version_released=released, root=self.root, version_major=version_major__max, version_minor=version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
-        return EntityInstance.objects.get(root=self.root, version_major=version_major__max, version_minor=version_minor__max, version_patch=version_patch__max)
+            version_major__max = DataSet.objects.filter(version_released=released, root=self.root).aggregate(Max('version_major'))['version_major__max']
+            version_minor__max = DataSet.objects.filter(version_released=released, root=self.root, version_major=version_major__max).aggregate(Max('version_minor'))['version_minor__max']
+            version_patch__max = DataSet.objects.filter(version_released=released, root=self.root, version_major=version_major__max, version_minor=version_minor__max).aggregate(Max('version_patch'))['version_patch__max']
+        return DataSet.objects.get(root=self.root, version_major=version_major__max, version_minor=version_minor__max, version_patch=version_patch__max)
    
 class UploadedFile(models.Model):
     '''

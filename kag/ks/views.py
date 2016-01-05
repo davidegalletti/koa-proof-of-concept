@@ -44,13 +44,13 @@ def api_simple_entity_definition(request, base64_SimpleEntity_URIInstance, forma
         exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
         return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
 
-def api_dataset(request, base64_EntityInstance_URIInstance, format):
+def api_dataset(request, base64_DataSet_URIInstance, format):
     '''
         #36
         It returns the dataset with the URIInstance in the parameter 
         
         parameter:
-        * base64_EntityInstance_URIInstance: URIInstance of the DataSet base64 encoded
+        * base64_DataSet_URIInstance: URIInstance of the DataSet base64 encoded
         
         Implementation:
         # it creates the SimpleEntity class, 
@@ -58,7 +58,7 @@ def api_dataset(request, base64_EntityInstance_URIInstance, format):
         # it runs to_xml of the SimpleEntity using DataSet.entity.entry_point
     '''
     format = format.upper()
-    URIInstance = base64.decodestring(base64_EntityInstance_URIInstance)
+    URIInstance = base64.decodestring(base64_DataSet_URIInstance)
     dataset = DataSet.retrieve(URIInstance)
     actual_instance = ""
     actual_instance_json = ""
@@ -153,13 +153,13 @@ def api_dataset_types(request, format):
     
     return api_datasets(request, base64.encodestring(e.URIInstance).replace('\n',''), format)
 
-def api_dataset_info(request, base64_EntityInstance_URIInstance, format):
+def api_dataset_info(request, base64_DataSet_URIInstance, format):
     '''
         #52 
         
         Parameters:
         * format { 'XML' | 'JSON' | 'HTML' = 'BROWSE' }
-        * base64_EntityInstance_URIInstance: URIInstance of the DataSet base64 encoded
+        * base64_DataSet_URIInstance: URIInstance of the DataSet base64 encoded
         
         Implementation:
         it fetches the DataSet, then the list of all that share the same root
@@ -173,7 +173,7 @@ def api_dataset_info(request, base64_EntityInstance_URIInstance, format):
 
     '''
     format = format.upper()
-    URIInstance = base64.decodestring(base64_EntityInstance_URIInstance)
+    URIInstance = base64.decodestring(base64_DataSet_URIInstance)
     dataset = DataSet.retrieve(URIInstance)
     all_versions = DataSet.objects.filter(root = dataset.root)
     all_versions_serialized = ""
@@ -210,7 +210,7 @@ def api_dataset_info(request, base64_EntityInstance_URIInstance, format):
                 version_with_instance['simple_entity'].append(v.get_instance())
                 all_versions_with_instances.append(version_with_instance)
         this_ks = KnowledgeServer.this_knowledge_server()
-        cont = RequestContext(request, {'base64_EntityInstance_URIInstance': base64_EntityInstance_URIInstance, 'dataset': dataset, 'all_versions_with_instances': all_versions_with_instances, 'ks': dataset.owner_knowledge_server, 'instances': instances, 'this_ks':this_ks, 'this_ks_base64_url':this_ks.uri(True) })
+        cont = RequestContext(request, {'base64_DataSet_URIInstance': base64_DataSet_URIInstance, 'dataset': dataset, 'all_versions_with_instances': all_versions_with_instances, 'ks': dataset.owner_knowledge_server, 'instances': instances, 'this_ks':this_ks, 'this_ks_base64_url':this_ks.uri(True) })
         return render_to_response('ks/api_dataset_info.html', context_instance=cont)
     
 def api_datasets(request, base64_EntityStructure_URIInstance, format):
@@ -244,12 +244,12 @@ def api_datasets(request, base64_EntityStructure_URIInstance, format):
         serialized += ei.serialize_with_actual_instance(format = format, force_external_reference=True)
         comma = ", "
     if format == 'XML':
-        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\"><EntityInstances>" + serialized + "</EntityInstances></Export>"
+        exported_xml = "<Export ExportDateTime=\"" + str(datetime.now()) + "\"><DataSets>" + serialized + "</DataSets></Export>"
         xmldoc = minidom.parseString(exported_xml)
         exported_pretty_xml = xmldoc.toprettyxml(indent="    ")
         return render(request, 'entity/export.xml', {'xml': exported_pretty_xml}, content_type="application/xhtml+xml")
     if format == 'JSON':
-        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "EntityInstances" : [' + serialized + '] } }'
+        exported_json = '{ "Export" : { "ExportDateTime" : "' + str(datetime.now()) + '", "DataSets" : [' + serialized + '] } }'
         return render(request, 'entity/export.json', {'json': exported_json}, content_type="application/json")
 
 def ks_explorer(request):
@@ -278,7 +278,7 @@ def ks_explorer(request):
         decoded = json.loads(entities_json)
         owned_structures = []
         other_structures = []
-        for ei in decoded['Export']['EntityInstances']:
+        for ei in decoded['Export']['DataSets']:
             entity = {}
             entity['actual_instance_name'] = ei['ActualInstance']['EntityStructure']['name']
             entity['URIInstance'] = base64.encodestring(ei['ActualInstance']['EntityStructure']['URIInstance']).replace('\n','')
@@ -341,14 +341,14 @@ def browse_dataset(request, ks_url, base64URIInstance, format):
         decoded = json.loads(entities)
         # I prepare a list of URIInstance of root so that I can check which I have subscribed to
         root_URIInstances = []
-        for ei in decoded['Export']['EntityInstances']:
+        for ei in decoded['Export']['DataSets']:
             root_URIInstances.append(ei['root']['URIInstance'])
         subscribed = SubscriptionToOther.objects.filter(root_URIInstance__in=root_URIInstances)
         subscribed_root_URIInstances = []
         for s in subscribed:
             subscribed_root_URIInstances.append(s.root_URIInstance)
         entities = []
-        for ei in decoded['Export']['EntityInstances']:
+        for ei in decoded['Export']['DataSets']:
             entity = {}
             if 'ActualInstance' in ei.keys():
                 actual_instance_class = ei['ActualInstance'].keys()[0]
@@ -383,8 +383,8 @@ def api_ks_info(request, format):
     this_ks = KnowledgeServer.this_knowledge_server()    
     es = EntityStructure.objects.get(name = EntityStructure.organization_entity_structure_name)
     ei = DataSet.objects.get(entity_structure=es, entry_point_instance_id=this_ks.organization.id)
-    base64_EntityInstance_URIInstance = base64.encodestring(ei.URIInstance).replace('\n','')
-    return api_dataset(request, base64_EntityInstance_URIInstance, format)
+    base64_DataSet_URIInstance = base64.encodestring(ei.URIInstance).replace('\n','')
+    return api_dataset(request, base64_DataSet_URIInstance, format)
     
 def api_root_uri(request, base64_URIInstance):
     '''
