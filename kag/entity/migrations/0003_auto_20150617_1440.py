@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import migrations
-from entity.models import Organization, KnowledgeServer, SimpleEntity, AttributeType, Attribute, EntityStructureNode, EntityStructure, Workflow, WorkflowStatus, DataSet
+from entity.models import Organization, KnowledgeServer, SimpleEntity, AttributeType, Attribute, StructureNode, EntityStructure, Workflow, WorkflowStatus, DataSet
 
 def forwards_func(apps, schema_editor):
     
@@ -22,7 +22,7 @@ def forwards_func(apps, schema_editor):
     seMethod=SimpleEntity();seMethod.name="Method";seMethod.module="application";seMethod.save(using=db_alias)
     seAttributeType=SimpleEntity();seAttributeType.name="AttributeType";seAttributeType.module="entity";seAttributeType.description_field="";seAttributeType.save(using=db_alias)
     seWidget=SimpleEntity();seWidget.name="Widget";seWidget.module="application";seWidget.name_field="widgetname";seWidget.description_field="";seWidget.save(using=db_alias)
-    seEntityStructureNode=SimpleEntity();seEntityStructureNode.name="EntityStructureNode";seEntityStructureNode.module="entity";seEntityStructureNode.name_field="attribute";seEntityStructureNode.description_field="";seEntityStructureNode.save(using=db_alias)
+    seStructureNode=SimpleEntity();seStructureNode.name="StructureNode";seStructureNode.module="entity";seStructureNode.name_field="attribute";seStructureNode.description_field="";seStructureNode.save(using=db_alias)
     seEntityStructure=SimpleEntity();seEntityStructure.name="EntityStructure";seEntityStructure.module="entity";seEntityStructure.description_field;seEntityStructure.save(using=db_alias)
     seAttributeInAMethod=SimpleEntity();seAttributeInAMethod.name="AttributeInAMethod";seAttributeInAMethod.module="application";seAttributeInAMethod.description_field="";seAttributeInAMethod.save(using=db_alias)
     seOrganization=SimpleEntity();seOrganization.name="Organization";seOrganization.module="entity";seOrganization.save(using=db_alias)
@@ -50,34 +50,34 @@ def forwards_func(apps, schema_editor):
     #     Organization
     #     AttributeType
     #     Attribute
-    #     EntityStructureNode
+    #     StructureNode
     #     EntityStructure
     #     Workflow
     #     WorkflowStatus
     #     DataSet
      
-    # EntityStructureNode for "SimpleEntity-attributes"     entry_point=en1
-    en1=EntityStructureNode();en1.simple_entity=seSimpleEntity;en1.save(using=db_alias) 
-    en2=EntityStructureNode();en2.simple_entity=seAttribute;en2.attribute="attribute_set";en2.is_many=True;en2.save(using=db_alias)
-    en3=EntityStructureNode();en3.simple_entity=seAttributeType;en3.attribute="type";en3.save(using=db_alias)
-    # EntityStructureNode for "EntityStructure-EntityStructureNode-Application"    entry_point=en22
-    en4=EntityStructureNode();en4.simple_entity=seEntityStructure;en4.save(using=db_alias)
-    en5=EntityStructureNode();en5.simple_entity=seEntityStructureNode;en5.attribute="entry_point";en5.save(using=db_alias)
-    en6=EntityStructureNode();en6.simple_entity=seSimpleEntity;en6.attribute="simple_entity";en6.external_reference=True;en6.save(using=db_alias)
-    en7=EntityStructureNode();en7.simple_entity=seEntityStructureNode;en7.attribute="child_nodes";en7.is_many=True;en7.save(using=db_alias)
-#     en8=EntityStructureNode();en8.simple_entity=seAttribute;en8.attribute="attribute_set";en8.external_reference=True;en8.is_many=True;en8.save(using=db_alias)
-#     en9=EntityStructureNode();en9.simple_entity=seAttributeType;en9.attribute="type";en9.external_reference=True;en9.save(using=db_alias)
-#     en10=EntityStructureNode();en10.simple_entity=seAttributeInAMethod;en10.attribute="attributeinamethod_set";en10.is_many=True;en10.save(using=db_alias)
-#     en11=EntityStructureNode();en11.simple_entity=seMethod;en11.attribute="implementation_method";en11.save(using=db_alias)
-#     en12=EntityStructureNode();en12.simple_entity=seWorkflowStatus;en12.attribute="initial_statuses";en12.external_reference=True;en12.is_many=True;en12.save(using=db_alias)
-#     en13=EntityStructureNode();en13.simple_entity=seWorkflow;en13.attribute="workflow";en13.external_reference=True;en13.save(using=db_alias)
-#     en15=EntityStructureNode();en15.simple_entity=seApplication;en15.attribute="application_set";en15.is_many=True;en15.save(using=db_alias)
-    # EntityStructureNode for "Workflow-statuses"     entry_point=en16
-    en16=EntityStructureNode();en16.simple_entity=seWorkflow;en16.save(using=db_alias)
-    en17=EntityStructureNode();en17.simple_entity=seWorkflowStatus;en17.attribute="workflowstatus_set";en17.is_many=True;en17.save(using=db_alias)
-    # EntityStructureNode for "Organization-KS"     entry_point=en18
-    en18=EntityStructureNode();en18.simple_entity=seOrganization;en18.save(using=db_alias)
-    en19=EntityStructureNode();en19.simple_entity=seKnowledgeServer;en19.attribute="knowledgeserver_set";en19.is_many=True;en19.save(using=db_alias)
+    # StructureNode for "SimpleEntity-attributes"     entry_point=en1
+    en1=StructureNode();en1.simple_entity=seSimpleEntity;en1.save(using=db_alias) 
+    en2=StructureNode();en2.simple_entity=seAttribute;en2.attribute="attribute_set";en2.is_many=True;en2.save(using=db_alias)
+    en3=StructureNode();en3.simple_entity=seAttributeType;en3.attribute="type";en3.save(using=db_alias)
+    # StructureNode for "EntityStructure-StructureNode-Application"    entry_point=en22
+    en4=StructureNode();en4.simple_entity=seEntityStructure;en4.save(using=db_alias)
+    en5=StructureNode();en5.simple_entity=seStructureNode;en5.attribute="entry_point";en5.save(using=db_alias)
+    en6=StructureNode();en6.simple_entity=seSimpleEntity;en6.attribute="simple_entity";en6.external_reference=True;en6.save(using=db_alias)
+    en7=StructureNode();en7.simple_entity=seStructureNode;en7.attribute="child_nodes";en7.is_many=True;en7.save(using=db_alias)
+#     en8=StructureNode();en8.simple_entity=seAttribute;en8.attribute="attribute_set";en8.external_reference=True;en8.is_many=True;en8.save(using=db_alias)
+#     en9=StructureNode();en9.simple_entity=seAttributeType;en9.attribute="type";en9.external_reference=True;en9.save(using=db_alias)
+#     en10=StructureNode();en10.simple_entity=seAttributeInAMethod;en10.attribute="attributeinamethod_set";en10.is_many=True;en10.save(using=db_alias)
+#     en11=StructureNode();en11.simple_entity=seMethod;en11.attribute="implementation_method";en11.save(using=db_alias)
+#     en12=StructureNode();en12.simple_entity=seWorkflowStatus;en12.attribute="initial_statuses";en12.external_reference=True;en12.is_many=True;en12.save(using=db_alias)
+#     en13=StructureNode();en13.simple_entity=seWorkflow;en13.attribute="workflow";en13.external_reference=True;en13.save(using=db_alias)
+#     en15=StructureNode();en15.simple_entity=seApplication;en15.attribute="application_set";en15.is_many=True;en15.save(using=db_alias)
+    # StructureNode for "Workflow-statuses"     entry_point=en16
+    en16=StructureNode();en16.simple_entity=seWorkflow;en16.save(using=db_alias)
+    en17=StructureNode();en17.simple_entity=seWorkflowStatus;en17.attribute="workflowstatus_set";en17.is_many=True;en17.save(using=db_alias)
+    # StructureNode for "Organization-KS"     entry_point=en18
+    en18=StructureNode();en18.simple_entity=seOrganization;en18.save(using=db_alias)
+    en19=StructureNode();en19.simple_entity=seKnowledgeServer;en19.attribute="knowledgeserver_set";en19.is_many=True;en19.save(using=db_alias)
      
     # esSimpleEntityAttributes
     en1.child_nodes.add(en2); en1.save(using=db_alias)
@@ -91,7 +91,7 @@ def forwards_func(apps, schema_editor):
     seAttributeType.entity_structure = esSimpleEntityAttributes; seAttributeType.save(using=db_alias)
     atText.save(using=db_alias);atDate.save(using=db_alias);atForeignKey.save(using=db_alias); #saving again to create URIInstance via the post_save signal
      
-    # esEntityStructureEntityStructureNodeApplication
+    # esEntityStructureStructureNodeApplication
     en4.child_nodes.add(en5); en4.save(using=db_alias)
     en5.child_nodes.add(en6); en5.child_nodes.add(en7); en5.save(using=db_alias)
 #     en6.child_nodes.add(en8); en6.save(using=db_alias)
@@ -100,17 +100,17 @@ def forwards_func(apps, schema_editor):
 #     en10.child_nodes.add(en11); en10.save(using=db_alias)
 #     en11.child_nodes.add(en12); en11.child_nodes.add(en13); en11.save(using=db_alias)
 #     en13.child_nodes.add(en15); en13.save(using=db_alias)
-    esEntityStructureEntityStructureNodeApplication=EntityStructure(id=2,multiple_releases=False,entry_point=en4,name=EntityStructure.dataset_structure_name,description="A graph of simple entities that have relationships with one another and whose instances share the same version, status, ...",namespace="entity",URIInstance="http://rootks.thekoa.org/entity/EntityStructure/2")
-    esEntityStructureEntityStructureNodeApplication.save(using=db_alias)
-    seEntityStructure.entity_structure = esEntityStructureEntityStructureNodeApplication; seEntityStructure.save(using=db_alias)
-    esSimpleEntityAttributes.save(using=db_alias);esEntityStructureEntityStructureNodeApplication.save(using=db_alias); #saving again to create URIInstance via the post_save signal
+    esEntityStructureStructureNodeApplication=EntityStructure(id=2,multiple_releases=False,entry_point=en4,name=EntityStructure.dataset_structure_name,description="A graph of simple entities that have relationships with one another and whose instances share the same version, status, ...",namespace="entity",URIInstance="http://rootks.thekoa.org/entity/EntityStructure/2")
+    esEntityStructureStructureNodeApplication.save(using=db_alias)
+    seEntityStructure.entity_structure = esEntityStructureStructureNodeApplication; seEntityStructure.save(using=db_alias)
+    esSimpleEntityAttributes.save(using=db_alias);esEntityStructureStructureNodeApplication.save(using=db_alias); #saving again to create URIInstance via the post_save signal
      
-    seEntityStructureNode.entity_structure = esEntityStructureEntityStructureNodeApplication; seEntityStructureNode.save(using=db_alias)
+    seStructureNode.entity_structure = esEntityStructureStructureNodeApplication; seStructureNode.save(using=db_alias)
     en1.save(using=db_alias);en2.save(using=db_alias);en3.save(using=db_alias);en4.save(using=db_alias);en5.save(using=db_alias);en6.save(using=db_alias);en7.save(using=db_alias);en16.save(using=db_alias);en17.save(using=db_alias);en18.save(using=db_alias);en19.save(using=db_alias)
      
-    seAttributeInAMethod.entity_structure = esEntityStructureEntityStructureNodeApplication; seAttributeInAMethod.save(using=db_alias)
-    seMethod.entity_structure = esEntityStructureEntityStructureNodeApplication; seMethod.save(using=db_alias)
-    seApplication.entity_structure = esEntityStructureEntityStructureNodeApplication; seApplication.save(using=db_alias)
+    seAttributeInAMethod.entity_structure = esEntityStructureStructureNodeApplication; seAttributeInAMethod.save(using=db_alias)
+    seMethod.entity_structure = esEntityStructureStructureNodeApplication; seMethod.save(using=db_alias)
+    seApplication.entity_structure = esEntityStructureStructureNodeApplication; seApplication.save(using=db_alias)
  
  
     # esWorkflowStatuses
@@ -153,7 +153,7 @@ def forwards_func(apps, schema_editor):
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
     ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seWidget.id,                                      version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seEntityStructureNode.id,                         version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seStructureNode.id,                         version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
     ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seEntityStructure.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
@@ -165,13 +165,13 @@ def forwards_func(apps, schema_editor):
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
     ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esSimpleEntityAttributes,                        entry_point_instance_id=seKnowledgeServer.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, entry_point_instance_id=esSimpleEntityAttributes.id,                       version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureStructureNodeApplication, entry_point_instance_id=esSimpleEntityAttributes.id,                       version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, entry_point_instance_id=esEntityStructureEntityStructureNodeApplication.id,version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureStructureNodeApplication, entry_point_instance_id=esEntityStructureStructureNodeApplication.id,version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, entry_point_instance_id=esWorkflowStatuses.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureStructureNodeApplication, entry_point_instance_id=esWorkflowStatuses.id,                             version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
-    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureEntityStructureNodeApplication, entry_point_instance_id=eOrganizationKS.id,                               version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+    ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=esEntityStructureStructureNodeApplication, entry_point_instance_id=eOrganizationKS.id,                               version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)
     ei = DataSet(owner_knowledge_server=the_koa_org_ks,entity_structure=eOrganizationKS,                                 entry_point_instance_id=the_koa_org.id,                                   version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using=db_alias);ei.root_id=ei.id;ei.save(using=db_alias)

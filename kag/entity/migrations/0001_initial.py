@@ -88,7 +88,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='EntityStructureNode',
+            name='StructureNode',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('URIInstance', models.CharField(max_length=2000L)),
@@ -97,7 +97,7 @@ class Migration(migrations.Migration):
                 ('attribute', models.CharField(max_length=255L, blank=True)),
                 ('external_reference', models.BooleanField(default=False, db_column=b'externalReference')),
                 ('is_many', models.BooleanField(default=False, db_column=b'isMany')),
-                ('child_nodes', models.ManyToManyField(related_name='parent', to='entity.EntityStructureNode', blank=True)),
+                ('child_nodes', models.ManyToManyField(related_name='parent', to='entity.StructureNode', blank=True)),
             ],
             options={
                 'abstract': False,
@@ -317,7 +317,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(to='entity.Workflow'),
         ),
         migrations.AddField(
-            model_name='entitystructurenode',
+            model_name='structurenode',
             name='simple_entity',
             field=models.ForeignKey(to='entity.SimpleEntity'),
         ),
@@ -344,7 +344,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='entitystructure',
             name='entry_point',
-            field=models.ForeignKey(related_name='dataset_type', to='entity.EntityStructureNode'),
+            field=models.ForeignKey(related_name='dataset_type', to='entity.StructureNode'),
         ),
         migrations.AddField(
             model_name='attribute',

@@ -9,7 +9,7 @@ from django.shortcuts import render, get_object_or_404, redirect, render_to_resp
 from django.template import RequestContext
 
 from application.models import Application, Method
-from entity.models import SimpleEntity, EntityStructure, KnowledgeServer, DataSet, EntityStructureNode, UploadedFile, SerializableSimpleEntity
+from entity.models import SimpleEntity, EntityStructure, KnowledgeServer, DataSet, StructureNode, UploadedFile, SerializableSimpleEntity
 from forms import UploadFileForm, ImportChoice, ImportChoiceNothingOnDB
 from lxml import etree
 from userauthorization.models import KUser, PermissionHolder

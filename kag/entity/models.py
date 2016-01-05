@@ -203,25 +203,25 @@ class SerializableSimpleEntity(models.Model):
             se.is_shallow = True
             se.name = self.__class__.__name__ + " (shallow)"
             se.simple_entity = self.get_simple_entity()
-            se.entry_point = self.shallow_entity_structure_node(db_alias)
+            se.entry_point = self.shallow_structure_node(db_alias)
             se.save()
             se.URIInstance = se.generate_URIInstance()
             se.save(using=db_alias)
         return se 
         
-    def shallow_entity_structure_node(self, db_alias='default'):
+    def shallow_structure_node(self, db_alias='default'):
         '''
-        it creates an EntityStructureNode used to serialize (to_xml) self. It has the SimpleEntity 
+        it creates an StructureNode used to serialize (to_xml) self. It has the SimpleEntity 
         and references to ForeignKeys and ManyToMany
         '''
-        etn = EntityStructureNode()
+        etn = StructureNode()
         etn.simple_entity = self.get_simple_entity() 
         etn.external_reference = False
         etn.is_many = False
         etn.save(using=db_alias)
         etn.child_nodes = []
         for fk in self.foreign_key_attributes():
-            etn_fk = EntityStructureNode()
+            etn_fk = StructureNode()
             if getattr(self, fk) is None:
                 # the attribute is not set so I can't get its __class__.__name__ and I take it from the model
                 class_name = self._meta.get_field(fk).rel.model.__name__
@@ -229,7 +229,7 @@ class SerializableSimpleEntity(models.Model):
                     etn_fk.simple_entity = self.get_simple_entity(class_name)
                 except Exception as ex:
                     logger = utils.poor_mans_logger()
-                    logger.error("shallow_entity_structure_node class_name = " + class_name + " - " + ex.message)
+                    logger.error("shallow_structure_node class_name = " + class_name + " - " + ex.message)
             else:
                 etn_fk.simple_entity = getattr(self, fk).get_simple_entity()
             etn_fk.external_reference = True
@@ -238,10 +238,10 @@ class SerializableSimpleEntity(models.Model):
             etn_fk.save(using=db_alias)
             etn.child_nodes.add(etn_fk)
         for rm in self.related_manager_attributes():
-            # TODO: shallow_entity_structure_node: implement self.related_manager_attributes case
+            # TODO: shallow_structure_node: implement self.related_manager_attributes case
             pass
         for mrm in self.many_related_manager_attributes():
-            # TODO: shallow_entity_structure_node: implement self.many_related_manager_attributes case
+            # TODO: shallow_structure_node: implement self.many_related_manager_attributes case
             pass
         etn.save(using=db_alias)
         return etn
@@ -253,7 +253,7 @@ class SerializableSimpleEntity(models.Model):
             If I have already exported this instance I don't want to duplicate all details hence I just export it's URIInstance, 
             name and SimpleEntity URI. Then I need to add an attribute so that when importing it I will recognize that its details
             are somewhere else in the file
-            <EntityStructureNode URISimpleEntity="....." URIInstance="...." attribute="...." REFERENCE_IN_THIS_FILE=""
+            <StructureNode URISimpleEntity="....." URIInstance="...." attribute="...." REFERENCE_IN_THIS_FILE=""
             the TAG "REFERENCE_IN_THIS_FILE" is used to mark the fact that the details of this SimpleEntity are somewhere else in the file
         '''
         format = format.upper()
@@ -602,17 +602,17 @@ class SerializableSimpleEntity(models.Model):
             field_name = related_parent.field.name
         return field_name
 
-    def from_xml(self, xmldoc, entity_structure_node, insert=True, parent=None):
+    def from_xml(self, xmldoc, structure_node, insert=True, parent=None):
         '''
         from_xml gets from xmldoc the attributes of self and saves it; it searches for child nodes according
-        to what the entity_structure_node says, creates instances of child objects and call itself recursively
+        to what the structure_node says, creates instances of child objects and call itself recursively
         Every tag corresponds to a SimpleEntity, hence it
             contains a tag URISimpleEntity which points to the KS managing the SimpleEntity definition
         
         Each SerializableSimpleEntity has URIInstance and URI_imported_instance attributes. 
         
         external_reference
-            the first SimpleEntity in the XML cannot be marked as an external_reference in the entity_structure_node
+            the first SimpleEntity in the XML cannot be marked as an external_reference in the structure_node
             from_xml doesn't get called recursively for external_references which are sought in the database
             or fetched from remote KS, so I assert self it is not an external reference
         
@@ -621,7 +621,7 @@ class SerializableSimpleEntity(models.Model):
         field_name = ""
         if parent:
 #           I have a parent; let's set it
-            field_name = SerializableSimpleEntity.get_parent_field_name(parent, entity_structure_node.attribute)
+            field_name = SerializableSimpleEntity.get_parent_field_name(parent, structure_node.attribute)
             if field_name:
                 setattr(self, field_name, parent)
         '''
@@ -634,13 +634,13 @@ class SerializableSimpleEntity(models.Model):
         try:
             xmldoc.attributes["REFERENCE_IN_THIS_FILE"]
             # if the TAG is not there an exception will be raised and the method will continue and expect to find all data
-            module_name = entity_structure_node.simple_entity.module
-            actual_class = utils.load_class(module_name + ".models", entity_structure_node.simple_entity.name) 
+            module_name = structure_node.simple_entity.module
+            actual_class = utils.load_class(module_name + ".models", structure_node.simple_entity.name) 
             try:
                 instance = actual_class.retrieve(xmldoc.attributes["URIInstance"].firstChild.data)
                 # It's in the database; I just need to set its parent; data is either already there or it will be updated later on
                 if parent:
-                    field_name = SerializableSimpleEntity.get_parent_field_name(parent, entity_structure_node.attribute)
+                    field_name = SerializableSimpleEntity.get_parent_field_name(parent, structure_node.attribute)
                     if field_name:
                         setattr(instance, field_name, parent)
                     instance.save()
@@ -683,7 +683,7 @@ class SerializableSimpleEntity(models.Model):
             # there's no URIInstance in the XML; it doesn't matter
             pass
         # I must set foreign_key child nodes BEFORE SAVING self otherwise I get an error for ForeignKeys not being set
-        for en_child_node in entity_structure_node.child_nodes.all():
+        for en_child_node in structure_node.child_nodes.all():
             if en_child_node.attribute in self.foreign_key_attributes():
                 try:
                     # ASSERT: in the XML there is exactly at most one child tag
@@ -754,7 +754,7 @@ class SerializableSimpleEntity(models.Model):
             self.URIInstance = self.generate_URIInstance()
             self.save()
  
-        for en_child_node in entity_structure_node.child_nodes.all():
+        for en_child_node in structure_node.child_nodes.all():
             # I have already processed foreign keys, I skip them now
             if (not en_child_node.attribute in self.foreign_key_attributes()):
                 # ASSERT: in the XML there is exactly one child tag
@@ -1064,7 +1064,7 @@ class SimpleEntity(SerializableSimpleEntity):
         if only_versioned: skips views and shallow ones
         '''
         types = []
-        nodes = EntityStructureNode.objects.using('ksm').filter(simple_entity=self, external_reference=external_reference)
+        nodes = StructureNode.objects.using('ksm').filter(simple_entity=self, external_reference=external_reference)
         for node in nodes:
             entry_node = node
             while len(entry_node.parent.all()) == 1:
@@ -1085,12 +1085,12 @@ class Attribute(SerializableSimpleEntity):
     def __str__(self):
         return self.simple_entity.name + "." + self.name
 
-class EntityStructureNode(SerializableSimpleEntity):
+class StructureNode(SerializableSimpleEntity):
     simple_entity = models.ForeignKey('SimpleEntity')
     # attribute is blank for the entry point
     attribute = models.CharField(max_length=255L, blank=True)
     # "parent" assert: there is only one parent so we should change to 
-    # TODO: parent = models.ForeignKey('EntityStructureNode', null=True, blank=True)
+    # TODO: parent = models.ForeignKey('StructureNode', null=True, blank=True)
     child_nodes = models.ManyToManyField('self', blank=True, symmetrical=False, related_name="parent")
     # if not external_reference all attributes are exported, otherwise only the id
     external_reference = models.BooleanField(default=False, db_column='externalReference')
@@ -1126,7 +1126,7 @@ class EntityStructure(SerializableSimpleEntity):
      
     An EntityStructure is a graph that defines a set of simple entities on which we can perform a task; 
     it has an entry point which is a Node e.g. an EntityStructure; from an instance of an EntityStructure we can use
-    the "attribute" attribute from the corresponding EntityStructureNode to get the instances of
+    the "attribute" attribute from the corresponding StructureNode to get the instances of
     the entities related to each of the child_nodes. An EntityStructure could, for example, tell
     us what to export to xml/json, ???????????????? what to consider as a "VersionableMultiEntity" (e.g. an
     instance of VersionableDataSet + an EntityStructure where the entry_point points to that instance)
@@ -1151,12 +1151,12 @@ class EntityStructure(SerializableSimpleEntity):
     '''
     is_a_view = models.BooleanField(default=False)
     '''
-    the entry point of the structure; the class EntityStructureNode has then child_nodes of the same class 
+    the entry point of the structure; the class StructureNode has then child_nodes of the same class 
     hence it defines the structure
     assert: the entry_point is the entr_point for only one structure so we should change to 
-    TODO: entry_point = models.OneToOneField('EntityStructureNode', related_name="dataset_type")
+    TODO: entry_point = models.OneToOneField('StructureNode', related_name="dataset_type")
     '''
-    entry_point = models.ForeignKey('EntityStructureNode', related_name='dataset_type')
+    entry_point = models.ForeignKey('StructureNode', related_name='dataset_type')
     '''
     when multiple_releases is true more than one instance get materialized
     otherwise just one; it defaults to False just not to make it nullable;
@@ -1282,15 +1282,15 @@ class DataSet(SerializableSimpleEntity):
             comma = ", "
 
         e_simple_entity = SimpleEntity.objects.get(name="EntityStructure")
-        temp_etn = EntityStructureNode(simple_entity=e_simple_entity, external_reference=True, is_many=False, attribute="entity_structure")
+        temp_etn = StructureNode(simple_entity=e_simple_entity, external_reference=True, is_many=False, attribute="entity_structure")
         serialized_head += comma + self.entity_structure.serialize(temp_etn, format=format)
         
         ks_simple_entity = SimpleEntity.objects.get(name="KnowledgeServer")
-        temp_etn = EntityStructureNode(simple_entity=ks_simple_entity, external_reference=True, is_many=False, attribute="owner_knowledge_server")
+        temp_etn = StructureNode(simple_entity=ks_simple_entity, external_reference=True, is_many=False, attribute="owner_knowledge_server")
         serialized_head += comma + self.owner_knowledge_server.serialize(temp_etn, format=format)
         
         ei_simple_entity = SimpleEntity.objects.get(name="DataSet")
-        temp_etn = EntityStructureNode(simple_entity=ei_simple_entity, external_reference=True, is_many=False, attribute="root")
+        temp_etn = StructureNode(simple_entity=ei_simple_entity, external_reference=True, is_many=False, attribute="root")
         serialized_head += comma + self.root.serialize(temp_etn, format=format)
 
         if force_external_reference:

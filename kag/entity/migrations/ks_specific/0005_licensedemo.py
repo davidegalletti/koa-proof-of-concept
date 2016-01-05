@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import models, migrations
-from entity.models import Organization, KnowledgeServer, DataSet, EntityStructure, SimpleEntity, EntityStructureNode
+from entity.models import Organization, KnowledgeServer, DataSet, EntityStructure, SimpleEntity, StructureNode
 from license.models import License
 
 def forwards_func(apps, schema_editor):
@@ -51,7 +51,7 @@ def forwards_func(apps, schema_editor):
     this_ks = KnowledgeServer.this_knowledge_server('default')
     seLicense = SimpleEntity.objects.using('default').get(name="License")
     
-    en1=EntityStructureNode();en1.simple_entity=seLicense;en1.save(using='default')
+    en1=StructureNode();en1.simple_entity=seLicense;en1.save(using='default')
     esLicense=EntityStructure();esLicense.multiple_releases=True;esLicense.is_shallow = True;
     esLicense.entry_point=en1;esLicense.name="License";esLicense.description="License information";esLicense.namespace="license";
     esLicense.save(using='default')
@@ -64,7 +64,7 @@ def forwards_func(apps, schema_editor):
     seLicense.entity_structure = esLicense; seLicense.save(using='default')
     
     # EntityStructure di tipo view per la lista di licenze;  
-    en1=EntityStructureNode();en1.simple_entity=seLicense;en1.save(using='default')
+    en1=StructureNode();en1.simple_entity=seLicense;en1.save(using='default')
     esLicenseList=EntityStructure();esLicenseList.is_a_view = True;
     esLicenseList.entry_point=en1;esLicenseList.name="List of licenses";esLicenseList.description="List of all released licenses";esLicenseList.namespace="license";
     esLicenseList.save(using='default')

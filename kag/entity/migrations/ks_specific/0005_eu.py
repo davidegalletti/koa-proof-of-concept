@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import models, migrations
-from entity.models import Organization, KnowledgeServer, DataSet, EntityStructure, SimpleEntity, EntityStructureNode
+from entity.models import Organization, KnowledgeServer, DataSet, EntityStructure
 
 def forwards_func(apps, schema_editor):
     test_eu_projects_org = Organization();test_eu_projects_org.name = "A test Organization hosting EU funded projects information";test_eu_projects_org.website = 'http://eu_projects_org.example.com';test_eu_projects_org.description = "This is just a test Organization.";

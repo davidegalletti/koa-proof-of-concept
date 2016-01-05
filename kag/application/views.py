@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate, login
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
 
-from entity.models import SimpleEntity, EntityStructure, EntityStructureNode
+from entity.models import SimpleEntity, EntityStructure, StructureNode
 from application.models import Method, Application
 from userauthorization.models import KUser, PermissionHolder
 

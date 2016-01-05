@@ -140,10 +140,10 @@ def api_dataset_types(request, format):
             None
         
         Implementation:
-            Invoking api_datasets #64 with parameter "EntityStructure-EntityStructureNode-Application"
+            Invoking api_datasets #64 with parameter "EntityStructure-StructureNode-Application"
             so that I get all the EntitieStructures in this_ks in a shallow export
     '''
-    # Look for all EntityStructure of type "EntityStructure-EntityStructureNode-Application" ...
+    # Look for all EntityStructure of type "EntityStructure-StructureNode-Application" ...
     entities_id = EntityStructure.objects.filter(name=EntityStructure.dataset_structure_name).values("id")
     # Look for the only DataSet whose EntityStructure is *incidentally* of the above type (entity_id__in=entities_id)
     # whose instance is ov the above type entry_point_instance_id__in=entities_id
