@@ -97,7 +97,7 @@ class Migration(migrations.Migration):
                 ('attribute', models.CharField(max_length=255L, blank=True)),
                 ('external_reference', models.BooleanField(default=False, db_column=b'externalReference')),
                 ('is_many', models.BooleanField(default=False, db_column=b'isMany')),
-                ('child_nodes', models.ManyToManyField(related_name='parent_entity_structure_node', to='entity.EntityStructureNode', blank=True)),
+                ('child_nodes', models.ManyToManyField(related_name='parent', to='entity.EntityStructureNode', blank=True)),
             ],
             options={
                 'abstract': False,
@@ -131,6 +131,8 @@ class Migration(migrations.Migration):
                 ('scheme', models.CharField(max_length=50L)),
                 ('organization', models.ForeignKey(to='entity.Organization')),
                 ('this_ks', models.BooleanField(default=False)),
+                ('html_home', models.CharField(default=b'', max_length=4000L)),
+                ('html_disclaimer', models.CharField(default=b'', max_length=4000L)),
             ],
             options={
                 'abstract': False,
@@ -342,7 +344,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='entitystructure',
             name='entry_point',
-            field=models.ForeignKey(to='entity.EntityStructureNode'),
+            field=models.ForeignKey(related_name='dataset_type', to='entity.EntityStructureNode'),
         ),
         migrations.AddField(
             model_name='attribute',

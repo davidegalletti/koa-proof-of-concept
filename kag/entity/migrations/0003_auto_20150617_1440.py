@@ -10,7 +10,7 @@ def forwards_func(apps, schema_editor):
     
     the_koa_org = Organization();the_koa_org.id=1;the_koa_org.name="the Knowledge Oriented Architecture";the_koa_org.URIInstance="http://rootks.thekoa.org/entity/Organization/1";the_koa_org.website='http://www.theKOA.org';the_koa_org.description="the Knowledge Oriented Architecture organization .....";the_koa_org.save(using=db_alias)
     
-    the_koa_org_ks = KnowledgeServer(pk=1, name="theKOA.org root Open Knowledge Server", scheme="http", netloc="rootks.thekoa.org", URIInstance="http://rootks.thekoa.org/entity/KnowledgeServer/1", description="The main OKS, defining the main structures and datasets used by any other Knowledge Server.", organization=the_koa_org, this_ks=True)
+    the_koa_org_ks = KnowledgeServer(pk=1, name="theKOA.org root Open Knowledge Server", scheme="http", netloc="rootks.thekoa.org", URIInstance="http://rootks.thekoa.org/entity/KnowledgeServer/1", description="The main OKS, defining the main structures and datasets used by any other Knowledge Server.", organization=the_koa_org, this_ks=True,html_home="<i><strong>rootks html_home</strong></i>", html_disclaimer="<i><strong>rootks html_disclaimer</strong></i>")
     the_koa_org_ks.save(using=db_alias)
     
     #SimpleEntity
@@ -65,13 +65,13 @@ def forwards_func(apps, schema_editor):
     en5=EntityStructureNode();en5.simple_entity=seEntityStructureNode;en5.attribute="entry_point";en5.save(using=db_alias)
     en6=EntityStructureNode();en6.simple_entity=seSimpleEntity;en6.attribute="simple_entity";en6.external_reference=True;en6.save(using=db_alias)
     en7=EntityStructureNode();en7.simple_entity=seEntityStructureNode;en7.attribute="child_nodes";en7.is_many=True;en7.save(using=db_alias)
-    en8=EntityStructureNode();en8.simple_entity=seAttribute;en8.attribute="attribute_set";en8.external_reference=True;en8.is_many=True;en8.save(using=db_alias)
-    en9=EntityStructureNode();en9.simple_entity=seAttributeType;en9.attribute="type";en9.external_reference=True;en9.save(using=db_alias)
-    en10=EntityStructureNode();en10.simple_entity=seAttributeInAMethod;en10.attribute="attributeinamethod_set";en10.is_many=True;en10.save(using=db_alias)
-    en11=EntityStructureNode();en11.simple_entity=seMethod;en11.attribute="implementation_method";en11.save(using=db_alias)
-    en12=EntityStructureNode();en12.simple_entity=seWorkflowStatus;en12.attribute="initial_statuses";en12.external_reference=True;en12.is_many=True;en12.save(using=db_alias)
-    en13=EntityStructureNode();en13.simple_entity=seWorkflow;en13.attribute="workflow";en13.external_reference=True;en13.save(using=db_alias)
-    en15=EntityStructureNode();en15.simple_entity=seApplication;en15.attribute="application_set";en15.is_many=True;en15.save(using=db_alias)
+#     en8=EntityStructureNode();en8.simple_entity=seAttribute;en8.attribute="attribute_set";en8.external_reference=True;en8.is_many=True;en8.save(using=db_alias)
+#     en9=EntityStructureNode();en9.simple_entity=seAttributeType;en9.attribute="type";en9.external_reference=True;en9.save(using=db_alias)
+#     en10=EntityStructureNode();en10.simple_entity=seAttributeInAMethod;en10.attribute="attributeinamethod_set";en10.is_many=True;en10.save(using=db_alias)
+#     en11=EntityStructureNode();en11.simple_entity=seMethod;en11.attribute="implementation_method";en11.save(using=db_alias)
+#     en12=EntityStructureNode();en12.simple_entity=seWorkflowStatus;en12.attribute="initial_statuses";en12.external_reference=True;en12.is_many=True;en12.save(using=db_alias)
+#     en13=EntityStructureNode();en13.simple_entity=seWorkflow;en13.attribute="workflow";en13.external_reference=True;en13.save(using=db_alias)
+#     en15=EntityStructureNode();en15.simple_entity=seApplication;en15.attribute="application_set";en15.is_many=True;en15.save(using=db_alias)
     # EntityStructureNode for "Workflow-statuses"     entry_point=en16
     en16=EntityStructureNode();en16.simple_entity=seWorkflow;en16.save(using=db_alias)
     en17=EntityStructureNode();en17.simple_entity=seWorkflowStatus;en17.attribute="workflowstatus_set";en17.is_many=True;en17.save(using=db_alias)
@@ -94,19 +94,19 @@ def forwards_func(apps, schema_editor):
     # esEntityStructureEntityStructureNodeApplication
     en4.child_nodes.add(en5); en4.save(using=db_alias)
     en5.child_nodes.add(en6); en5.child_nodes.add(en7); en5.save(using=db_alias)
-    en6.child_nodes.add(en8); en6.save(using=db_alias)
+#     en6.child_nodes.add(en8); en6.save(using=db_alias)
     en7.child_nodes.add(en6); en7.child_nodes.add(en7); en7.save(using=db_alias)
-    en8.child_nodes.add(en9); en8.child_nodes.add(en10); en8.save(using=db_alias)
-    en10.child_nodes.add(en11); en10.save(using=db_alias)
-    en11.child_nodes.add(en12); en11.child_nodes.add(en13); en11.save(using=db_alias)
-    en13.child_nodes.add(en15); en13.save(using=db_alias)
-    esEntityStructureEntityStructureNodeApplication=EntityStructure(id=2,multiple_releases=False,entry_point=en4,name=EntityStructure.entity_structure_entity_structure_name,description="A graph of simple entities that have relationships with one another and whose instances share the same version, status, ...",namespace="entity",URIInstance="http://rootks.thekoa.org/entity/EntityStructure/2")
+#     en8.child_nodes.add(en9); en8.child_nodes.add(en10); en8.save(using=db_alias)
+#     en10.child_nodes.add(en11); en10.save(using=db_alias)
+#     en11.child_nodes.add(en12); en11.child_nodes.add(en13); en11.save(using=db_alias)
+#     en13.child_nodes.add(en15); en13.save(using=db_alias)
+    esEntityStructureEntityStructureNodeApplication=EntityStructure(id=2,multiple_releases=False,entry_point=en4,name=EntityStructure.dataset_structure_name,description="A graph of simple entities that have relationships with one another and whose instances share the same version, status, ...",namespace="entity",URIInstance="http://rootks.thekoa.org/entity/EntityStructure/2")
     esEntityStructureEntityStructureNodeApplication.save(using=db_alias)
     seEntityStructure.entity_structure = esEntityStructureEntityStructureNodeApplication; seEntityStructure.save(using=db_alias)
     esSimpleEntityAttributes.save(using=db_alias);esEntityStructureEntityStructureNodeApplication.save(using=db_alias); #saving again to create URIInstance via the post_save signal
      
     seEntityStructureNode.entity_structure = esEntityStructureEntityStructureNodeApplication; seEntityStructureNode.save(using=db_alias)
-    en1.save(using=db_alias);en2.save(using=db_alias);en3.save(using=db_alias);en4.save(using=db_alias);en5.save(using=db_alias);en6.save(using=db_alias);en7.save(using=db_alias);en8.save(using=db_alias);en9.save(using=db_alias);en10.save(using=db_alias);en11.save(using=db_alias);en12.save(using=db_alias);en13.save(using=db_alias);en15.save(using=db_alias);en16.save(using=db_alias);en17.save(using=db_alias);en18.save(using=db_alias);en19.save(using=db_alias)
+    en1.save(using=db_alias);en2.save(using=db_alias);en3.save(using=db_alias);en4.save(using=db_alias);en5.save(using=db_alias);en6.save(using=db_alias);en7.save(using=db_alias);en16.save(using=db_alias);en17.save(using=db_alias);en18.save(using=db_alias);en19.save(using=db_alias)
      
     seAttributeInAMethod.entity_structure = esEntityStructureEntityStructureNodeApplication; seAttributeInAMethod.save(using=db_alias)
     seMethod.entity_structure = esEntityStructureEntityStructureNodeApplication; seMethod.save(using=db_alias)

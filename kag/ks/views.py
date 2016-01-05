@@ -144,7 +144,7 @@ def api_dataset_types(request, format):
             so that I get all the EntitieStructures in this_ks in a shallow export
     '''
     # Look for all EntityStructure of type "EntityStructure-EntityStructureNode-Application" ...
-    entities_id = EntityStructure.objects.filter(name=EntityStructure.entity_structure_entity_structure_name).values("id")
+    entities_id = EntityStructure.objects.filter(name=EntityStructure.dataset_structure_name).values("id")
     # Look for the only EntityInstance whose EntityStructure is *incidentally* of the above type (entity_id__in=entities_id)
     # whose instance is ov the above type entry_point_instance_id__in=entities_id
     # and it is released (there must be exactly one!
@@ -565,6 +565,14 @@ def debug(request):
     created to debug code
     '''
     try:
+        se1 = SimpleEntity.objects.get(pk=1)
+        se2 = SimpleEntity.objects.get(pk=2)
+        se3 = SimpleEntity.objects.get(pk=3)
+        se4 = SimpleEntity.objects.get(pk=4)
+        t1 = se1.dataset_types()
+        t2 = se2.dataset_types()
+        t3 = se3.dataset_types()
+        t4 = se4.dataset_types()
         return HttpResponse("OK ")
     except Exception as ex:
         return HttpResponse(ex.message)

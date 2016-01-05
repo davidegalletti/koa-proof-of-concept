@@ -2,7 +2,8 @@
 {% load staticfiles %}
 {% block content %}
     <h3>Welcome to <strong>{{ this_ks.name }}</strong></h3>
-    <h4>{{ this_ks.description }}</h4>
+    <h3>{{ this_ks.description }}</h3>
+    <h4>{% autoescape off %}{{ this_ks.html_home }}{% endautoescape %}</h4>
     <h4>Provided by <strong><a href="{{ this_ks.organization.website }}" target="_blank">{{ this_ks.organization.name }}</a></strong></h4>
 {% endblock %}
 {% block message %}

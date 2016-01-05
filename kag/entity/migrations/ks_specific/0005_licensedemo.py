@@ -21,7 +21,7 @@ def forwards_func(apps, schema_editor):
     root_ks.this_ks = False
     root_ks.save()
     
-    m_test_license_org_ks = KnowledgeServer(name="A demo OKS using some data from opendefinition.org.", scheme="http", netloc="licensedemo.thekoa.org", description="Please not that this site not affiliated with opendefinition.org. It is just a test some opendefinition.org data.", organization=test_license_org, this_ks=True)
+    m_test_license_org_ks = KnowledgeServer(name="A demo OKS using some data from opendefinition.org.", scheme="http", netloc="licensedemo.thekoa.org", description="Please not that this site not affiliated with opendefinition.org. It is just a test some opendefinition.org data.", organization=test_license_org, this_ks=True,html_home="<i><strong>licenses html_home</strong></i>", html_disclaimer="<p>    ; information provided is taken from sources that make it available with <a href='http://opendefinition.org/licenses/' target='_blank'>opendefinition.org conformant licenses</a>. If you think that part of this information should not be provided here or that any information is somehow misleading please <a href='http://www.c4k.it/?q=contact' target='_blank'>contact us</a>.</p>")
     m_test_license_org_ks.save(using='ksm')
     test_license_org_ks = m_test_license_org_ks
     test_license_org_ks.id = None
@@ -55,7 +55,7 @@ def forwards_func(apps, schema_editor):
     esLicense=EntityStructure();esLicense.multiple_releases=True;esLicense.is_shallow = True;
     esLicense.entry_point=en1;esLicense.name="License";esLicense.description="License information";esLicense.namespace="license";
     esLicense.save(using='default')
-    m_es = EntityStructure.objects.using('ksm').get(name=EntityStructure.entity_structure_entity_structure_name)
+    m_es = EntityStructure.objects.using('ksm').get(name=EntityStructure.dataset_structure_name)
     es = EntityStructure.objects.using('default').get(URIInstance=m_es.URIInstance)
     ei = EntityInstance(description='-License- data set structure',owner_knowledge_server=this_ks,entity_structure=es, entry_point_instance_id=esLicense.id, version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
     ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')

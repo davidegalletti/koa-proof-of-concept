@@ -883,6 +883,10 @@ class KnowledgeServer(SerializableSimpleEntity):
     scheme = models.CharField(max_length=50L)
 #     netloc e.g. "ks.thekoa.org"
     netloc = models.CharField(max_length=200L)
+#     html_home text that gets displayed at the home page
+    html_home = models.CharField(max_length=4000L, default="")
+#     html_disclaimer text that gets displayed at the disclaimer page
+    html_disclaimer = models.CharField(max_length=4000L, default="")
     
     organization = models.ForeignKey(Organization)
     def uri(self, encode_base64 = False):
@@ -965,7 +969,7 @@ class KnowledgeServer(SerializableSimpleEntity):
             for notification in notifications:
                 message += "send_notifications, found a notification for URIInstance " + notification.event.entity_instance.URIInstance + "<br>"
                 message += "about to notify " + notification.remote_url + "<br>"
-                m_es = EntityStructure.objects.using('ksm').get(name = EntityStructure.entity_structure_entity_structure_name)
+                m_es = EntityStructure.objects.using('ksm').get(name = EntityStructure.dataset_structure_name)
                 es = EntityStructure.objects.using('default').get(URIInstance = m_es.URIInstance)
                 this_es = EntityStructure.objects.get(URIInstance=notification.event.entity_instance.entity_structure.URIInstance)
                 ei_of_this_es = EntityInstance.objects.get(entry_point_instance_id=this_es.id, entity_structure=es)
@@ -1053,6 +1057,22 @@ class SimpleEntity(SerializableSimpleEntity):
     other EntityStructure that are used as views.
     '''
     entity_structure = models.ForeignKey("EntityStructure", null=True, blank=True)
+    
+    def dataset_types(self, is_shallow=False, is_a_view=False, external_reference=False):
+        '''
+        returns the list of the types in which self is present as a node's SimpleEntity
+        if only_versioned: skips views and shallow ones
+        '''
+        types = []
+        nodes = EntityStructureNode.objects.using('ksm').filter(simple_entity=self, external_reference=external_reference)
+        for node in nodes:
+            entry_node = node
+            while len(entry_node.parent.all()) == 1:
+                entry_node = entry_node.parent.all()[0]
+            dataset_type = entry_node.dataset_type.all()[0]
+            if (not dataset_type in types) and dataset_type.is_shallow==is_shallow and dataset_type.is_a_view==is_a_view:
+                types.append(dataset_type)
+        return types
 
 class AttributeType(SerializableSimpleEntity):
     name = models.CharField(max_length=255L, blank=True)
@@ -1069,15 +1089,16 @@ class EntityStructureNode(SerializableSimpleEntity):
     simple_entity = models.ForeignKey('SimpleEntity')
     # attribute is blank for the entry point
     attribute = models.CharField(max_length=255L, blank=True)
-    # related_name "parent_entity_structure_node" is not used now
-    child_nodes = models.ManyToManyField('self', blank=True, symmetrical=False, related_name="parent_entity_structure_node")
+    # "parent" assert: there is only one parent so we should change to 
+    # TODO: parent = models.ForeignKey('EntityStructureNode', null=True, blank=True)
+    child_nodes = models.ManyToManyField('self', blank=True, symmetrical=False, related_name="parent")
     # if not external_reference all attributes are exported, otherwise only the id
     external_reference = models.BooleanField(default=False, db_column='externalReference')
     # is_many is true if the attribute correspond to a list of instances of the SimpleEntity
     is_many = models.BooleanField(default=False, db_column='isMany')
 
 class EntityStructure(SerializableSimpleEntity):
-    entity_structure_entity_structure_name = "Dataset structure"
+    dataset_structure_name = "Dataset structure"
     simple_entity_entity_structure_name = "Entity"
     workflow_entity_structure_name = "Workflow"
     organization_entity_structure_name = "Organization and Open Knowledge Servers"
@@ -1132,8 +1153,10 @@ class EntityStructure(SerializableSimpleEntity):
     '''
     the entry point of the structure; the class EntityStructureNode has then child_nodes of the same class 
     hence it defines the structure
+    assert: the entry_point is the entr_point for only one structure so we should change to 
+    TODO: entry_point = models.OneToOneField('EntityStructureNode', related_name="dataset_type")
     '''
-    entry_point = models.ForeignKey('EntityStructureNode')
+    entry_point = models.ForeignKey('EntityStructureNode', related_name='dataset_type')
     '''
     when multiple_releases is true more than one instance get materialized
     otherwise just one; it defaults to False just not to make it nullable;
