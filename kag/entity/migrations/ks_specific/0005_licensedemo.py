@@ -65,8 +65,8 @@ def forwards_func(apps, schema_editor):
     
     # DataSetStructure di tipo view per la lista di licenze;  
     en1=StructureNode();en1.simple_entity=seLicense;en1.save(using='default')
-    esLicenseList=DataSetStructure();esLicenseList.is_a_view = True;
-    esLicenseList.entry_point=en1;esLicenseList.name="List of licenses";esLicenseList.description="List of all released licenses";esLicenseList.namespace="license";
+    esLicenseList=DataSetStructure();esLicenseList.is_a_view = True;esLicenseList.entry_point=en1;
+    esLicenseList.name="List of licenses";esLicenseList.description="List of all released licenses";esLicenseList.namespace="license";
     esLicenseList.save(using='default')
     # DataSet of the above DataSetStructure
     ei = DataSet(description='-List of licenses- data set structure',owner_knowledge_server=this_ks,dataset_structure=es, entry_point_instance_id=esLicenseList.id, version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)

@@ -192,7 +192,8 @@ class SerializableSimpleEntity(models.Model):
     def shallow_dataset_structure(self, db_alias='default'):
         '''
         It creates an DataSetStructure, saves it on the database and returns it.
-        if a user wants to serialize a SerializableSimpleEntity without passing an DataSetStructure
+        The structure created is shallow e.g. it has no depth but just one node
+        THE NEED: if a user wants to serialize a SimpleEntity without passing an DataSetStructure
         I search for an DataSetStructure with is_shallow=True; if I can't find it I create it and save it
         for future use
         '''
@@ -1133,10 +1134,13 @@ class DataSetStructure(SerializableSimpleEntity):
     The name should describe its use ?????????????????
     
     Types of DataSetStructure
-    standard ones: used to define the structure of an DataSet
-                   if a SimpleEntity is in one of them it cannot be in another one of them
+    versionable  : they are the default, used to define the structure of an DataSet
+                   CONSTRAINT: if a SimpleEntity is in one of them it cannot be in another one of them
     shallow      : created automatically to export a SimpleEntity
+                   CONSTRAINT: only one shallow per SimpleEntity 
     view         : used for example to export a structure different from one of the above; it has no version information
+    
+    TODO: CHECK: Only versionable and view are listed on the OKS and other systems can subscribe to.
     '''
     name = models.CharField(max_length=200L)
     description = models.CharField(max_length=2000L)
@@ -1188,8 +1192,8 @@ class DataSet(SerializableSimpleEntity):
     Serializable like many others 
     It has an owner KS which can be inferred by the URIInstance but it is explicitly linked 
 
-    An DataSet is Versionable
-    an Instance belongs to a set of instances which are basically the same but with a different version
+    An DataSet is Versionable so there are many datasets that are basically different
+    versions of the same thing; they share the same "root" attribute
     
     It will inherit from WorkflowDataSet when we will implement workflow features
     
@@ -1449,6 +1453,7 @@ class DataSet(SerializableSimpleEntity):
         '''
         Sets this version as the only released one 
         It materializes data and the DataSet itself
+        It triggers the generation of events so that subscribers to relevant datasets can get the notification
         '''
         try:
             with transaction.atomic():
@@ -1478,21 +1483,35 @@ class DataSet(SerializableSimpleEntity):
                     materialized_self.entry_point_instance_id = materialized_instance.id
                     materialized_self.save()
                     if not self.dataset_structure.multiple_releases:
-                        # if there is only a materialized release I must set root to self otherwise deleting the previous version will delete this as well
+                        # if there is only a materialized release I must set root to self otherwise deleting the 
+                        # previous version will delete this as well
                         materialized_self.root = materialized_self
                         materialized_self.save()
-                        # now I can delete the old data set
+                        # now I can delete the old dataset (if any) as I want just one release (multiple_releases == false)
                         if currently_released and currently_released.pk != self.pk:
                             materialized_previously_released = DataSet.objects.using('ksm').get(URIInstance=previously_released.URIInstance)
                             materialized_previously_released.delete_entire_dataset()
                     
                     # If I own this DataSet then I create the event for notifications
+                    # releasing a dataset that I do not own makes no sense; in fact when I create a new version of
+                    # a dataset that has a different owner, the owner is set to this oks
                     this_ks = KnowledgeServer.this_knowledge_server()
                     if self.owner_knowledge_server.URIInstance == this_ks.URIInstance:
+                        # TODO: in the future this task must be run asynchronously
                         e = Event()
                         e.dataset = self
                         e.type = "New version"
                         e.save()
+                        '''TODO: now I need to generate events for views
+                        I shall navigate the release structure
+                        Creating a set of lists, one list per each kind of SimpleEntity I encounter
+                        Each list contains the instances without repetitions
+                        Then for each list I find each DataSetStructure that contains a node of the SimpleEntity
+                        For each DataSet with that structure that is a view I test whether at least one of the
+                        instances on the list is also in the dataset (also I must check if any is no longer there!!!!!)
+                        If so I generate the event for that dataset.
+                        '''
+                        
                     # end of transaction
         except Exception as ex:
             print (str(ex))
