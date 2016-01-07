@@ -565,6 +565,12 @@ def debug(request):
     created to debug code
     '''
     try:
+        ds = DataSet.objects.get(pk=1)
+        o = ds.dataset_structure.navigate(ds, "", "navigate_helper_list_by_type")
+        ds = DataSet.objects.get(pk=18)
+        o = ds.dataset_structure.navigate(ds, "", "navigate_helper_list_by_type")
+        ds = DataSet.objects.get(pk=19)
+        o = ds.dataset_structure.navigate(ds, "", "navigate_helper_list_by_type")
         se1 = SimpleEntity.objects.get(pk=1)
         se2 = SimpleEntity.objects.get(pk=2)
         se3 = SimpleEntity.objects.get(pk=3)

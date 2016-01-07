@@ -23,8 +23,10 @@ def version_instance_info(dataset, instances, *args, **kwargs):
         ret_string += ' get it in <a href="' + reverse('api_dataset', args=(base64_DataSet_URIInstance,"XML")) + '">XML</a> or '
         ret_string += '<a href="' + reverse('api_dataset', args=(base64_DataSet_URIInstance,"JSON")) + '">JSON</a>)<br>'
         ret_string += 'Version ' + ('' if dataset.version_released else '(<font color="red">not released</font>) ') + str(dataset.version_major) + '.' + str(dataset.version_minor) + '.' + str(dataset.version_patch) + ' - ' + str(dataset.version_date)
-        if not dataset.license is None:
-            ret_string += '<br>License: ' + dataset.license.name
+        if not dataset.licenses is None:
+            ret_string += '<br>Licenses: '
+        for l in dataset.licenses:
+            ret_string += '<br> ' + l.name
         if dataset.version_released:
             ret_string += '</p>'
         else:  

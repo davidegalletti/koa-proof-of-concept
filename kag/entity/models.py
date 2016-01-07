@@ -406,7 +406,6 @@ class SerializableSimpleEntity(models.Model):
         '''
 
         if etn.external_reference:
-
             try:
                 return self.__class__.objects.using('ksm').get(URIInstance=self.URIInstance)
             except Exception as ex:
@@ -1098,6 +1097,45 @@ class StructureNode(SerializableSimpleEntity):
     # is_many is true if the attribute correspond to a list of instances of the SimpleEntity
     is_many = models.BooleanField(default=False, db_column='isMany')
 
+    def navigate(self, instance, instance_method_name, node_method_name, status, children_before):
+        # I invoke the method on the instance and recursively on each children
+        if instance_method_name:
+            instance_method = getattr(instance, instance_method_name)
+        if node_method_name:
+            node_method = getattr(self, node_method_name)
+        if not children_before and instance_method_name:
+            instance_method(instance, status)
+        if not children_before and node_method_name:
+            node_method(instance, status)
+        # loop on children
+
+        for child_node in self.child_nodes.all():
+            if child_node.is_many:
+                child_instances = eval("instance." + child_node.attribute + ".all()")
+                for child_instance in child_instances:
+                    # let's prevent infinite loops if self relationships
+                    if (child_instance.__class__.__name__ != instance.__class__.__name__) or (instance.pk != child_node.pk):
+                        child_node.navigate(child_instance, instance_method_name, node_method_name, status, children_before)
+            else:
+                child_instance = eval("instance." + child_node.attribute)
+                if not child_instance is None:
+                    child_node.navigate(child_instance, instance_method_name, node_method_name, status, children_before)
+            
+        if children_before and instance_method_name:
+            instance_method(instance, status)
+        if children_before and node_method_name:
+            node_method(instance, status)
+        
+    def navigate_helper_list_by_type(self, instance, status):
+        # se statusoutput is None creo un dictionary
+        # le cui chiavi sono i tipi di simpleentity e il cui valore è una lista senza ripetizioni delle istanze
+        if not 'output' in status.keys():
+            status['output'] = {}
+        if not self.simple_entity in status['output'].keys():
+            status['output'][self.simple_entity] = []
+        if not instance in status['output'][self.simple_entity]:
+            status['output'][self.simple_entity].append(instance)
+        
 class DataSetStructure(SerializableSimpleEntity):
     dataset_structure_name = "Dataset structure"
     simple_entity_dataset_structure_name = "Entity"
@@ -1184,6 +1222,28 @@ class DataSetStructure(SerializableSimpleEntity):
     (maybe not allowing "_"?)
     '''
     namespace = models.CharField(max_length=500L, blank=True)
+    
+    def navigate(self, dataset, instance_method_name, node_method_name, children_before = True):
+        '''
+        Many methods do things on each node navigating in the structure
+        This is a generic method that takes a method as a parameter
+        and executes it on the actual instance of each node; the signature of such method must be:
+            def generic_structure_node_method(self, instance, status)
+        each method can add whatever it wants to the status and set its output to status.output
+        the instance_method_name must be a method of SerializableSimpleEntity so that it is implemented
+        by any instance of any node.
+        If children_before the method is invoked on the children first
+        '''
+        status = {}
+        if self.is_a_view:
+            # I have to do it on all instances that match the dataset criteria
+            for instance in dataset.get_instances():
+                self.entry_point.navigate(instance, instance_method_name, node_method_name, status, children_before)
+        else:
+            instance = dataset.get_instance()
+            self.entry_point.navigate(instance, instance_method_name, node_method_name, status, children_before)
+        return status['output']
+    
 
 class DataSet(SerializableSimpleEntity):
     '''
@@ -1247,8 +1307,11 @@ class DataSet(SerializableSimpleEntity):
     Assert: If self.dataset_structure.multiple_releases==False: at most one instance with the same root_version_id has version_released = True
     '''
     version_released = models.BooleanField(default=False)
-    
-    license = models.ForeignKey('license.License', null=True, blank=True)
+    '''http://www.dcc.ac.uk/resources/how-guides/license-research-data 
+        "The option to multiply license a dataset is certainly available to you if you hold all the rights 
+        that pertain to the dataset"
+    '''
+    licenses = models.ManyToManyField("license.License")
     
     def get_instance(self, db_alias='default'):
         '''
@@ -1502,7 +1565,7 @@ class DataSet(SerializableSimpleEntity):
                         e.dataset = self
                         e.type = "New version"
                         e.save()
-                        '''TODO: now I need to generate events for views
+                        '''#157 now I need to generate events for views
                         I shall navigate the release structure
                         Creating a set of lists, one list per each kind of SimpleEntity I encounter
                         Each list contains the instances without repetitions
@@ -1510,7 +1573,34 @@ class DataSet(SerializableSimpleEntity):
                         For each DataSet with that structure that is a view I test whether at least one of the
                         instances on the list is also in the dataset (also I must check if any is no longer there!!!!!)
                         If so I generate the event for that dataset.
+                        To check if one is no longer there I must generate the same lists also for previously_released
+                        and then compare the lists after applying the criteria of the view
                         '''
+                        released_instances_list = self.dataset_structure.navigate(self, "", "navigate_helper_list_by_type")
+                        previously_released_instances_list = previously_released.dataset_structure.navigate(self, "", "navigate_helper_list_by_type")
+                        # I assume the list of keys of the above lists is the same, e.g. the dataset_structure has not changed
+                        for se in released_instances_list.keys():
+                            '''
+                            '   Let's compare currently and previously released
+                            '   I must create a list of
+                            '    - all those that are in current but not in previous
+                            '    - all those that are in previous but not in current
+                            '    - all those that are in both but have changed 
+                                        changed means also their relationships!!! complicato !!
+                            '''
+                            # current but not in previous
+                            
+                            # previous but not in current
+                            
+                            # in both but have changed
+                            
+                            # keys are simpleentities
+                            # for each simple entity I must find the list of all structures of type view the contain
+                            # at least a node of that type;
+                            structure_views = se.dataset_types(is_shallow=False, is_a_view=True, external_reference=False)
+                            # for each of them I find all the actual datasets
+                            for sv in structure_views:
+                                dataset_views = DataSet.objects.filter(dataset_structure = sv)
                         
                     # end of transaction
         except Exception as ex:
@@ -1621,9 +1711,8 @@ class ApiReponse():
         
 class KsUri(object):
     '''
-    This class is responsible for the good quality of all URI generated by a KS
-    in terms of syntax
-    and coherent use throughout the whole application
+    This class is responsible for the good quality of all URIs generated by a KS
+    in terms of syntax and for their coherent use throughout the whole application
     '''
 
     def __init__(self, uri):
