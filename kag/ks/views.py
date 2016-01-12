@@ -565,6 +565,8 @@ def debug(request):
     created to debug code
     '''
     try:
+        se = SimpleEntity.objects.get(pk=1)
+        xxx = se.serialized_attributes()
         ds = DataSet.objects.get(pk=1)
         o = ds.dataset_structure.navigate(ds, "", "navigate_helper_list_by_type")
         ds = DataSet.objects.get(pk=18)

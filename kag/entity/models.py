@@ -77,6 +77,7 @@ class SerializableSimpleEntity(models.Model):
     '''
     URI_previous_version = models.CharField(max_length=2000L, null=True, blank=True)
     objects = CustomModelManager()
+
     def SetNotNullFields(self):
         '''
         I need to make sure that every SerializableSimpleEntity can be saved on the database right after being created (*)
@@ -174,7 +175,8 @@ class SerializableSimpleEntity(models.Model):
     def serialized_attributes(self, format='XML'):
         attributes = ""
         comma = ""
-        for key in self._meta.fields:
+
+        for key in self._meta.fields: 
             if key.__class__.__name__ != "ForeignKey":
                 value = getattr(self, key.name)
                 if value is None:
@@ -570,38 +572,6 @@ class SerializableSimpleEntity(models.Model):
             raise Exception("NOT IMPLEMENTED in simple_entity_from_xml_tag: get SimpleEntity from appropriate KS.")
         return se
 
-    @classmethod
-    def retrieve(cls, URIInstance):
-        '''
-        It returns an instance of a SerializableSimpleEntity stored in this KS
-        It searches first on the URIInstance field (e.g. is it already an instance of this KS? ) 
-        It searches then on the URI_imported_instance field (e.g. has is been imported in this KS from the same source? )
-        It fetches the instance from the source as it is not in this KS yet 
-        '''
-        actual_instance = None
-        try:
-            actual_instance = cls.objects.get(URIInstance=URIInstance)
-        except Exception as ex:
-            try:
-                actual_instance = cls.objects.get(URI_imported_instance=URIInstance)
-            except Exception as ex:
-                raise ex
-        return actual_instance
-
-    @staticmethod
-    def get_parent_field_name(parent, attribute):
-        '''
-        TODO: describe *ObjectsDescriptor or link to docs
-              make sure it is complete (e.g. we are not missing any other *ObjectsDescriptor)
-        '''
-        field_name = ""
-        related_parent = getattr(parent._meta.concrete_model, attribute)
-        if related_parent.__class__.__name__ == "ForeignRelatedObjectsDescriptor":
-            field_name = related_parent.related.field.name
-        if related_parent.__class__.__name__ == "ReverseSingleRelatedObjectDescriptor":
-            field_name = related_parent.field.name
-        return field_name
-
     def from_xml(self, xmldoc, structure_node, insert=True, parent=None):
         '''
         from_xml gets from xmldoc the attributes of self and saves it; it searches for child nodes according
@@ -817,6 +787,47 @@ class SerializableSimpleEntity(models.Model):
                                 instance = actual_class()
                         instance.from_xml(xml_child_node, en_child_node, insert, self)
         
+    @classmethod
+    def retrieve(cls, URIInstance):
+        '''
+        It returns an instance of a SerializableSimpleEntity stored in this KS
+        It searches first on the URIInstance field (e.g. is it already an instance of this KS? ) 
+        It searches then on the URI_imported_instance field (e.g. has is been imported in this KS from the same source? )
+        It fetches the instance from the source as it is not in this KS yet 
+        '''
+        actual_instance = None
+        try:
+            actual_instance = cls.objects.get(URIInstance=URIInstance)
+        except Exception as ex:
+            try:
+                actual_instance = cls.objects.get(URI_imported_instance=URIInstance)
+            except Exception as ex:
+                raise ex
+        return actual_instance
+
+    @staticmethod
+    def get_parent_field_name(parent, attribute):
+        '''
+        TODO: describe *ObjectsDescriptor or link to docs
+              make sure it is complete (e.g. we are not missing any other *ObjectsDescriptor)
+        '''
+        field_name = ""
+        related_parent = getattr(parent._meta.concrete_model, attribute)
+        if related_parent.__class__.__name__ == "ForeignRelatedObjectsDescriptor":
+            field_name = related_parent.related.field.name
+        if related_parent.__class__.__name__ == "ReverseSingleRelatedObjectDescriptor":
+            field_name = related_parent.field.name
+        return field_name
+
+    @staticmethod
+    def compare(first, second):
+        return first.serialized_attributes() == second.serialized_attributes()
+
+    @staticmethod
+    def intersect_list(first, second):
+        first_URI_instances = list(i.URI_instance for i in first)
+        return filter(lambda x: x.URI_instance in first_URI_instances, second)
+
     class Meta:
         abstract = True
 
@@ -1178,7 +1189,7 @@ class DataSetStructure(SerializableSimpleEntity):
                    CONSTRAINT: only one shallow per SimpleEntity 
     view         : used for example to export a structure different from one of the above; it has no version information
     
-    TODO: CHECK: Only versionable and view are listed on the OKS and other systems can subscribe to.
+    CHECK: Only versionable and view are listed on the OKS and other systems can subscribe to.
     '''
     name = models.CharField(max_length=200L)
     description = models.CharField(max_length=2000L)
@@ -1284,7 +1295,9 @@ class DataSet(SerializableSimpleEntity):
     # that will be in my view; there might be data belonging to different versions matching the criteria in the filter text; to prevent
     # this I specify an DataSet (that has its own version) so that I will put in the view only those belonging to that version
     filter_dataset = models.ForeignKey('self', null=True, blank=True)
+    # NOT USED YET: TODO: it should be used in get_instances
     # if filter_dataset is None then the view will filter on the materialized DB
+    # ????? PERCHE' ????? filter_dataset ha senso solo se h multiple releases!!
 
     # following attributes used to be in a separate class VersionableDataSet
     '''
@@ -1321,14 +1334,26 @@ class DataSet(SerializableSimpleEntity):
         actual_class = utils.load_class(se_simple_entity.module + ".models", se_simple_entity.name)
         return actual_class.objects.using(db_alias).get(pk=self.entry_point_instance_id)
     
-    def get_instances(self, db_alias='default'):
+    def get_instances(self, db_alias='ksm'):
         '''
         it returns the list of instances matching the filter criteria
+        CHECK: sempre ksm? E' una view e quindi che senso ha andare su default dove ci sono anche le versioni vecchie?
         '''
         se_simple_entity = self.dataset_structure.entry_point.simple_entity
         actual_class = utils.load_class(se_simple_entity.module + ".models", se_simple_entity.name)
         q = eval("Q(" + self.filter_text + ")")
         return actual_class.objects.using(db_alias).filter(q)
+    
+    def get_instances_of_a_type(self, se, db_alias='ksm'):
+        '''
+        starting from the instances matching the filter criteria it returns the list of simple entities anywhere in the structure of the se type
+        '''
+        instances = self.get_instance(db_alias)
+        t = self.dataset_structure.navigate(self, "", "navigate_helper_list_by_type")
+        if se in t.keys():
+            return t[se]
+        else:
+            return None
     
     def serialize_with_actual_instance(self, format='XML', force_external_reference=False):
         '''
@@ -1571,37 +1596,61 @@ class DataSet(SerializableSimpleEntity):
                         Each list contains the instances without repetitions
                         Then for each list I find each DataSetStructure that contains a node of the SimpleEntity
                         For each DataSet with that structure that is a view I test whether at least one of the
-                        instances on the list is also in the dataset (also I must check if any is no longer there!!!!!)
+                        instances on the list is also in the dataset (also I must check if any is no longer there!)
                         If so I generate the event for that dataset.
                         To check if one is no longer there I must generate the same lists also for previously_released
                         and then compare the lists after applying the criteria of the view
+
                         '''
                         released_instances_list = self.dataset_structure.navigate(self, "", "navigate_helper_list_by_type")
                         previously_released_instances_list = previously_released.dataset_structure.navigate(self, "", "navigate_helper_list_by_type")
                         # I assume the list of keys of the above lists is the same, e.g. the dataset_structure has not changed
+                        # keys are simpleentities
                         for se in released_instances_list.keys():
                             '''
-                            '   Let's compare currently and previously released
+                            '   if multiple_releases all the newly released instances can affect a view
+                            '   else we must compare currently and previously released
                             '   I must create a list of
                             '    - all those that are in current but not in previous
                             '    - all those that are in previous but not in current
                             '    - all those that are in both but have changed 
-                                        changed means also their relationships!!! complicato !!
+                                        changed means attribute but TODO:also their relationships!!!
                             '''
-                            # current but not in previous
-                            
-                            # previous but not in current
-                            
-                            # in both but have changed
-                            
-                            # keys are simpleentities
+                            if not self.dataset_structure.multiple_releases:
+                                #     - all those that are in current but not in previous
+                                current_not_previous = list(i for i in released_instances_list[se] if i.URI_previous_version not in list(i.URI_instance for i in previously_released_instances_list[se]))
+                                #    - all those that are in previous but not in current
+                                previous_not_current = list(i for i in previously_released_instances_list[se] if i.URI_instance not in list(i.URI_previous_version for i in released_instances_list[se]))
+                                #    - all those that are in both but have changed 
+                                current_changed = []
+                                previous_changed = []
+                                previous_and_current = list(i for i in previously_released_instances_list[se] if i.URI_instance in list(i.URI_previous_version for i in released_instances_list[se]))
+                                for previous_instance in previous_and_current:
+                                    current_instance = list(i for i in released_instances_list[se] if i.URI_previous_version == previous_instance.URI_instance)[0]
+                                    if not SimpleEntity.compare(current_instance, previous_instance):
+                                        current_changed.append(current_instance)
+                                        previous_changed.append(previous_instance)
+                            else: # CHECK: è già una lista?
+                                current = list(i for i in released_instances_list[se])
                             # for each simple entity I must find the list of all structures of type view the contain
                             # at least a node of that type;
                             structure_views = se.dataset_types(is_shallow=False, is_a_view=True, external_reference=False)
-                            # for each of them I find all the actual datasets
                             for sv in structure_views:
+                                # for each of them I find all the actual datasets
                                 dataset_views = DataSet.objects.filter(dataset_structure = sv)
-                        
+                                for dv in dataset_views:
+                                    # instances of type se within the structure of the dataset
+                                    t = dv.get_instances_of_a_type(se)
+                                    generate_event = False
+                                    if self.dataset_structure.multiple_releases:
+                                        generate_event = (len(SimpleEntity.intersect_list(t, current) > 0))
+                                    else:
+                                        generate_event = (len(SimpleEntity.intersect_list(t, (current_not_previous + previous_not_current + current_changed + previous_changed))) > 0)
+                                    if generate_event:
+                                        e = Event()
+                                        e.dataset = dv
+                                        e.type = "New version"
+                                        e.save()
                     # end of transaction
         except Exception as ex:
             print (str(ex))
