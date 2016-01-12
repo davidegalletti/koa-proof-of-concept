@@ -269,7 +269,7 @@ class SerializableSimpleEntity(models.Model):
             tag_name = etn.simple_entity.name
         else:
             tag_name = self.__class__.__name__ if etn.attribute == "" else etn.attribute
-        # already exported, I just export a short reference with the URI_Instance
+        # already exported, I just export a short reference with the URIInstance
         if self.URIInstance and self.URIInstance in exported_instances and etn.simple_entity.name_field:
             if format == 'XML':
                 xml_name = " " + etn.simple_entity.name_field + "=\"" + getattr(self, etn.simple_entity.name_field) + "\""
@@ -825,8 +825,8 @@ class SerializableSimpleEntity(models.Model):
 
     @staticmethod
     def intersect_list(first, second):
-        first_URI_instances = list(i.URI_instance for i in first)
-        return filter(lambda x: x.URI_instance in first_URI_instances, second)
+        first_URIInstances = list(i.URIInstance for i in first)
+        return filter(lambda x: x.URIInstance in first_URIInstances, second)
 
     class Meta:
         abstract = True
@@ -871,7 +871,7 @@ class WorkflowDataSet(models.Model):
         abstract = True
 
 class WorkflowTransition(SerializableSimpleEntity):
-    instance = models.ForeignKey("DataSet")
+    dataset = models.ForeignKey("DataSet")
     workflow_method = models.ForeignKey('WorkflowMethod')
     notes = models.TextField()
     # TODO: non voglio null=True ma non so come gestire la migration nella quale mi chiede un default value 
@@ -1348,7 +1348,6 @@ class DataSet(SerializableSimpleEntity):
         '''
         starting from the instances matching the filter criteria it returns the list of simple entities anywhere in the structure of the se type
         '''
-        instances = self.get_instance(db_alias)
         t = self.dataset_structure.navigate(self, "", "navigate_helper_list_by_type")
         if se in t.keys():
             return t[se]
@@ -1603,7 +1602,8 @@ class DataSet(SerializableSimpleEntity):
 
                         '''
                         released_instances_list = self.dataset_structure.navigate(self, "", "navigate_helper_list_by_type")
-                        previously_released_instances_list = previously_released.dataset_structure.navigate(self, "", "navigate_helper_list_by_type")
+                        if not self.dataset_structure.multiple_releases:
+                            previously_released_instances_list = previously_released.dataset_structure.navigate(self, "", "navigate_helper_list_by_type")
                         # I assume the list of keys of the above lists is the same, e.g. the dataset_structure has not changed
                         # keys are simpleentities
                         for se in released_instances_list.keys():
@@ -1618,20 +1618,20 @@ class DataSet(SerializableSimpleEntity):
                             '''
                             if not self.dataset_structure.multiple_releases:
                                 #     - all those that are in current but not in previous
-                                current_not_previous = list(i for i in released_instances_list[se] if i.URI_previous_version not in list(i.URI_instance for i in previously_released_instances_list[se]))
+                                current_not_previous = list(i for i in released_instances_list[se] if i.URI_previous_version not in list(i.URIInstance for i in previously_released_instances_list[se]))
                                 #    - all those that are in previous but not in current
-                                previous_not_current = list(i for i in previously_released_instances_list[se] if i.URI_instance not in list(i.URI_previous_version for i in released_instances_list[se]))
+                                previous_not_current = list(i for i in previously_released_instances_list[se] if i.URIInstance not in list(i.URI_previous_version for i in released_instances_list[se]))
                                 #    - all those that are in both but have changed 
                                 current_changed = []
                                 previous_changed = []
-                                previous_and_current = list(i for i in previously_released_instances_list[se] if i.URI_instance in list(i.URI_previous_version for i in released_instances_list[se]))
+                                previous_and_current = list(i for i in previously_released_instances_list[se] if i.URIInstance in list(i.URI_previous_version for i in released_instances_list[se]))
                                 for previous_instance in previous_and_current:
-                                    current_instance = list(i for i in released_instances_list[se] if i.URI_previous_version == previous_instance.URI_instance)[0]
+                                    current_instance = list(i for i in released_instances_list[se] if i.URI_previous_version == previous_instance.URIInstance)[0]
                                     if not SimpleEntity.compare(current_instance, previous_instance):
                                         current_changed.append(current_instance)
                                         previous_changed.append(previous_instance)
                             else: # CHECK: è già una lista?
-                                current = list(i for i in released_instances_list[se])
+                                current = released_instances_list[se]
                             # for each simple entity I must find the list of all structures of type view the contain
                             # at least a node of that type;
                             structure_views = se.dataset_types(is_shallow=False, is_a_view=True, external_reference=False)
