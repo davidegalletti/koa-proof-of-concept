@@ -1643,7 +1643,7 @@ class DataSet(SerializableSimpleEntity):
                                     t = dv.get_instances_of_a_type(se)
                                     generate_event = False
                                     if self.dataset_structure.multiple_releases:
-                                        generate_event = (len(SimpleEntity.intersect_list(t, current) > 0))
+                                        generate_event = (len(SimpleEntity.intersect_list(t, current)) > 0)
                                     else:
                                         generate_event = (len(SimpleEntity.intersect_list(t, (current_not_previous + previous_not_current + current_changed + previous_changed))) > 0)
                                     if generate_event:
