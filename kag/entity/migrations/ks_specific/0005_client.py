@@ -20,7 +20,7 @@ def forwards_func(apps, schema_editor):
     root_ks.this_ks = False
     root_ks.save()
     
-    m_test_client_org_ks = KnowledgeServer(name="A demo OKS used as a client.", scheme="http", netloc="client.thekoa.org", description="Just a test.", organization=test_client_org, this_ks=True,html_home="", html_disclaimer="<p>This web site is solely for test purposes. Feel free to <a href='http://www.c4k.it/?q=contact' target='_blank'>contact us</a>.</p>")
+    m_test_client_org_ks = KnowledgeServer(name="A demo OKS used as a client.", scheme="http", netloc="client.thekoa.org", description="Just a test.", organization=test_client_org, this_ks=True,html_home="", html_disclaimer="This web site is solely for test purposes. Feel free to contact us.")
     m_test_client_org_ks.save(using='ksm')
     test_client_org_ks = m_test_client_org_ks
     test_client_org_ks.id = None

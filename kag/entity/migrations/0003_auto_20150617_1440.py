@@ -10,7 +10,7 @@ def forwards_func(apps, schema_editor):
     
     the_koa_org = Organization();the_koa_org.id=1;the_koa_org.name="the Knowledge Oriented Architecture";the_koa_org.URIInstance="http://rootks.thekoa.org/entity/Organization/1";the_koa_org.website='http://www.theKOA.org';the_koa_org.description="the Knowledge Oriented Architecture organization .....";the_koa_org.save(using=db_alias)
     
-    the_koa_org_ks = KnowledgeServer(pk=1, name="theKOA.org root Open Knowledge Server", scheme="http", netloc="rootks.thekoa.org", URIInstance="http://rootks.thekoa.org/entity/KnowledgeServer/1", description="The main OKS, defining the main structures and datasets used by any other Knowledge Server.", organization=the_koa_org, this_ks=True,html_home="<i><strong>rootks html_home</strong></i>", html_disclaimer="<i><strong>rootks html_disclaimer</strong></i>")
+    the_koa_org_ks = KnowledgeServer(pk=1, name="theKOA.org root Open Knowledge Server", scheme="http", netloc="rootks.thekoa.org", URIInstance="http://rootks.thekoa.org/entity/KnowledgeServer/1", description="The main OKS, defining the main structures and datasets used by any other Knowledge Server.", organization=the_koa_org, this_ks=True,html_home="rootks html_home", html_disclaimer="rootks html_disclaimer")
     the_koa_org_ks.save(using=db_alias)
     
     #SimpleEntity
