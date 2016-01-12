@@ -25,7 +25,7 @@ def version_instance_info(dataset, instances, *args, **kwargs):
         ret_string += 'Version ' + ('' if dataset.version_released else '(<font color="red">not released</font>) ') + str(dataset.version_major) + '.' + str(dataset.version_minor) + '.' + str(dataset.version_patch) + ' - ' + str(dataset.version_date)
         if not dataset.licenses is None:
             ret_string += '<br>Licenses: '
-        for l in dataset.licenses:
+        for l in dataset.licenses.all():
             ret_string += '<br> ' + l.name
         if dataset.version_released:
             ret_string += '</p>'
