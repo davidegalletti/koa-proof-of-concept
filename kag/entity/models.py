@@ -1076,13 +1076,23 @@ class SimpleEntity(SerializableSimpleEntity):
         '''
         types = []
         nodes = StructureNode.objects.using('ksm').filter(simple_entity=self, external_reference=external_reference)
-        for node in nodes:
-            entry_node = node
-            while len(entry_node.parent.all()) == 1:
-                entry_node = entry_node.parent.all()[0]
-            dataset_type = entry_node.dataset_type.all()[0]
-            if (not dataset_type in types) and dataset_type.is_shallow == is_shallow and dataset_type.is_a_view == is_a_view:
-                types.append(dataset_type)
+        try:
+            for node in nodes:
+                entry_node = node
+                visited_nodes_ids = []
+                visited_nodes_ids.append(entry_node.id)
+                while len(entry_node.parent.all()) > 0:
+                    for parent in entry_node.parent.all():
+                        if parent.id not in visited_nodes_ids:
+                            entry_node = parent
+                            visited_nodes_ids.append(entry_node.id)
+                            break
+                dataset_type = entry_node.dataset_type.all()[0]
+                if (not dataset_type in types) and dataset_type.is_shallow == is_shallow and dataset_type.is_a_view == is_a_view:
+                    types.append(dataset_type)
+        except Exception as ex:
+            print ("dataset_types type(self): " + str(type(self)) + " self.id " + str(self.id) + ex.message)
+            print ("visited_nodes_ids : " + str(visited_nodes_ids))
         return types
 
 class AttributeType(SerializableSimpleEntity):
@@ -1653,7 +1663,7 @@ class DataSet(SerializableSimpleEntity):
                                         e.save()
                     # end of transaction
         except Exception as ex:
-            print (str(ex))
+            print ("set_released (" + self.description + "): " + str(ex))
     
     def delete_entire_dataset(self):
         '''

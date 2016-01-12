@@ -565,6 +565,74 @@ def debug(request):
     created to debug code
     '''
     try:
+        from entity.models import Organization, KnowledgeServer, DataSet, DataSetStructure, SimpleEntity, StructureNode
+        from license.models import License
+
+        test_license_org = Organization();test_license_org.name="A test Organization hosting license information";test_license_org.website='http://license_org.example.com';test_license_org.description="This is just a test Organization.";
+        test_license_org.save(using='default')
+        id_on_default_db = test_license_org.id
+        test_license_org.id = None
+        test_license_org.save(using='ksm')
+        m_test_license_org = test_license_org
+        test_license_org = Organization.objects.get(pk=id_on_default_db)
+        
+        root_ks = KnowledgeServer.this_knowledge_server('default')
+        root_ks.this_ks = False
+        root_ks.save()
+        root_ks = KnowledgeServer.this_knowledge_server()
+        root_ks.this_ks = False
+        root_ks.save()
+        
+        m_test_license_org_ks = KnowledgeServer(name="A demo OKS using some data from opendefinition.org.", scheme="http", netloc="licensedemo.thekoa.org", description="Please not that this site not affiliated with opendefinition.org. It is just a test some opendefinition.org data.", organization=test_license_org, this_ks=True,html_home="<i><strong>licenses html_home</strong></i>", html_disclaimer="<p>    ; information provided is taken from sources that make it available with <a href='http://opendefinition.org/licenses/' target='_blank'>opendefinition.org conformant licenses</a>. If you think that part of this information should not be provided here or that any information is somehow misleading please <a href='http://www.c4k.it/?q=contact' target='_blank'>contact us</a>.</p>")
+        m_test_license_org_ks.save(using='ksm')
+        test_license_org_ks = m_test_license_org_ks
+        test_license_org_ks.id = None
+        test_license_org_ks.URIInstance = ""
+        test_license_org_ks.save(using='default')
+        
+        # m_test_license_org and test_license_org have the wrong URIInstance because they where created before their Knowledge Server
+        # I fix this:
+        m_test_license_org.URIInstance = ""
+        m_test_license_org.save()
+        test_license_org.URIInstance = ""
+        test_license_org.save()
+        
+        
+        m_es = DataSetStructure.objects.using('ksm').get(name = DataSetStructure.organization_dataset_structure_name)
+        es = DataSetStructure.objects.get(URIInstance = m_es.URIInstance)
+        ei = DataSet(owner_knowledge_server=test_license_org_ks,entry_point_instance_id=test_license_org.id,dataset_structure=es,description="A test Organization and their KSs",version_major=0,version_minor=1,version_patch=0)
+        ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+        # let's materialize the ei; I cannot release it as I saved manually the ks in ksm (I cannot do otherwise as it 
+        # is needed to generateURIInstance every time something is saved)
+        ei.materialize(ei.shallow_dataset_structure().entry_point, processed_instances = [])
+        
+        
+        
+        #it was in 0004_common
+        
+        this_ks = KnowledgeServer.this_knowledge_server('default')
+        seLicense = SimpleEntity.objects.using('default').get(name="License")
+        
+        en1=StructureNode();en1.simple_entity=seLicense;en1.save(using='default')
+        esLicense=DataSetStructure();esLicense.multiple_releases=True;esLicense.is_shallow = True;
+        esLicense.entry_point=en1;esLicense.name="License";esLicense.description="License information";esLicense.namespace="license";
+        esLicense.save(using='default')
+        m_es = DataSetStructure.objects.using('ksm').get(name=DataSetStructure.dataset_structure_name)
+        es = DataSetStructure.objects.using('default').get(URIInstance=m_es.URIInstance)
+        ei = DataSet(description='-License- data set structure',owner_knowledge_server=this_ks,dataset_structure=es, entry_point_instance_id=esLicense.id, version_major=0,version_minor=1,version_patch=0,version_description="",version_released=True)
+        ei.save(using='default');ei.root_id=ei.id;ei.save(using='default')
+        ei.set_released() #here materialization happens
+        
+    
+            
+            
+            
+            
+            
+            
+        
+        
+        
         se = SimpleEntity.objects.get(pk=1)
         xxx = se.serialized_attributes()
         ds = DataSet.objects.get(pk=1)

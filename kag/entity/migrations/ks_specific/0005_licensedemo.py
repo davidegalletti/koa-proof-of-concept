@@ -110,7 +110,7 @@ def forwards_func(apps, schema_editor):
     ccby10.save(using='default')
     ei_ccby10 = DataSet(owner_knowledge_server=test_license_org_ks,dataset_structure=esLicense, entry_point_instance_id=ccby10.id, version_major=1,version_minor=0,version_patch=0,version_description="",version_released=True)
     ei_ccby10.save(using='default');ei_ccby10.root_id=ei_ccby10.id;ei_ccby10.save(using='default')
-    ei.set_released() #here materialization happens
+    ei_ccby10.set_released() #here materialization happens
 
     # above reccomended; below other conformant
     
