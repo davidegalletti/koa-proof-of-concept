@@ -405,6 +405,9 @@ class SerializableSimpleEntity(models.Model):
         ASSERTION: URIInstance remains the same on the materialized database
         
         processed_instances is a list of processed URIInstance 
+        
+        TODO: before invoking this method a check is done to see whether it is already materialized; is it done always? 
+        If so shall we move it inside this method?
         '''
 
         if etn.external_reference:
@@ -646,15 +649,21 @@ class SerializableSimpleEntity(models.Model):
                         setattr(self, key.name, xmldoc.attributes[key.name].firstChild.data)
                 except:
                     logger.error("Error extracting from xml \"" + key.name + "\" for object of class \"" + self.__class__.__name__ + "\" with PK " + str(self.pk))
+
+        # I set the URIInstance to "" so that one is generated automatically; URI_imported_instance is the field
+        # that allows me to track provenance
+        self.URIInstance = ""
         try:
             # URI_imported_instance stores the URIInstance from the XML
             self.URI_imported_instance = xmldoc.attributes["URIInstance"].firstChild.data
         except:
-            # there's no URIInstance in the XML; it doesn't matter
+            # there's no URIInstance in the XML; it doesn't make sense but it will be created from scratch here
             pass
         # I must set foreign_key child nodes BEFORE SAVING self otherwise I get an error for ForeignKeys not being set
         for en_child_node in structure_node.child_nodes.all():
-            if en_child_node.attribute in self.foreign_key_attributes():
+            if en_child_node.attribute == 'root':
+                pass
+            elif en_child_node.attribute in self.foreign_key_attributes():
                 try:
                     # ASSERT: in the XML there is exactly at most one child tag
                     child_tag = xmldoc.getElementsByTagName(en_child_node.attribute)
@@ -713,17 +722,23 @@ class SerializableSimpleEntity(models.Model):
         if insert:
             # TODO: UGLY PATCH: see #143
             if self.__class__.__name__ == 'DataSet':
+                '''
+                if the root (version) has been imported here then I set it as a root, otherwise self
+                '''
                 self.root = self
+                try:
+                    root_tag = xmldoc.getElementsByTagName('root')
+                    if len(root_tag) == 1:
+                        root_URIInstance = xmldoc.getElementsByTagName('root')[0].attributes["URIInstance"].firstChild.data
+                        instance = DataSet.retrieve(root_URIInstance)
+                        self.root = instance
+                except:
+                    pass
                 self.save()
         # from_xml can be invoked on an instance retrieved from the database (where URIInstance is set)
         # or created on the fly (and URIInstance is not set); in the latter case, only now I can generate URIInstance
         # as I have just saved it and I have a local ID
         
-        # TODO: now the generate_URIInstance should be invoked by the post_save
-        if not self.URIInstance:
-            self.URIInstance = self.generate_URIInstance()
-            self.save()
- 
         for en_child_node in structure_node.child_nodes.all():
             # I have already processed foreign keys, I skip them now
             if (not en_child_node.attribute in self.foreign_key_attributes()):
@@ -1017,19 +1032,22 @@ class KnowledgeServer(SerializableSimpleEntity):
                     response = urllib2.urlopen(notification.URL_structure)
                     structure_xml_stream = response.read()
                     ei_structure = DataSet()
-                    ei_structure.from_xml_with_actual_instance(structure_xml_stream)
-                    
+                    ei_structure = ei_structure.from_xml_with_actual_instance(structure_xml_stream)
+                    ei_structure.dataset_structure = DataSetStructure.objects.get(name=DataSetStructure.dataset_structure_name)
+                    ei_structure.materialize_dataset()
                     # the dataset is retrieved with api #36 api_dataset that serializes
                     # the DataSet and also the complete actual instance 
                     # from_xml_with_actual_instance will create the DataSet and the actual instance
                     response = urllib2.urlopen(notification.URL_dataset)
                     dataset_xml_stream = response.read()
                     ei = DataSet()
-                    ei.from_xml_with_actual_instance(dataset_xml_stream)
+                    ei = ei.from_xml_with_actual_instance(dataset_xml_stream)
+                    ei.dataset_structure = ei_structure.get_instance()
+                    ei.materialize_dataset()
                     notification.processed = True
                     notification.save()
             except Exception as ex:
-                message += "send_notifications error: " + ex.message
+                message += "process_received_notifications error: " + ex.message
         return message + "<br>"
         
     @staticmethod
@@ -1384,15 +1402,15 @@ class DataSet(SerializableSimpleEntity):
 
         e_simple_entity = SimpleEntity.objects.get(name="DataSetStructure")
         temp_etn = StructureNode(simple_entity=e_simple_entity, external_reference=True, is_many=False, attribute="dataset_structure")
-        serialized_head += comma + self.dataset_structure.serialize(temp_etn, format=format)
+        serialized_head += comma + self.dataset_structure.serialize(temp_etn, exported_instances=[], format=format)
         
         ks_simple_entity = SimpleEntity.objects.get(name="KnowledgeServer")
         temp_etn = StructureNode(simple_entity=ks_simple_entity, external_reference=True, is_many=False, attribute="owner_knowledge_server")
-        serialized_head += comma + self.owner_knowledge_server.serialize(temp_etn, format=format)
+        serialized_head += comma + self.owner_knowledge_server.serialize(temp_etn, exported_instances=[], format=format)
         
         ei_simple_entity = SimpleEntity.objects.get(name="DataSet")
         temp_etn = StructureNode(simple_entity=ei_simple_entity, external_reference=True, is_many=False, attribute="root")
-        serialized_head += comma + self.root.serialize(temp_etn, format=format)
+        serialized_head += comma + self.root.serialize(temp_etn, exported_instances=[], format=format)
 
         if force_external_reference:
             self.dataset_structure.entry_point.external_reference = True
@@ -1440,38 +1458,52 @@ class DataSet(SerializableSimpleEntity):
         
         dataset_xml = xmldoc.childNodes[0].childNodes[0]
         DataSetStructureURI = dataset_xml.getElementsByTagName("dataset_structure")[0].attributes["URIInstance"].firstChild.data
-        # Will be created dynamically in the future, now we get it locally
+
+        # assert: the structure is present locally
         es = DataSetStructure.retrieve(DataSetStructureURI)
+        self.dataset_structure = es
         
         try:
             with transaction.atomic():
-                # I create the actual instance
-                actual_instance_xml = dataset_xml.getElementsByTagName("ActualInstance")[0].childNodes[0]
+                actual_instances_xml = []
+                if es.is_a_view:
+                    # I have a list of actual instances
+                    for instance_xml in dataset_xml.getElementsByTagName("ActualInstances")[0].childNodes:
+                        actual_instances_xml.append(instance_xml.childNodes[0])
+                else:
+                    # I create the actual instance
+                    actual_instances_xml.append(dataset_xml.getElementsByTagName("ActualInstance")[0].childNodes[0])
                 actual_class = utils.load_class(es.entry_point.simple_entity.module + ".models", es.entry_point.simple_entity.name)
-                # already imported ?
-                actual_instance_URIInstance = actual_instance_xml.attributes["URIInstance"].firstChild.data
-                try:
-                    actual_instance_on_db = actual_class.retrieve(actual_instance_URIInstance)
-                    # it is already in this database; I return the corresponding DataSet
-                    return DataSet.objects.get(dataset_structure=es, entry_point_instance_id=actual_instance_on_db.pk)
-                except:  # I didn't find it on this db, no problem
-                    pass
-                actual_instance = actual_class()
-                logger.debug("from_xml_with_actual_instance before actual_instance.from_xml")
-                actual_instance.from_xml(actual_instance_xml, es.entry_point, insert=True)
-                logger.debug("from_xml_with_actual_instance after actual_instance.from_xml")
-                # from_xml saves actual_instance on the database
+                for actual_instance_xml in actual_instances_xml:
+                    # already imported ?
+                    actual_instance_URIInstance = actual_instance_xml.attributes["URIInstance"].firstChild.data
+                    try:
+                        actual_instance = actual_class.retrieve(actual_instance_URIInstance)
+                        # it is already in this database; ?????I return the corresponding DataSet
+#?????                        return DataSet.objects.get(dataset_structure=es, entry_point_instance_id=actual_instance_on_db.pk)
+                    except:  # I didn't find it on this db, no problem
+                        actual_instance = actual_class()
+                        actual_instance.from_xml(actual_instance_xml, es.entry_point, insert=True)
+                        # from_xml saves actual_instance on the database
                 
-                # I create the DataSet
-                # In the next call the KnowledgeServer owner of this DataSet must exist
-                # So it must be imported while subscribing; it is imported by this very same method
-                # Since it is in the actual instance the next method will find it
-                logger.debug("from_xml_with_actual_instance before self.from_xml")
-                self.from_xml(dataset_xml, self.shallow_dataset_structure().entry_point, insert=True)
-                logger.debug("from_xml_with_actual_instance after self.from_xml")
-                # actual_instance.pk changes during import as we have "insert = True" and the pk is set to None
-                self.entry_point_instance_id = actual_instance.pk
-                self.save()
+                # I create the DataSet if not already imported
+                dataset_URIInstance = dataset_xml.attributes["URIInstance"].firstChild.data
+                try:
+                    dataset_on_db = DataSet.retrieve(dataset_URIInstance)
+                    if not es.is_a_view:
+                        # actual_instance.pk changes during import as we have "insert = True" and the pk is set to None
+                        dataset_on_db.entry_point_instance_id = actual_instance.pk
+                        dataset_on_db.save()
+                    return dataset_on_db
+                except:  # I didn't find it on this db, no problem
+                    # In the next call the KnowledgeServer owner of this DataSet must exist
+                    # So it must be imported while subscribing; it is imported by this very same method
+                    # Since it is in the actual instance the next method will find it
+                    self.from_xml(dataset_xml, self.shallow_dataset_structure().entry_point, insert=True)
+                    if not es.is_a_view:
+                        # actual_instance.pk changes during import as we have "insert = True" and the pk is set to None
+                        self.entry_point_instance_id = actual_instance.pk
+                        self.save()
         except Exception as ex:
             print (ex.message)
             raise ex
@@ -1545,10 +1577,34 @@ class DataSet(SerializableSimpleEntity):
         self.version_major = version_major
         self.version_minor = version_minor
         self.version_patch = version_patch
-                    
+
+    def materialize_dataset(self):
+        '''
+        if this dataset is a view then I have imported it and need to materialize it with all its instances
+        if it is not a view it will have just one instance
+        '''
+        try:
+            if self.dataset_structure.is_a_view:
+                instances = self.get_instances(db_alias='default')
+            else:
+                instances = []
+                instances.append(self.get_instance(db_alias='default'))
+            for instance in instances:
+                m_existing = instance.__class__.objects.using('ksm').filter(URI_imported_instance=instance.URI_imported_instance)
+                if len(m_existing) == 0:
+                    instance.materialize(self.dataset_structure.entry_point, processed_instances=[])
+            m_existing = DataSet.objects.using('ksm').filter(URI_imported_instance=self.URI_imported_instance)
+            if len(m_existing) == 0:
+                self.materialize(self.shallow_dataset_structure().entry_point, processed_instances=[])
+            # end of transaction
+        except Exception as ex:
+            raise ex
+            print ("materialize_dataset (" + self.description + "): " + str(ex))
+        
+        
     def set_released(self):
         '''
-        Sets this version as the only released one 
+        Sets this version as the (only) released (one)
         It materializes data and the DataSet itself
         It triggers the generation of events so that subscribers to relevant datasets can get the notification
         '''
@@ -1828,6 +1884,9 @@ class KsUri(object):
     def base64(self):
         return base64.encodestring(self.uri).replace('\n', '')
         
+    def __repr__(self):
+        return self.scheme + '://' + self.netloc + '/' + self.namespace + '/' + self.class_name + '/' + str(self.pk_value)
+    
     def search_on_db(self):
         '''
         Database check
