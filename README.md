@@ -5,4 +5,4 @@ Knowledge Oriented Architecture (KOA). You can read more about the KOA here: htt
 
 I you are interested in the KOA you can request to see the working prototype here: http://www.thekoa.org/contact
 
-This prototype is no longer maintained; a complete rewrite has started, the code is here: https://github.com/TheKnowledgeOrientedArchitecture/oks
+This prototype is no longer maintained; in January 2016 a complete rewrite has been started, the code is here: https://github.com/TheKnowledgeOrientedArchitecture/oks
